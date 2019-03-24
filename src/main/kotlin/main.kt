@@ -4,7 +4,6 @@ import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 
 //Kyle Dahlin 2019
-//544953046694756358L
 
 private lateinit var mId: Snowflake
 private lateinit var mRules: Set<Rule>
@@ -38,5 +37,7 @@ fun main() {
 private fun getToken(): String {
     val classloader = Thread.currentThread().contextClassLoader
     val inputStream = classloader.getResourceAsStream("token.txt")
-    return inputStream.readBytes().toString()
+    val token = String(inputStream.readBytes()).trim()
+    println("returning token $token")
+    return token
 }
