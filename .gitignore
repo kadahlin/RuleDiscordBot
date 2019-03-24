@@ -1,0 +1,6 @@
+src/main/resources/adminusernames.txt
+src/main/resources/usernames.txt
+src/main/resources/token.txt
+src/main/resources/botusername.txt
+.idea/
+.gradle/
