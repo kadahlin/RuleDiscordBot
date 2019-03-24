@@ -4,3 +4,4 @@ src/main/resources/token.txt
 src/main/resources/botusername.txt
 .idea/
 .gradle/
+out/
