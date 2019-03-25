@@ -20,12 +20,12 @@ import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 
 private lateinit var mId: Snowflake
-private lateinit var mRules: Set<Rule>
+private lateinit var mRules: List<Rule>
 
 private const val RULES = "rules please"
 
 fun main(args: Array<String>) {
-    mRules = setOf(TimeoutRule(), BotMentionRule())
+    mRules = listOf(TimeoutRule(), BotMentionRule())
 
     val client = DiscordClientBuilder(getToken()).build()
     parseAndSetLogLevel(args)

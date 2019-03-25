@@ -57,7 +57,7 @@ internal class TimeoutRule : Rule("Timeout") {
         }
         val existingTimeout = mTimeouts.firstOrNull { it.username == author }
         if (existingTimeout != null) {
-            if (existingTimeout.startTime + (existingTimeout.minutes * 60 * 1000) > System.currentTimeMillis()) {
+            if (existingTimeout.startTime + (existingTimeout.minutes.toLong() * 60L * 1000L) > System.currentTimeMillis()) {
                 //should delete message
                 message.delete().subscribe()
                 logDebug("user $author is still on timeout, deleting")
@@ -76,9 +76,8 @@ internal class TimeoutRule : Rule("Timeout") {
         return StringBuilder().apply {
             append("Set timeouts for people with a duration in minutes\n")
             append("To use: post a message that contains:\n")
-            append("\t1. the phrase ${bot.username}\n")
-            append("\t2. a @user to timeout\n")
-            append("\t3. the phrase 'XX minute timeout' where XX is the duration of the timeout in minutes\n")
+            append("\t1. one or more @user to timeout\n")
+            append("\t2. the phrase 'XX minute timeout' where XX is the duration of the timeout in minutes\n")
             append("To remove an existing timeout post a message that contains:\n")
             append("\t1. the word remove\n")
             append("\t2. the word timeout\n")
@@ -95,10 +94,10 @@ internal class TimeoutRule : Rule("Timeout") {
             .collectList()
             .subscribe { usernames ->
                 mTimeouts.removeIf { usernames.contains(it.username) }
-                val lastTimeout = usernames.map {
-                    val timeout = Timeout(it, System.currentTimeMillis(), duration)
+                val lastTimeout = usernames.map { username ->
+                    val timeout = Timeout(username, System.currentTimeMillis(), duration)
                     mTimeouts.add(timeout)
-                    logInfo("adding timeout for user $it at ${timeout.startTime} for ${timeout.minutes} minutes")
+                    logInfo("adding timeout for user $username at ${timeout.startTime} for ${timeout.minutes} minutes")
                     timeout
                 }.last()
                 message.channel
@@ -128,10 +127,9 @@ internal class TimeoutRule : Rule("Timeout") {
 
     private fun Message.containsTimeoutCommand(): Mono<Boolean> {
         val content = this.content.get()
-        logDebug("testing $content for timeout command")
+        logDebug("testing '$content' for timeout command")
         return this.getUsernames().collectList().flatMap { usernames ->
-            val validTimeoutCommand = content.contains(bot.username)
-                    && timeoutRegex.containsMatchIn(content)
+            val validTimeoutCommand = timeoutRegex.containsMatchIn(content)
                     && usernames.isNotEmpty()
             Mono.just(validTimeoutCommand)
         }
@@ -139,7 +137,7 @@ internal class TimeoutRule : Rule("Timeout") {
 
     private fun Message.containsRemovalCommand(): Mono<Boolean> {
         val content = this.content.get()
-        logDebug("testing $content for removal command")
+        logDebug("testing '$content' for removal command")
         return this.getUsernames().collectList().flatMap { usernames ->
             val isValidRemovalCommand = usernames.isNotEmpty()
                     && content.contains("remove")
