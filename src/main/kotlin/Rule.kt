@@ -100,7 +100,5 @@ private fun distortText(text: String): String {
 internal fun getTokenFromFile(filename: String): String {
     val classloader = Thread.currentThread().contextClassLoader
     val inputStream = classloader.getResourceAsStream(filename)
-    val token = String(inputStream.readBytes()).trim()
-    println("returning token $token")
-    return token
+    return String(inputStream.readBytes()).trim()
 }

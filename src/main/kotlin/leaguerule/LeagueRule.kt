@@ -72,27 +72,43 @@ class LeagueRule : Rule("LeagueRank") {
             val firstMatch = leagueRegex.find(content)?.value!!
             val username = firstMatch.split("\\s+".toRegex()).last()
             val summonerId = getSummonerId(username)
-            val leagueMessage = getFirstRankString(summonerId)
-            if (leagueMessage != null) {
+            if (summonerId == null) {
                 message.channel
-                    .flatMap { it.createMessage(leagueMessage) }
+                    .flatMap { it.createMessage("this player doesn't seem to exist") }
                     .subscribe()
+            } else {
+                val leagueMessage = getFirstRankString(summonerId)
+                if (leagueMessage != null) {
+                    message.channel
+                        .flatMap { it.createMessage(leagueMessage) }
+                        .subscribe()
+                }
             }
         }
     }
 
-    private suspend fun getSummonerId(leagueUsername: String): String {
+    private suspend fun getSummonerId(leagueUsername: String): String? {
         val newRequest = summonerRequest.replace(SUMMONER_NAME, leagueUsername)
         val request = newRequest + leagueApiKey
         logDebug("summoner request is $request")
-        val summonerResponse = client.get<Summoner>(newRequest + leagueApiKey)
+        val summonerResponse = try {
+            client.get<Summoner>(newRequest + leagueApiKey)
+        } catch (e: Exception) {
+            logError("could not get summonerId for $leagueUsername")
+            return null
+        }
         logDebug("summonerIf for $leagueUsername is ${summonerResponse.id}")
         return summonerResponse.id
     }
 
     private suspend fun getFirstRankString(summonerId: String): String? {
         val newRequest = rankRequest.replace(SUMMONER_ID, summonerId)
-        val ranks = client.get<RankedLeagueList>(newRequest + leagueApiKey).leagues
+        val ranks = try {
+            client.get<RankedLeagueList>(newRequest + leagueApiKey).leagues
+        } catch (e: Exception) {
+            logError("could not get ranks for $summonerId")
+            emptyList<RankedLeague>()
+        }
         logDebug("there were ${ranks.size} ranks returned for $summonerId")
         if (ranks.isEmpty()) return "This player has no ranked positions"
 
@@ -102,6 +118,7 @@ class LeagueRule : Rule("LeagueRank") {
 
     private val client
         get() = HttpClient(Apache) {
+            expectSuccess = false
             install(JsonFeature) {
                 serializer = KotlinxSerializer()
             }
