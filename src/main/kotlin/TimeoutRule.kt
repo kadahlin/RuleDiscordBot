@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono
 import java.text.SimpleDateFormat
 import java.util.*
 
-class Timeout(
+private class Timeout(
     val username: String,
     val startTime: Long,
     val minutes: Int
@@ -32,26 +32,27 @@ class Timeout(
     }
 
     fun format(): String {
-        val date = Date(startTime + (minutes * 60 * 1000))
-        val format = SimpleDateFormat("hh:mm")
+        val date = Date(startTime + (minutes.toLong() * 60L * 1000L))
+        val format = SimpleDateFormat("hh:mm MMMM dd, YYYY", Locale.US)
         return format.format(date)
     }
 }
 
 private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
 
-class TimeoutRule : Rule("TimeoutRule") {
+/**
+ * Allow admins to timeout other users on the server
+ *
+ * Any message that a user on timeout types will be instantly deleted
+ */
+internal class TimeoutRule : Rule("Timeout") {
 
     //Map of userId ->
     private val mTimeouts = mutableSetOf<Timeout>()
 
     override fun handleRule(message: Message): Mono<Boolean> {
         val author = message.author.get().username
-        if (message.containsRemovalCommand().block()!! && message.author.get().canIssueRules()) {
-            message.getUsernames().collectList().subscribe { usernames ->
-                mTimeouts.removeAll { usernames.contains(it.username) }
-                logInfo("removing the timeout for ${usernames.joinToString { it }}")
-            }
+        if (processRemovalCommand(message)) {
             return Mono.just(true)
         }
         val existingTimeout = mTimeouts.firstOrNull { it.username == author }
@@ -69,6 +70,20 @@ class TimeoutRule : Rule("TimeoutRule") {
             return Mono.just(false)
         }
         return Mono.just(processTimeoutCommand(message))
+    }
+
+    override fun getExplanation(): String? {
+        return StringBuilder().apply {
+            append("Set timeouts for people with a duration in minutes\n")
+            append("To use: post a message that contains:\n")
+            append("\t1. the phrase ${bot.username}\n")
+            append("\t2. a @user to timeout\n")
+            append("\t3. the phrase 'XX minute timeout' where XX is the duration of the timeout in minutes\n")
+            append("To remove an existing timeout post a message that contains:\n")
+            append("\t1. the word remove\n")
+            append("\t2. the word timeout\n")
+            append("\t3. the @user(s) to remove a timeout for\n")
+        }.toString()
     }
 
     //true if their was a valid command to process
@@ -91,10 +106,24 @@ class TimeoutRule : Rule("TimeoutRule") {
                         val noun = if (usernames.size > 1) "their" else "his"
                         val adminUsername = message.author.get().username
                         val adminSnowflake = adminUsernames.first { it.username == adminUsername }
-                        channel.createMessage("<@$adminSnowflake> sure thing chief, $noun timeout will end at ${lastTimeout.format()}")
+                        channel.createMessage("<@${adminSnowflake.id}> sure thing chief, $noun timeout will end at ${lastTimeout.format()}")
                     }.subscribe()
             }
         return true
+    }
+
+    private fun processRemovalCommand(message: Message): Boolean {
+        return if (message.containsRemovalCommand().block()!! && message.author.get().canIssueRules()) {
+            message.getUsernames().collectList().subscribe { usernames ->
+                mTimeouts.removeAll { usernames.contains(it.username) }
+                logInfo("removing the timeout for ${usernames.joinToString { it }}")
+                val adminUsername = message.author.get().username
+                val adminSnowflake = adminUsernames.first { it.username == adminUsername }
+                message.channel.block()?.createMessage("<@${adminSnowflake.id}> timeout removed")?.subscribe()
+            }
+            true
+        } else
+            false
     }
 
     private fun Message.containsTimeoutCommand(): Mono<Boolean> {

@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono
 
 //Respond to the user if they mention honk bot and its not kyle
 
-class BotMentionRule : Rule("BotMentionRule") {
+class BotMentionRule : Rule("BotMention") {
 
     override fun handleRule(message: Message): Mono<Boolean> {
         return message.getUsernames()
@@ -28,10 +28,14 @@ class BotMentionRule : Rule("BotMentionRule") {
                 val isNotEmpty = it.isNotEmpty()
                 if (isNotEmpty) {
                     message.channel
-                        .flatMap { channel -> channel.createMessage("Dont mention ${bot.username} directly. I haven't added code for this yet but I will") }
+//                        .flatMap { channel -> channel.createMessage("Dont mention ${bot.username} directly. I haven't added code for this yet but I will") }
                         .subscribe()
                 }
                 Mono.just(isNotEmpty)
             }
     }
+
+    override fun getExplanation(): String? = null
+
+    override fun isAdminOnly() = false
 }

@@ -22,7 +22,7 @@ import reactor.core.publisher.Mono
 /**
  * A self contained piece of logic that operates on the messages given to it.
  */
-abstract class Rule(private val ruleName: String) {
+abstract class Rule(internal val ruleName: String) {
     /**
      * Process this message and determine if action is necessary.
      *
@@ -31,24 +31,31 @@ abstract class Rule(private val ruleName: String) {
     abstract fun handleRule(message: Message): Mono<Boolean>
 
     /**
+     * Get a human readable description of how to use this rule
+     */
+    abstract fun getExplanation(): String?
+
+    protected open fun isAdminOnly() = true
+
+    /**
      * Log information that is only useful when debugging
      */
     protected fun logDebug(logMessage: String) {
-        Logger.logDebug("[$ruleName] $logMessage")
+        Logger.logDebug("[${ruleName}Rule] $logMessage")
     }
 
     /**
      * Log information that is useful when seeing past actions
      */
     protected fun logInfo(logMessage: String) {
-        Logger.logInfo("[$ruleName] $logMessage")
+        Logger.logInfo("[${ruleName}Rule] $logMessage")
     }
 
     /**
      * Log information related to a program error
      */
     protected fun logError(logMessage: String) {
-        Logger.logError("[$ruleName] $logMessage")
+        Logger.logError("[${ruleName}Rule] $logMessage")
     }
 }
 

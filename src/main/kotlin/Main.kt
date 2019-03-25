@@ -14,14 +14,15 @@
 *limitations under the License.
 */
 import discord4j.core.DiscordClientBuilder
+import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 
-//Kyle Dahlin 2019
-
 private lateinit var mId: Snowflake
 private lateinit var mRules: Set<Rule>
+
+private const val RULES = "rules please"
 
 fun main(args: Array<String>) {
     mRules = setOf(TimeoutRule(), BotMentionRule())
@@ -41,8 +42,12 @@ fun main(args: Array<String>) {
             println("message from $username")
             println("content is ${msg.content.get()}")
             if (msg.author.get().username != bot.username) {
-                mRules.any {
-                    it.handleRule(msg).block()!!
+                if (msg.content.get() == RULES) {
+                    printRules(msg.channel.block()!!)
+                } else {
+                    mRules.any {
+                        it.handleRule(msg).block()!!
+                    }
                 }
             }
         }
@@ -67,4 +72,11 @@ private fun parseAndSetLogLevel(args: Array<String>) {
         val logLevel = args[logIndex + 1].toUpperCase()
         Logger.setLogLevel(LogLevel.valueOf(logLevel))
     }
+}
+
+private fun printRules(channel: MessageChannel) {
+    val ruleMessages = mRules
+        .filterNot { it.getExplanation() == null }
+        .joinToString(separator = "\n") { "${it.ruleName}: ${it.getExplanation()}" }
+    channel.createMessage(ruleMessages).subscribe()
 }
