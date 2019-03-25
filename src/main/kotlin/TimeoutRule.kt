@@ -1,3 +1,19 @@
+/*
+*Copyright 2019 Kyle Dahlin
+*
+*Licensed under the Apache License, Version 2.0 (the "License");
+*you may not use this file except in compliance with the License.
+*You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+*Unless required by applicable law or agreed to in writing, software
+*distributed under the License is distributed on an "AS IS" BASIS,
+*WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*See the License for the specific language governing permissions and
+*limitations under the License.
+*/
+
 import discord4j.core.`object`.entity.Message
 import reactor.core.publisher.Mono
 import java.text.SimpleDateFormat
@@ -24,7 +40,7 @@ class Timeout(
 
 private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
 
-class TimeoutRule : Rule {
+class TimeoutRule : Rule("TimeoutRule") {
 
     //Map of userId ->
     private val mTimeouts = mutableSetOf<Timeout>()
@@ -34,7 +50,7 @@ class TimeoutRule : Rule {
         if (message.containsRemovalCommand().block()!! && message.author.get().canIssueRules()) {
             message.getUsernames().collectList().subscribe { usernames ->
                 mTimeouts.removeAll { usernames.contains(it.username) }
-                println("removing the timeout for ${usernames.joinToString { it }}")
+                logInfo("removing the timeout for ${usernames.joinToString { it }}")
             }
             return Mono.just(true)
         }
@@ -43,10 +59,10 @@ class TimeoutRule : Rule {
             if (existingTimeout.startTime + (existingTimeout.minutes * 60 * 1000) > System.currentTimeMillis()) {
                 //should delete message
                 message.delete().subscribe()
-                println("user $author is still on timeout, deleting")
+                logDebug("user $author is still on timeout, deleting")
             } else {
                 mTimeouts.removeIf { it.username == author }
-                println("removing timeout for user: $author")
+                logDebug("removing timeout for user: $author")
             }
         }
         if (!message.author.get().canIssueRules()) {
@@ -67,7 +83,7 @@ class TimeoutRule : Rule {
                 val lastTimeout = usernames.map {
                     val timeout = Timeout(it, System.currentTimeMillis(), duration)
                     mTimeouts.add(timeout)
-                    println("adding timeout for user $it at ${timeout.startTime} for ${timeout.minutes} minutes")
+                    logInfo("adding timeout for user $it at ${timeout.startTime} for ${timeout.minutes} minutes")
                     timeout
                 }.last()
                 message.channel
@@ -83,7 +99,7 @@ class TimeoutRule : Rule {
 
     private fun Message.containsTimeoutCommand(): Mono<Boolean> {
         val content = this.content.get()
-        println("testing $content for timeout command")
+        logDebug("testing $content for timeout command")
         return this.getUsernames().collectList().flatMap { usernames ->
             val validTimeoutCommand = content.contains(bot.username)
                     && timeoutRegex.containsMatchIn(content)
@@ -94,7 +110,7 @@ class TimeoutRule : Rule {
 
     private fun Message.containsRemovalCommand(): Mono<Boolean> {
         val content = this.content.get()
-        println("testing $content for removal command")
+        logDebug("testing $content for removal command")
         return this.getUsernames().collectList().flatMap { usernames ->
             val isValidRemovalCommand = usernames.isNotEmpty()
                     && content.contains("remove")
