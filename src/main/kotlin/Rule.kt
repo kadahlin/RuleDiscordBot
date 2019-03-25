@@ -95,3 +95,12 @@ private fun distortText(text: String): String {
         }
     }.joinToString(separator = "") { it.toString() }
 }
+
+//Load the discord bot secret token from resources
+internal fun getTokenFromFile(filename: String): String {
+    val classloader = Thread.currentThread().contextClassLoader
+    val inputStream = classloader.getResourceAsStream(filename)
+    val token = String(inputStream.readBytes()).trim()
+    println("returning token $token")
+    return token
+}

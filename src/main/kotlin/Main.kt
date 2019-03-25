@@ -18,6 +18,7 @@ import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
+import leaguerule.LeagueRule
 
 private lateinit var mId: Snowflake
 private lateinit var mRules: List<Rule>
@@ -25,9 +26,9 @@ private lateinit var mRules: List<Rule>
 private const val RULES = "rules please"
 
 fun main(args: Array<String>) {
-    mRules = listOf(TimeoutRule(), BotMentionRule())
+    mRules = listOf(TimeoutRule(), LeagueRule(), BotMentionRule())
 
-    val client = DiscordClientBuilder(getToken()).build()
+    val client = DiscordClientBuilder(getTokenFromFile("token.txt")).build()
     parseAndSetLogLevel(args)
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
@@ -53,15 +54,6 @@ fun main(args: Array<String>) {
         }
 
     client.login().block()
-}
-
-//Load the discord bot secret token from resources
-private fun getToken(): String {
-    val classloader = Thread.currentThread().contextClassLoader
-    val inputStream = classloader.getResourceAsStream("token.txt")
-    val token = String(inputStream.readBytes()).trim()
-    println("returning token $token")
-    return token
 }
 
 private fun parseAndSetLogLevel(args: Array<String>) {

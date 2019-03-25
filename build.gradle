@@ -1,5 +1,14 @@
+buildscript {
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.21"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:1.3.21"
+    }
+}
+
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.21'
+    id 'kotlinx-serialization' version '1.3.21'
+
 }
 
 group 'com.kyledahlin'
@@ -7,11 +16,21 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    maven { url "https://kotlin.bintray.com/kotlinx" }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "com.discord4j:discord4j-core:3.0.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.10.0"
+    
+    //networking
+    implementation "io.ktor:ktor-client-core:1.1.3"
+    implementation "io.ktor:ktor-client-json:1.1.3"
+    implementation "io.ktor:ktor-client-json-jvm:1.1.3"
+    implementation "io.ktor:ktor-client-apache:1.1.3"
+
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.1.1"
 }
 
 compileKotlin {
