@@ -18,6 +18,7 @@ import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
+import jojorule.JojoMemeRule
 import leaguerule.LeagueRule
 
 private lateinit var mId: Snowflake
@@ -26,7 +27,7 @@ private lateinit var mRules: List<Rule>
 private const val RULES = "rules please"
 
 fun main(args: Array<String>) {
-    mRules = listOf(TimeoutRule(), LeagueRule(), BotMentionRule())
+    mRules = listOf(TimeoutRule(), LeagueRule(), BotMentionRule(), JojoMemeRule())
 
     val client = DiscordClientBuilder(getTokenFromFile("token.txt")).build()
     parseAndSetLogLevel(args)
@@ -69,6 +70,6 @@ private fun parseAndSetLogLevel(args: Array<String>) {
 private fun printRules(channel: MessageChannel) {
     val ruleMessages = mRules
         .filterNot { it.getExplanation() == null }
-        .joinToString(separator = "\n") { "${it.ruleName}: ${it.getExplanation()}" }
+        .joinToString(separator = "\n") { "${it.ruleName}:\t${it.getExplanation()}" }
     channel.createMessage(ruleMessages).subscribe()
 }
