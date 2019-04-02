@@ -21,8 +21,8 @@ import reactor.core.publisher.Mono
 class BotMentionRule : Rule("BotMention") {
 
     override fun handleRule(message: Message): Mono<Boolean> {
-        return message.getUsernames()
-            .filter { it == bot.username }
+        return message.getSnowflakes(filterBot = false)
+            .filter { it.asLong() == bot.snowflake }
             .collectList()
             .flatMap {
                 val isNotEmpty = it.isNotEmpty()

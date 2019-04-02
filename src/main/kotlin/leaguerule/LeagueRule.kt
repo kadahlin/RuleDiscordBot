@@ -97,7 +97,7 @@ class LeagueRule : Rule("LeagueRank") {
             logError("could not get summonerId for $leagueUsername")
             return null
         }
-        logDebug("summonerIf for $leagueUsername is ${summonerResponse.id}")
+        logDebug("summonerId for $leagueUsername is ${summonerResponse.id}")
         return summonerResponse.id
     }
 

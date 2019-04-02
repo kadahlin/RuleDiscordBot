@@ -6,3 +6,6 @@ src/main/resources/botusername.txt
 .gradle/
 out/
 leagueapi.txt
+jojo_id_file
+timeout_file
+build/

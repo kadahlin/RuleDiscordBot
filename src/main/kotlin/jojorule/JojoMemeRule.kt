@@ -27,16 +27,26 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import reactor.core.publisher.Mono
+import java.io.File
 
 private const val RULE_PHRASE = "spicy jojo meme"
+private const val JOJO_FILE_NAME = "jojo_id_file"
 
 /**
- * Post one of the top images for the day from r/ShitPostCrusaders
+ * Post one of the top images for the month from r/ShitPostCrusaders
+ *
+ * This rule will save to a file any post that it has already posted and will post unique images until the file is modified
  */
 class JojoMemeRule : Rule("JoJoMeme") {
 
-    //the fetched posts that have already posted while this rule has been alive
+    //the fetched posts that have already posted while this rule has been active
     private val mPostedIds = mutableSetOf<String>()
+
+    init {
+        val fileIds = getPostedIdsFromFile()
+        logDebug("loading ${fileIds.size} items from the saved jojo file")
+        mPostedIds.addAll(fileIds)
+    }
 
     override fun handleRule(message: Message): Mono<Boolean> {
         val doesContain = message.containsJojoRule()
@@ -55,6 +65,8 @@ class JojoMemeRule : Rule("JoJoMeme") {
     private fun Message.containsJojoRule() = content.get().toLowerCase().contains(RULE_PHRASE)
 
     private fun postJojoMemeFrom(message: Message) = GlobalScope.launch {
+        val channel = message.channelId
+        logDebug("jojo message from ${channel.asString()}")
         val redditResponse = client.get<RedditResponse>(JOJO_REDDIT) {
             header(
                 "User-Agent",
@@ -68,10 +80,24 @@ class JojoMemeRule : Rule("JoJoMeme") {
             !mPostedIds.contains(it.data.id) && !it.data.is_video
         }?.data ?: return@launch
 
+        saveIdToFile(dataToPost.id)
+
         mPostedIds.add(dataToPost.id)
         message.channel
             .flatMap { it.createMessage("${dataToPost.title}\n${dataToPost.url}") }
             .subscribe()
+    }
+
+    private fun saveIdToFile(id: String) = File(JOJO_FILE_NAME).appendText("$id\n")
+
+    private fun getPostedIdsFromFile() = try {
+        File(JOJO_FILE_NAME)
+            .readLines()
+            .map { it.trim() }
+            .filterNot { it.isEmpty() }
+    } catch (e: Exception) {
+        logError("error in loading IDS, ${e.stackTrace}")
+        emptySet<String>()
     }
 
     private val client by lazy {

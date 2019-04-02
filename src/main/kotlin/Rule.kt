@@ -16,6 +16,7 @@
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.reaction.ReactionEmoji
+import discord4j.core.`object`.util.Snowflake
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -59,11 +60,11 @@ abstract class Rule(internal val ruleName: String) {
     }
 }
 
-internal fun Message.getUsernames(): Flux<String> {
-    return userMentions.map { it.username }
+internal fun Message.getSnowflakes(filterBot: Boolean = true): Flux<Snowflake> {
+    return userMentions.map { it.id }.filter { if (filterBot) it.asLong() != bot.snowflake else true }
 }
 
-internal fun User.canIssueRules() = adminUsernames.any { it.username == this.username }
+internal fun User.canIssueRules() = adminUsernames.any { it.snowflake == this.id.asLong() }
 
 private fun Message.addReactionToMessage(emoji: ReactionEmoji) {
     this.channel

@@ -3,7 +3,7 @@ package jojorule
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor
 
-internal const val JOJO_REDDIT = "https://www.reddit.com/r/ShitPostcrusaders/top.json?sort=top&t=day"
+internal const val JOJO_REDDIT = "https://www.reddit.com/r/ShitPostcrusaders/top.json?sort=top&t=month"
 
 @Serializable
 internal data class RedditResponse(

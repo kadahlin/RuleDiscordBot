@@ -18,7 +18,7 @@ import java.io.InputStreamReader
 
 //Username files are formatted so each line is <username>,<snowflake>
 
-internal data class Username(val username: String, val id: Long)
+internal data class Username(val username: String, val snowflake: Long)
 
 internal val regularUsernames by lazy {
     getPairsFromResourceFile("usernames.txt")
