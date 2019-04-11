@@ -43,7 +43,7 @@ fun main(args: Array<String>) {
             val username = msg.author.get().username
             println("message from $username")
             println("content is ${msg.content.get()}")
-            if (msg.author.get().username != username) {
+            if (msg.author.get().username != bot.username) {
                 if (msg.content.get() == RULES) {
                     printRules(msg.channel.block()!!)
                 } else {
