@@ -13,6 +13,9 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
+
+package bot
+
 enum class LogLevel(val value: Int) {
     DEBUG(1), INFO(2), ERROR(2)
 }
@@ -25,18 +28,18 @@ internal object Logger {
     private var logLevel = LogLevel.DEBUG
 
     fun setLogLevel(logLevel: LogLevel) {
-        this.logLevel = logLevel
-        logDebug("settings log level to $logLevel")
+        Logger.logLevel = logLevel
+        Logger.logDebug("setting log level to $logLevel")
     }
 
-    fun logDebug(message: String) = log(message, LogLevel.DEBUG)
+    fun logDebug(message: String) = Logger.log(message, LogLevel.DEBUG)
 
-    fun logInfo(message: String) = log(message, LogLevel.INFO)
+    fun logInfo(message: String) = Logger.log(message, LogLevel.INFO)
 
-    fun logError(message: String) = log(message, LogLevel.ERROR)
+    fun logError(message: String) = Logger.log(message, LogLevel.ERROR)
 
     private fun log(message: String, level: LogLevel) {
-        if (level >= logLevel) {
+        if (level >= Logger.logLevel) {
             println(message)
         }
     }

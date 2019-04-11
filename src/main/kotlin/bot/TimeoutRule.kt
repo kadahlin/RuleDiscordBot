@@ -14,6 +14,8 @@
 *limitations under the License.
 */
 
+package bot
+
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
 import reactor.core.publisher.Mono
@@ -182,7 +184,7 @@ internal class TimeoutRule : Rule("Timeout") {
             File(TIMEOUT_FILE_NAME)
                 .readLines()
                 .map { it.trim() }
-                .map { Timeout.fromString(it) }
+                .map { Timeout.Companion.fromString(it) }
         } catch (e: Exception) {
             logError("exception on reading timeout file: ${e.stackTrace}")
             emptySet()

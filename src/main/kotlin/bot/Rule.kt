@@ -13,6 +13,8 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
+package bot
+
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.reaction.ReactionEmoji
@@ -42,14 +44,14 @@ abstract class Rule(internal val ruleName: String) {
      * Log information that is only useful when debugging
      */
     protected fun logDebug(logMessage: String) {
-        Logger.logDebug("[${ruleName}Rule] $logMessage")
+        Logger.logDebug("[${ruleName}bot.Rule] $logMessage")
     }
 
     /**
      * Log information that is useful when seeing past actions
      */
     protected fun logInfo(logMessage: String) {
-        Logger.logInfo("[${ruleName}Rule] $logMessage")
+        Logger.logInfo("[${ruleName}bot.Rule] $logMessage")
     }
 
     /**
@@ -97,7 +99,7 @@ private fun distortText(text: String): String {
     }.joinToString(separator = "") { it.toString() }
 }
 
-//Load the discord bot secret token from resources
+//Load the discord bot.getBot secret token from resources
 internal fun getTokenFromFile(filename: String): String {
     val classloader = Thread.currentThread().contextClassLoader
     val inputStream = classloader.getResourceAsStream(filename)

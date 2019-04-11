@@ -13,9 +13,11 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
+package bot
+
 import discord4j.core.`object`.reaction.ReactionEmoji
 
-//Server emojis for the server that this bot is used on
+//Server emojis for the server that this bot.getBot is used on
 
 //You can replace these with your server's custom emojis for ease of access
 
@@ -24,5 +26,5 @@ private val feelsWeirdMan = ReactionEmoji.of(
 )
 
 private val pepega = ReactionEmoji.of(
-    534878367011438604, "pepega", false
+    534878367011438604, "bot.pepega", false
 )

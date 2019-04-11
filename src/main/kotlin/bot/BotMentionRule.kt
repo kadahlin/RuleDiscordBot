@@ -13,10 +13,12 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
+package bot
+
 import discord4j.core.`object`.entity.Message
 import reactor.core.publisher.Mono
 
-//Respond to the user if they mention honk bot and its not kyle
+//Respond to the user if they mention honk bot.getBot and its not kyle
 
 class BotMentionRule : Rule("BotMention") {
 
@@ -28,7 +30,7 @@ class BotMentionRule : Rule("BotMention") {
                 val isNotEmpty = it.isNotEmpty()
                 if (isNotEmpty) {
                     message.channel
-//                        .flatMap { channel -> channel.createMessage("Dont mention ${bot.username} directly. I haven't added code for this yet but I will") }
+//                        .flatMap { channel -> channel.createMessage("Dont mention ${bot.getBot.username} directly. I haven't added code for this yet but I will") }
                         .subscribe()
                 }
                 Mono.just(isNotEmpty)

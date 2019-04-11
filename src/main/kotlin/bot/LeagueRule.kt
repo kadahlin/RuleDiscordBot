@@ -13,11 +13,11 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package leaguerule
+package bot
 
-import Rule
+import bot.Rule
 import discord4j.core.`object`.entity.Message
-import getTokenFromFile
+import bot.getTokenFromFile
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.features.json.JsonFeature
@@ -40,7 +40,7 @@ private const val summonerRequest =
 /**
  * Print the league of legends rank for a given player
  */
-class LeagueRule : Rule("LeagueRank") {
+internal class LeagueRule : Rule("LeagueRank") {
 
     private val leagueApiKey by lazy {
         getTokenFromFile("leagueapi.txt")

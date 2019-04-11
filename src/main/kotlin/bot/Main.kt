@@ -13,13 +13,13 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
+package bot
+
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
-import jojorule.JojoMemeRule
-import leaguerule.LeagueRule
 
 private lateinit var mId: Snowflake
 private lateinit var mRules: List<Rule>
@@ -33,7 +33,7 @@ fun main(args: Array<String>) {
     parseAndSetLogLevel(args)
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
-            println("Rule bot is logged in as " + ready.self.username)
+            println("Rule getBot is logged in as " + ready.self.username)
             mId = ready.self.id
         }
 
@@ -43,7 +43,7 @@ fun main(args: Array<String>) {
             val username = msg.author.get().username
             println("message from $username")
             println("content is ${msg.content.get()}")
-            if (msg.author.get().username != bot.username) {
+            if (msg.author.get().username != username) {
                 if (msg.content.get() == RULES) {
                     printRules(msg.channel.block()!!)
                 } else {

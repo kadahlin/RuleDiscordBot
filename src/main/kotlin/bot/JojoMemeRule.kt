@@ -13,9 +13,8 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package jojorule
+package bot
 
-import Rule
 import discord4j.core.`object`.entity.Message
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
@@ -37,7 +36,7 @@ private const val JOJO_FILE_NAME = "jojo_id_file"
  *
  * This rule will save to a file any post that it has already posted and will post unique images until the file is modified
  */
-class JojoMemeRule : Rule("JoJoMeme") {
+internal class JojoMemeRule : Rule("JoJoMeme") {
 
     //the fetched posts that have already posted while this rule has been active
     private val mPostedIds = mutableSetOf<String>()
