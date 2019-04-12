@@ -35,7 +35,6 @@ internal fun getAdminSnowflakes(): List<RoleSnowflake> {
         }
     }
 
-    Logger.logDebug("returning ${admins.joinToString(separator = ",")} as admins")
     return admins
 }
 
