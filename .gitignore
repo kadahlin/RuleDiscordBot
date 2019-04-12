@@ -7,3 +7,4 @@ src/main/resourcesleagueapi.txt
 jojo_id_file
 timeout_file
 build/
+nohup.out
