@@ -1,11 +1,9 @@
-src/main/resources/adminusernames.txt
-src/main/resources/usernames.txt
 src/main/resources/token.txt
-src/main/resources/botusername.txt
+src/main/resources/betatoken.txt
 .idea/
 .gradle/
 out/
-leagueapi.txt
+src/main/resourcesleagueapi.txt
 jojo_id_file
 timeout_file
 build/

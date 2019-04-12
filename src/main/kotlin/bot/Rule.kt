@@ -16,10 +16,9 @@
 package bot
 
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.entity.User
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
-import reactor.core.publisher.Flux
+import reactor.bool.logicalOr
 import reactor.core.publisher.Mono
 
 /**
@@ -60,13 +59,48 @@ abstract class Rule(internal val ruleName: String) {
     protected fun logError(logMessage: String) {
         Logger.logError("[${ruleName}Rule] $logMessage")
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is Rule) {
+            return other.ruleName == ruleName
+        }
+        return false
+    }
 }
 
-internal fun Message.getSnowflakes(filterBot: Boolean = true): Flux<Snowflake> {
-    return userMentions.map { it.id }.filter { if (filterBot) it.asLong() != bot.snowflake else true }
+internal data class RoleSnowflake(
+    val snowflake: Snowflake,
+    val isRole: Boolean = false
+)
+
+//return all users and roles that were mentioned in this message
+internal fun Message.getSnowflakes(): Set<RoleSnowflake> {
+    val users = userMentionIds.map { RoleSnowflake(it) }
+    val roles = roleMentionIds.map { RoleSnowflake(it, isRole = true) }
+    return users.union(roles)
 }
 
-internal fun User.canIssueRules() = adminUsernames.any { it.snowflake == this.id.asLong() }
+internal fun Message.canAuthorIssueRules(): Mono<Boolean> {
+    val isAdmin = this.guild
+        .flatMap { author.get().asMember(it.id) }
+        .map { it.roleIds }
+        .flatMap { userRoles ->
+            val admins = getAdminSnowflakes().map { it.snowflake }
+            val isAllowed = userRoles.any {
+                admins.contains(it)
+            }
+            Mono.just(isAllowed)
+        }
+
+    val isOwner = this.guild
+        .flatMap { it.owner }
+        .map { it.id }
+        .flatMap {
+            Mono.just(it.asString() == author.get().id.asString())
+        }
+
+    return isAdmin.logicalOr(isOwner)
+}
 
 private fun Message.addReactionToMessage(emoji: ReactionEmoji) {
     this.channel

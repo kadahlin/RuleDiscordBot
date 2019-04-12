@@ -91,7 +91,7 @@ internal class TimeoutRule : Rule("Timeout") {
                 logDebug("removing timeout for user: $author")
             }
         }
-        if (!message.author.get().canIssueRules()) {
+        if (!message.canAuthorIssueRules().block()!!) {
             return Mono.just(false)
         }
         return Mono.just(processTimeoutCommand(message))
@@ -112,7 +112,7 @@ internal class TimeoutRule : Rule("Timeout") {
 
     //true if their was a valid command to process
     private fun processTimeoutCommand(message: Message): Boolean {
-        if (!message.containsTimeoutCommand().block()!!) return false
+        if (!message.containsTimeoutCommand()) return false
         val duration = getDurationFromMessage(message) ?: return false
         message.userMentions
             .map { it.id }
@@ -138,38 +138,33 @@ internal class TimeoutRule : Rule("Timeout") {
     }
 
     private fun processRemovalCommand(message: Message): Boolean {
-        return if (message.containsRemovalCommand().block()!! && message.author.get().canIssueRules()) {
-            message.getSnowflakes().collectList().subscribe { snowflakes ->
-                mTimeouts.removeAll { snowflakes.contains(it.snowflake) }
-                snowflakes.forEach { removeTimeoutFromFile(it) }
-                logInfo("removing the timeout for ${snowflakes.joinToString { it.asString() }}")
-                val adminSnowflake = message.author.get().id.asLong()
-                message.channel.block()?.createMessage("<@$adminSnowflake> timeout removed")?.subscribe()
-            }
+        return if (message.containsRemovalCommand() && message.canAuthorIssueRules().block()!!) {
+            val snowflakes = message.getSnowflakes().map { it.snowflake }
+            mTimeouts.removeAll { snowflakes.contains(it.snowflake) }
+            snowflakes.forEach { removeTimeoutFromFile(it) }
+            logInfo("removing the timeout for ${snowflakes.joinToString { it.asString() }}")
+            val adminSnowflake = message.author.get().id.asLong()
+            message.channel.block()?.createMessage("<@$adminSnowflake> timeout removed")?.subscribe()
             true
         } else
             false
     }
 
-    private fun Message.containsTimeoutCommand(): Mono<Boolean> {
+    private fun Message.containsTimeoutCommand(): Boolean {
         val content = this.content.get()
         logDebug("testing '$content' for timeout command")
-        return this.getSnowflakes().collectList().flatMap { usernames ->
-            val validTimeoutCommand = timeoutRegex.containsMatchIn(content)
-                    && usernames.isNotEmpty()
-            Mono.just(validTimeoutCommand)
-        }
+        val usernames = getSnowflakes()
+        return (timeoutRegex.containsMatchIn(content)
+                && usernames.isNotEmpty())
     }
 
-    private fun Message.containsRemovalCommand(): Mono<Boolean> {
+    private fun Message.containsRemovalCommand(): Boolean {
         val content = this.content.get()
         logDebug("testing '$content' for removal command")
-        return this.getSnowflakes().collectList().flatMap { usernames ->
-            val isValidRemovalCommand = usernames.isNotEmpty()
-                    && content.contains("remove")
-                    && content.contains("timeout")
-            Mono.just(isValidRemovalCommand)
-        }
+        val usernames = getSnowflakes()
+        return (usernames.isNotEmpty()
+                && content.contains("remove")
+                && content.contains("timeout"))
     }
 
     private fun getDurationFromMessage(message: Message): Int? {

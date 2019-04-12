@@ -13,8 +13,9 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot
+package bot.jojorule
 
+import bot.Rule
 import discord4j.core.`object`.entity.Message
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache

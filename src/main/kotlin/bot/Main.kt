@@ -15,37 +15,40 @@
 */
 package bot
 
+import bot.jojorule.JojoMemeRule
+import bot.leaguerule.LeagueRule
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 
-private lateinit var mId: Snowflake
-private lateinit var mRules: List<Rule>
+private val mRules = mutableSetOf<Rule>()
 
 private const val RULES = "rules please"
 
 fun main(args: Array<String>) {
-    mRules = listOf(TimeoutRule(), LeagueRule(), BotMentionRule(), JojoMemeRule())
+    val mIds = mutableSetOf<Snowflake>()
 
     val client = DiscordClientBuilder(getTokenFromFile("token.txt")).build()
     parseAndSetLogLevel(args)
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
-            println("Rule getBot is logged in as " + ready.self.username)
-            mId = ready.self.id
+            println("RuleBot is logged in as " + ready.self.username)
+            mIds.add(ready.self.id)
+            mRules.addAll(listOf(TimeoutRule(), LeagueRule(), JojoMemeRule(), ConfigureBotRule(mIds)))
         }
 
     client.eventDispatcher.on(MessageCreateEvent::class.java)
         .map { msg -> msg.message }
         .subscribe { msg ->
             val username = msg.author.get().username
-            println("message from $username")
-            println("content is ${msg.content.get()}")
-            if (msg.author.get().username != bot.username) {
+            val authorId = msg.author.get().id
+            if (!mIds.contains(authorId)) {
+                println("message from $username")
+                println("content is ${msg.content.get()}")
                 if (msg.content.get() == RULES) {
-                    printRules(msg.channel.block()!!)
+                    msg.channel.subscribe { printRules(it) }
                 } else {
                     mRules.any {
                         it.handleRule(msg).block()!!
