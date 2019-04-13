@@ -16,6 +16,7 @@
 
 package bot
 
+import bot.Logger.logDebug
 import discord4j.core.`object`.util.Snowflake
 import java.io.File
 
@@ -28,7 +29,8 @@ private const val ROLE_SUFFIX = "-r"
 internal fun getAdminSnowflakes(): Collection<RoleSnowflake> {
     val file = File(ADMIN_FILE)
     file.createNewFile()
-    val admins = file.readLines().map { it.trim() }.map {
+
+    return file.readLines().map { it.trim() }.map {
         if (it.endsWith(ROLE_SUFFIX)) {
             val snowflake = Snowflake.of(it.dropLast(2))
             RoleSnowflake(snowflake, isRole = true)
@@ -36,28 +38,32 @@ internal fun getAdminSnowflakes(): Collection<RoleSnowflake> {
             RoleSnowflake(Snowflake.of(it))
         }
     }
-
-    return admins
 }
 
 internal fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) {
     val adminFile = File(ADMIN_FILE)
     val admins = getAdminSnowflakes()
-    admins.toMutableSet().addAll(snowflakes)
-    val fileText = admins.map {
-        "${it.snowflake.asString()}${if (it.isRole) ROLE_SUFFIX else ""}"
+    val newAdmins = admins.toMutableSet().apply { addAll(snowflakes) }
+    val fileText = newAdmins.map {
+        "${it.snowflake.asString()}${if (it.isRole) ROLE_SUFFIX else ""}\n"
     }
-    adminFile.writeText(fileText.joinToString(separator = "\n"))
+    logDebug("admin file after add is now $fileText")
+    adminFile.writeText(fileText.joinToString(separator = ""))
 }
 
 internal fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>) {
     val file = File(ADMIN_FILE)
     var fileLines = file.readLines()
-    fileLines = fileLines.filterNot { line ->
-        snowflakes.any {
-            line.startsWith(it.asString())
+    fileLines = fileLines
+        .filterNot { line ->
+            snowflakes.any {
+                line.startsWith(it.asString())
+            }
         }
-    }
-    file.writeText(fileLines.joinToString(separator = "\n"))
+        .map { it.trim() }
+        .map { "$it\n" }
+    logDebug("admin file after remove is now ${fileLines.joinToString(separator = "")}")
+
+    file.writeText(fileLines.joinToString(separator = ""))
 }
 
