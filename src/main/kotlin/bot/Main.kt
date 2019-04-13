@@ -42,10 +42,8 @@ fun main(args: Array<String>) {
     client.eventDispatcher.on(MessageCreateEvent::class.java)
         .map { msg -> msg.message }
         .subscribe { msg ->
-            val username = msg.author.get().username
             val authorId = msg.author.get().id
             if (!mIds.contains(authorId)) {
-                println("message from $username")
                 println("content is ${msg.content.get()}")
                 if (msg.content.get() == RULES) {
                     msg.channel.subscribe { printRules(it) }

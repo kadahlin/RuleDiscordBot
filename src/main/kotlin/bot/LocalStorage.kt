@@ -23,7 +23,9 @@ private const val ADMIN_FILE = "adminSnowflakes"
 private const val ROLE_SUFFIX = "-r"
 
 //TODO: move these all to a database
-internal fun getAdminSnowflakes(): List<RoleSnowflake> {
+
+
+internal fun getAdminSnowflakes(): Collection<RoleSnowflake> {
     val file = File(ADMIN_FILE)
     file.createNewFile()
     val admins = file.readLines().map { it.trim() }.map {
@@ -40,10 +42,12 @@ internal fun getAdminSnowflakes(): List<RoleSnowflake> {
 
 internal fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) {
     val adminFile = File(ADMIN_FILE)
-    adminFile.createNewFile()
-    snowflakes.forEach {
-        adminFile.appendText("${it.snowflake.asString()}${if (it.isRole) ROLE_SUFFIX else ""}\n")
+    val admins = getAdminSnowflakes()
+    admins.toMutableSet().addAll(snowflakes)
+    val fileText = admins.map {
+        "${it.snowflake.asString()}${if (it.isRole) ROLE_SUFFIX else ""}"
     }
+    adminFile.writeText(fileText.joinToString(separator = "\n"))
 }
 
 internal fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>) {

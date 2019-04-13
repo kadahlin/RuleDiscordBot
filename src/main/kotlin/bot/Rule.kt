@@ -71,7 +71,14 @@ abstract class Rule(internal val ruleName: String) {
 internal data class RoleSnowflake(
     val snowflake: Snowflake,
     val isRole: Boolean = false
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (other is RoleSnowflake) {
+            return other.snowflake == snowflake
+        }
+        return false
+    }
+}
 
 //return all users and roles that were mentioned in this message
 internal fun Message.getSnowflakes(): Set<RoleSnowflake> {
@@ -86,17 +93,18 @@ internal fun Message.canAuthorIssueRules(): Mono<Boolean> {
         .map { it.roleIds }
         .flatMap { userRoles ->
             val admins = getAdminSnowflakes().map { it.snowflake }
-            val isAllowed = userRoles.any {
+            val isUsersRoleAdmin = userRoles.any {
                 admins.contains(it)
             }
-            Mono.just(isAllowed)
+            val isUserIdAdmin = admins.contains(author.get().id)
+            Mono.just(isUsersRoleAdmin || isUserIdAdmin)
         }
 
     val isOwner = this.guild
         .flatMap { it.owner }
         .map { it.id }
         .flatMap {
-            Mono.just(it.asString() == author.get().id.asString())
+            Mono.just(it == author.get().id)
         }
 
     return isAdmin.logicalOr(isOwner)
