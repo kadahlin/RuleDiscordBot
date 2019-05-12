@@ -4,11 +4,12 @@ import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
 import reactor.core.publisher.Mono
 
-private val setAdminRegex = """set admin""".toRegex()
+private val setAdminRegex = """add admin""".toRegex()
 private val removeAdminRegex = """remove admin""".toRegex()
 private val listAdminsRegex = """list admins""".toRegex()
 
-internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>) : Rule("ConfigureBot") {
+internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>, private val storage: LocalStorage) :
+    Rule("ConfigureBot", storage) {
 
     private val mBotSnowflakes = mutableSetOf<Snowflake>()
 
@@ -33,44 +34,49 @@ internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>) : Rule("Configure
 
     override fun getExplanation(): String? {
         return StringBuilder().apply {
-            append("Configure properties of this rule bot\n")
-            append("@ Mention the bot to use\n")
-            append("Possible commands:\n")
-            append("\t1. set admin role <@role>\n")
-            append("\t\tadd this role to the 'admin' category and allow access commands\n")
+            appendln("Configure properties of this rule bot")
+            appendln("@ Mention the bot to use")
+            appendln("Commands:")
+            appendln("\t1. add admin <username> or <role>")
+            appendln("\t\tadd this role to the 'admin' category and allow access commands")
+            appendln("\t2. list admins")
+            appendln("\t3. remove admin <username> or <role>")
         }.toString()
     }
 
     private fun executeRule(message: Message) {
 
-        val content = message.content.get()
-        when {
-            setAdminRegex.containsMatchIn(content) -> setAdmin(message)
-            removeAdminRegex.containsMatchIn(content) -> removeAdmin(message)
-            listAdminsRegex.containsMatchIn(content) -> listAdmins(message)
+        message.content.ifPresent {
+            val content = message.content.get()
+            when {
+                setAdminRegex.containsMatchIn(content) -> setAdmin(message)
+                removeAdminRegex.containsMatchIn(content) -> removeAdmin(message)
+                listAdminsRegex.containsMatchIn(content) -> listAdmins(message)
+            }
         }
+
     }
 
     private fun setAdmin(message: Message) {
-        val adminSnowflakes = getAdminSnowflakes()
+        val adminSnowflakes = storage.getAdminSnowflakes()
         val newAdmins = message
             .getSnowflakes()
             .filter {
                 !mBotSnowflakes.contains(it.snowflake) || !adminSnowflakes.contains(it)
             }
         logDebug("adding ${newAdmins.joinToString(separator = ",") { it.snowflake.asString() }} to the admin list")
-        addAdminSnowflakes(newAdmins.toSet())
+        storage.addAdminSnowflakes(newAdmins.toSet())
     }
 
     private fun removeAdmin(message: Message) {
         val adminsToRemove = message.getSnowflakes().map { it.snowflake }
             .filterNot { mBotSnowflakes.contains(it) }
         logDebug("removing ${adminsToRemove.joinToString(separator = ",") { it.asString() }} from admin list")
-        removeAdminSnowflakes(adminsToRemove)
+        storage.removeAdminSnowflakes(adminsToRemove)
     }
 
     private fun listAdmins(message: Message) {
-        val admins = getAdminSnowflakes()
+        val admins = storage.getAdminSnowflakes()
         val usermentions = admins.map {
             if (it.isRole) "<@&${it.snowflake.asString()}>" else "<@${it.snowflake.asString()}>"
         }

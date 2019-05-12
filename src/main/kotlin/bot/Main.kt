@@ -29,6 +29,7 @@ private const val RULES = "rules please"
 
 fun main(args: Array<String>) {
     val mIds = mutableSetOf<Snowflake>()
+    val storage = LocalStorageImpl()
 
     val client = DiscordClientBuilder(getTokenFromFile("token.txt")).build()
     parseAndSetLogLevel(args)
@@ -36,7 +37,14 @@ fun main(args: Array<String>) {
         .subscribe { ready ->
             println("RuleBot is logged in as " + ready.self.username)
             mIds.add(ready.self.id)
-            mRules.addAll(listOf(TimeoutRule(), LeagueRule(), JojoMemeRule(), ConfigureBotRule(mIds)))
+            mRules.addAll(
+                listOf(
+                    TimeoutRule(storage),
+                    LeagueRule(storage),
+                    JojoMemeRule(storage),
+                    ConfigureBotRule(mIds, storage)
+                )
+            )
         }
 
     client.eventDispatcher.on(MessageCreateEvent::class.java)
@@ -44,10 +52,15 @@ fun main(args: Array<String>) {
         .subscribe { msg ->
             val authorId = msg.author.get().id
             if (!mIds.contains(authorId)) {
-                println("content is ${msg.content.get()}")
-                if (msg.content.get() == RULES) {
-                    msg.channel.subscribe { printRules(it) }
+                val content = if (msg.content.isPresent) {
+                    msg.content.get()
                 } else {
+                    null
+                }
+                println("content is $content")
+                if (content == RULES) {
+                    msg.channel.subscribe { printRules(it) }
+                } else if (content != null) {
                     mRules.any {
                         it.handleRule(msg).block()!!
                     }

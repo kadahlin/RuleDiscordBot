@@ -63,7 +63,7 @@ private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
  *
  * Any message that a user on timeout types will be instantly deleted
  */
-internal class TimeoutRule : Rule("Timeout") {
+internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
 
     //Map of userId ->
     private val mTimeouts = mutableSetOf<Timeout>()
@@ -151,7 +151,7 @@ internal class TimeoutRule : Rule("Timeout") {
     }
 
     private fun Message.containsTimeoutCommand(): Boolean {
-        val content = this.content.get()
+        val content = content.orElse("")
         logDebug("testing '$content' for timeout command")
         val usernames = getSnowflakes()
         return (timeoutRegex.containsMatchIn(content)
@@ -159,7 +159,7 @@ internal class TimeoutRule : Rule("Timeout") {
     }
 
     private fun Message.containsRemovalCommand(): Boolean {
-        val content = this.content.get()
+        val content = content.orElse("")
         logDebug("testing '$content' for removal command")
         val usernames = getSnowflakes()
         return (usernames.isNotEmpty()
@@ -168,7 +168,7 @@ internal class TimeoutRule : Rule("Timeout") {
     }
 
     private fun getDurationFromMessage(message: Message): Int? {
-        val content = message.content.get()
+        val content = message.content.orElse("")
         val firstMatch = timeoutRegex.find(content)?.value ?: return null
         val minutes = firstMatch.split("\\s+".toRegex())[0]
         return minutes.toInt()

@@ -15,6 +15,7 @@
 */
 package bot.jojorule
 
+import bot.LocalStorage
 import bot.Rule
 import discord4j.core.`object`.entity.Message
 import io.ktor.client.HttpClient
@@ -37,7 +38,7 @@ private const val JOJO_FILE_NAME = "jojo_id_file"
  *
  * This rule will save to a file any post that it has already posted and will post unique images until the file is modified
  */
-internal class JojoMemeRule : Rule("JoJoMeme") {
+internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
 
     //the fetched posts that have already posted while this rule has been active
     private val mPostedIds = mutableSetOf<String>()
@@ -62,7 +63,7 @@ internal class JojoMemeRule : Rule("JoJoMeme") {
         }.toString()
     }
 
-    private fun Message.containsJojoRule() = content.get().toLowerCase().contains(RULE_PHRASE)
+    private fun Message.containsJojoRule() = content.orElse("").toLowerCase().contains(RULE_PHRASE)
 
     private fun postJojoMemeFrom(message: Message) = GlobalScope.launch {
         val channel = message.channelId
@@ -88,8 +89,10 @@ internal class JojoMemeRule : Rule("JoJoMeme") {
             .subscribe()
     }
 
+    @Synchronized
     private fun saveIdToFile(id: String) = File(JOJO_FILE_NAME).appendText("$id\n")
 
+    @Synchronized
     private fun getPostedIdsFromFile() = try {
         File(JOJO_FILE_NAME)
             .readLines()

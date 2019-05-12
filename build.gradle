@@ -18,6 +18,7 @@ application {
 repositories {
     mavenCentral()
     maven { url "https://kotlin.bintray.com/kotlinx" }
+    jcenter()
 }
 
 dependencies {
@@ -32,6 +33,8 @@ dependencies {
     implementation "io.ktor:ktor-client-apache:1.1.3"
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.1.1"
+    implementation 'org.jetbrains.exposed:exposed:0.13.2'
+
 }
 
 compileKotlin {

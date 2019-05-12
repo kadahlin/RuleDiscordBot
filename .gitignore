@@ -9,3 +9,4 @@ timeout_file
 build/
 nohup.out
 adminSnowflakes
+rulebot.mv.db

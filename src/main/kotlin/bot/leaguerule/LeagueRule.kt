@@ -15,6 +15,7 @@
 */
 package bot.leaguerule
 
+import bot.LocalStorage
 import bot.Rule
 import bot.getTokenFromFile
 import discord4j.core.`object`.entity.Message
@@ -40,7 +41,7 @@ private const val summonerRequest =
 /**
  * Print the league of legends rank for a given player
  */
-internal class LeagueRule : Rule("LeagueRank") {
+internal class LeagueRule(storage: LocalStorage) : Rule("LeagueRank", storage) {
 
     private val leagueApiKey by lazy {
         getTokenFromFile("leagueapi.txt")
@@ -62,13 +63,13 @@ internal class LeagueRule : Rule("LeagueRank") {
     }
 
     private fun Message.containsLeagueRankRule(): Boolean {
-        val content = content.get()
+        val content = content.orElse("")
         return leagueRegex.containsMatchIn(content)
     }
 
     private fun printLeagueRankFrom(message: Message) {
         GlobalScope.launch(Dispatchers.IO) {
-            val content = message.content.get()
+            val content = message.content.orElse("")
             val firstMatch = leagueRegex.find(content)?.value!!
             val username = firstMatch.split("\\s+".toRegex()).last()
             val summonerId = getSummonerId(username)

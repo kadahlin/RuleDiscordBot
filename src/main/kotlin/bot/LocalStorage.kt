@@ -16,54 +16,60 @@
 
 package bot
 
-import bot.Logger.logDebug
 import discord4j.core.`object`.util.Snowflake
-import java.io.File
+import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.sql.Connection
 
-private const val ADMIN_FILE = "adminSnowflakes"
-private const val ROLE_SUFFIX = "-r"
+object Admins : IntIdTable() {
+    val snowflake = varchar("snowflake", 64)
+    val isRole = bool("isRole")
+}
 
-//TODO: move these all to a database
+internal interface LocalStorage {
+    fun getAdminSnowflakes(): Collection<RoleSnowflake>
+    fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>)
+    fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>)
+}
 
+internal class LocalStorageImpl : LocalStorage {
 
-internal fun getAdminSnowflakes(): Collection<RoleSnowflake> {
-    val file = File(ADMIN_FILE)
-    file.createNewFile()
+    init {
+        Database.connect("jdbc:h2:./rulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")
+        TransactionManager.manager.defaultIsolationLevel =
+            Connection.TRANSACTION_SERIALIZABLE // Or Connection.TRANSACTION_READ_UNCOMMITTED
 
-    return file.readLines().map { it.trim() }.map {
-        if (it.endsWith(ROLE_SUFFIX)) {
-            val snowflake = Snowflake.of(it.dropLast(2))
-            RoleSnowflake(snowflake, isRole = true)
-        } else {
-            RoleSnowflake(Snowflake.of(it))
+        transaction {
+            SchemaUtils.create(Admins)
         }
     }
-}
 
-internal fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) {
-    val adminFile = File(ADMIN_FILE)
-    val admins = getAdminSnowflakes()
-    val newAdmins = admins.toMutableSet().apply { addAll(snowflakes) }
-    val fileText = newAdmins.map {
-        "${it.snowflake.asString()}${if (it.isRole) ROLE_SUFFIX else ""}\n"
+    override fun getAdminSnowflakes(): Collection<RoleSnowflake> = transaction {
+        Admins
+            .selectAll()
+            .map { RoleSnowflake(Snowflake.of(it[Admins.snowflake]), it[Admins.isRole]) }
     }
-    logDebug("admin file after add is now $fileText")
-    adminFile.writeText(fileText.joinToString(separator = ""))
-}
 
-internal fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>) {
-    val file = File(ADMIN_FILE)
-    var fileLines = file.readLines()
-    fileLines = fileLines
-        .filterNot { line ->
-            snowflakes.any {
-                line.startsWith(it.asString())
+    override fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) {
+        transaction {
+            snowflakes.forEach { roleSnowflake ->
+                Admins.insert {
+                    it[snowflake] = roleSnowflake.snowflake.asString()
+                    it[isRole] = roleSnowflake.isRole
+                }
+                Unit
             }
         }
-        .map { it.trim() }
-        .map { "$it\n" }
-    logDebug("admin file after remove is now ${fileLines.joinToString(separator = "")}")
+    }
 
-    file.writeText(fileLines.joinToString(separator = ""))
+    override fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>) {
+        transaction {
+            Admins.deleteWhere {
+                Admins.snowflake inList snowflakes.map { it.asString() }
+            }
+        }
+    }
 }
 

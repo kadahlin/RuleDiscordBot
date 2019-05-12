@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono
 /**
  * A self contained piece of logic that operates on the messages given to it.
  */
-abstract class Rule(internal val ruleName: String) {
+internal abstract class Rule(internal val ruleName: String, private val storage: LocalStorage) {
     /**
      * Process this message and determine if action is necessary.
      *
@@ -43,14 +43,14 @@ abstract class Rule(internal val ruleName: String) {
      * Log information that is only useful when debugging
      */
     protected fun logDebug(logMessage: String) {
-        Logger.logDebug("[${ruleName}bot.Rule] $logMessage")
+        Logger.logDebug("[${ruleName}Rule] $logMessage")
     }
 
     /**
      * Log information that is useful when seeing past actions
      */
     protected fun logInfo(logMessage: String) {
-        Logger.logInfo("[${ruleName}bot.Rule] $logMessage")
+        Logger.logInfo("[${ruleName}Rule] $logMessage")
     }
 
     /**
@@ -65,6 +65,29 @@ abstract class Rule(internal val ruleName: String) {
             return other.ruleName == ruleName
         }
         return false
+    }
+
+    internal fun Message.canAuthorIssueRules(): Mono<Boolean> {
+        val isAdmin = this.guild
+            .flatMap { author.get().asMember(it.id) }
+            .map { it.roleIds }
+            .flatMap { userRoles ->
+                val admins = storage.getAdminSnowflakes().map { it.snowflake }
+                val isUsersRoleAdmin = userRoles.any {
+                    admins.contains(it)
+                }
+                val isUserIdAdmin = admins.contains(author.get().id)
+                Mono.just(isUsersRoleAdmin || isUserIdAdmin)
+            }
+
+        val isOwner = this.guild
+            .flatMap { it.owner }
+            .map { it.id }
+            .flatMap {
+                Mono.just(it == author.get().id)
+            }
+
+        return isAdmin.logicalOr(isOwner)
     }
 }
 
@@ -87,29 +110,6 @@ internal fun Message.getSnowflakes(): Set<RoleSnowflake> {
     return users.union(roles)
 }
 
-internal fun Message.canAuthorIssueRules(): Mono<Boolean> {
-    val isAdmin = this.guild
-        .flatMap { author.get().asMember(it.id) }
-        .map { it.roleIds }
-        .flatMap { userRoles ->
-            val admins = getAdminSnowflakes().map { it.snowflake }
-            val isUsersRoleAdmin = userRoles.any {
-                admins.contains(it)
-            }
-            val isUserIdAdmin = admins.contains(author.get().id)
-            Mono.just(isUsersRoleAdmin || isUserIdAdmin)
-        }
-
-    val isOwner = this.guild
-        .flatMap { it.owner }
-        .map { it.id }
-        .flatMap {
-            Mono.just(it == author.get().id)
-        }
-
-    return isAdmin.logicalOr(isOwner)
-}
-
 private fun Message.addReactionToMessage(emoji: ReactionEmoji) {
     this.channel
         .flatMap { it.getMessageById(this.id) }
@@ -118,7 +118,7 @@ private fun Message.addReactionToMessage(emoji: ReactionEmoji) {
 }
 
 private fun Message.sendDistortedCopy() {
-    val content = this.content.get()
+    val content = this.content.orElse("")
     if (content.startsWith("<") && content.endsWith(">")) {
         return
     }
