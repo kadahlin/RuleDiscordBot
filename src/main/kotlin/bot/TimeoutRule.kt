@@ -18,19 +18,27 @@ package bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
+import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.transactions.transaction
 import reactor.core.publisher.Mono
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-private const val TIMEOUT_FILE_NAME = "timeout_file"
-private const val SEPARATOR = ","
+internal object Timeouts : IntIdTable() {
+    val snowflake = varchar("snowflake", 64)
+    val startTime = long("startTime")
+    val duration = long("duration")
+}
 
-private class Timeout(
+private data class Timeout(
     val snowflake: Snowflake,
     val startTime: Long,
-    val minutes: Int
+    val minutes: Long
 ) {
+
     override fun equals(other: Any?): Boolean {
         if (other is Timeout) {
             return other.snowflake == this.snowflake
@@ -38,21 +46,10 @@ private class Timeout(
         return false
     }
 
-    fun format(): String {
-        val date = Date(startTime + (minutes.toLong() * 60L * 1000L))
+    fun getFormattedEndDate(): String {
+        val date = Date(startTime + (minutes * 60L * 1000L))
         val format = SimpleDateFormat("hh:mm MMMM dd, YYYY", Locale.US)
         return format.format(date)
-    }
-
-    override fun toString(): String {
-        return arrayOf(snowflake.asString(), startTime, minutes).joinToString(separator = SEPARATOR) { it.toString() }
-    }
-
-    companion object {
-        fun fromString(serialized: String): Timeout {
-            val pieces = serialized.split(SEPARATOR)
-            return Timeout(Snowflake.of(pieces[0]), pieces[1].toLong(), pieces[2].toInt())
-        }
     }
 }
 
@@ -65,29 +62,20 @@ private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
  */
 internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
 
-    //Map of userId ->
-    private val mTimeouts = mutableSetOf<Timeout>()
-
-    init {
-        val fileTimeouts = loadTimeoutsFromFile()
-        logDebug("there were ${fileTimeouts.size} timeouts in the file")
-        mTimeouts.addAll(fileTimeouts)
-    }
-
     override fun handleRule(message: Message): Mono<Boolean> {
         val author = message.author.get()
         if (processRemovalCommand(message)) {
             return Mono.just(true)
         }
-        val existingTimeout = mTimeouts.firstOrNull { it.snowflake == author.id }
+        val existingTimeout = getTimeoutForSnowflake(author.id)
         if (existingTimeout != null) {
-            if (existingTimeout.startTime + (existingTimeout.minutes.toLong() * 60L * 1000L) > System.currentTimeMillis()) {
+            if (existingTimeout.startTime + (existingTimeout.minutes * 60L * 1000L) > System.currentTimeMillis()) {
                 //should delete message
                 message.delete().subscribe()
                 logDebug("user $author is still on timeout, deleting")
+                return Mono.just(true)
             } else {
-                mTimeouts.removeIf { it.snowflake == author.id }
-                removeTimeoutFromFile(existingTimeout.snowflake)
+                removeTimeoutForSnowflakes(setOf(author.id))
                 logDebug("removing timeout for user: $author")
             }
         }
@@ -118,21 +106,21 @@ internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
             .map { it.id }
             .collectList()
             .subscribe { snowflakes ->
-                mTimeouts.removeIf { snowflakes.contains(it.snowflake) }
-                snowflakes.forEach { removeTimeoutFromFile(it) }
-                val lastTimeout = snowflakes.map { snowflake ->
+                removeTimeoutForSnowflakes(snowflakes)
+                val newTimeouts = snowflakes.map { snowflake ->
                     val timeout = Timeout(snowflake, System.currentTimeMillis(), duration)
-                    mTimeouts.add(timeout)
-                    addTimeoutToFile(timeout)
+                    insertTimeouts(setOf(timeout))
                     logInfo("adding timeout for user $snowflake at ${timeout.startTime} for ${timeout.minutes} minutes")
                     timeout
-                }.last()
-                message.channel
-                    .flatMap { channel ->
-                        val noun = if (snowflakes.size > 1) "their" else "his"
-                        val adminSnowflake = message.author.get().id.asLong()
-                        channel.createMessage("<@$adminSnowflake> sure thing chief, $noun timeout will end at ${lastTimeout.format()}")
-                    }.subscribe()
+                }
+                if (newTimeouts.isNotEmpty()) {
+                    message.channel
+                        .flatMap { channel ->
+                            val noun = if (snowflakes.size > 1) "their" else "his"
+                            val adminSnowflake = message.author.get().id.asLong()
+                            channel.createMessage("<@$adminSnowflake> sure thing chief, $noun timeout will end at ${newTimeouts[0].getFormattedEndDate()}")
+                        }.subscribe()
+                }
             }
         return true
     }
@@ -140,8 +128,8 @@ internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
     private fun processRemovalCommand(message: Message): Boolean {
         return if (message.containsRemovalCommand() && message.canAuthorIssueRules().block()!!) {
             val snowflakes = message.getSnowflakes().map { it.snowflake }
-            mTimeouts.removeAll { snowflakes.contains(it.snowflake) }
-            snowflakes.forEach { removeTimeoutFromFile(it) }
+            removeTimeoutForSnowflakes(snowflakes)
+
             logInfo("removing the timeout for ${snowflakes.joinToString { it.asString() }}")
             val adminSnowflake = message.author.get().id.asLong()
             message.channel.block()?.createMessage("<@$adminSnowflake> timeout removed")?.subscribe()
@@ -167,38 +155,37 @@ internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
                 && content.contains("timeout"))
     }
 
-    private fun getDurationFromMessage(message: Message): Int? {
+    private fun getDurationFromMessage(message: Message): Long? {
         val content = message.content.orElse("")
         val firstMatch = timeoutRegex.find(content)?.value ?: return null
         val minutes = firstMatch.split("\\s+".toRegex())[0]
-        return minutes.toInt()
+        return minutes.toLong()
     }
 
-    private fun loadTimeoutsFromFile(): Collection<Timeout> {
-        return try {
-            File(TIMEOUT_FILE_NAME)
-                .readLines()
-                .map { it.trim() }
-                .map { Timeout.Companion.fromString(it) }
-        } catch (e: Exception) {
-            logError("exception on reading timeout file: ${e.stackTrace}")
-            emptySet()
+    private fun insertTimeouts(timeouts: Collection<Timeout>) {
+        transaction {
+            for (timeout in timeouts) {
+                Timeouts.insert {
+                    it[snowflake] = timeout.snowflake.asString()
+                    it[duration] = timeout.minutes
+                    it[startTime] = timeout.startTime
+                }
+            }
         }
     }
 
-    private fun removeTimeoutFromFile(snowflake: Snowflake) = try {
-        val file = File(TIMEOUT_FILE_NAME)
-        val newFileContent = file
-            .readLines()
-            .filterNot { it.startsWith(snowflake.asString()) }
-            .joinToString { it }
-
-        file.writeText(newFileContent)
-    } catch (e: Exception) {
-        logError("error on removing from timeout file: ${e.stackTrace}")
+    private fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) {
+        transaction {
+            Timeouts.deleteWhere {
+                Timeouts.snowflake inList snowflakes.map { it.asString() }
+            }
+        }
     }
 
-    private fun addTimeoutToFile(timeout: Timeout) {
-        File(TIMEOUT_FILE_NAME).appendText("$timeout\n")
+    private fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? = transaction {
+        val existing = Timeouts.select { Timeouts.snowflake eq snowflake.asString() }
+            .firstOrNull() ?: return@transaction null
+
+        Timeout(snowflake, existing[Timeouts.startTime], existing[Timeouts.duration])
     }
 }

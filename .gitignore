@@ -10,3 +10,4 @@ build/
 nohup.out
 adminSnowflakes
 rulebot.mv.db
+rulebot.trace.db

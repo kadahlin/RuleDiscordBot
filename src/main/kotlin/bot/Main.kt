@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
     val mIds = mutableSetOf<Snowflake>()
     val storage = LocalStorageImpl()
 
-    val client = DiscordClientBuilder(getTokenFromFile("token.txt")).build()
+    val client = DiscordClientBuilder(getTokenFromFile("betatoken.txt")).build()
     parseAndSetLogLevel(args)
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
