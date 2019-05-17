@@ -16,6 +16,8 @@
 
 package bot
 
+import bot.scoreboard.ScoreboardPlayers
+import bot.scoreboard.Scoreboards
 import discord4j.core.`object`.util.Snowflake
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.*
@@ -44,6 +46,10 @@ internal class LocalStorageImpl : LocalStorage {
         transaction {
             SchemaUtils.create(Admins)
             SchemaUtils.create(Timeouts)
+            SchemaUtils.drop(Scoreboards)
+            SchemaUtils.create(Scoreboards)
+            SchemaUtils.drop(ScoreboardPlayers)
+            SchemaUtils.create(ScoreboardPlayers)
         }
     }
 

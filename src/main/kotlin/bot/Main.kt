@@ -17,6 +17,7 @@ package bot
 
 import bot.jojorule.JojoMemeRule
 import bot.leaguerule.LeagueRule
+import bot.scoreboard.ScoreboardRule
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
@@ -42,7 +43,8 @@ fun main(args: Array<String>) {
                     TimeoutRule(storage),
                     LeagueRule(storage),
                     JojoMemeRule(storage),
-                    ConfigureBotRule(mIds, storage)
+                    ConfigureBotRule(mIds, storage),
+                    ScoreboardRule(storage)
                 )
             )
         }
@@ -62,7 +64,11 @@ fun main(args: Array<String>) {
                     msg.channel.subscribe { printRules(it) }
                 } else if (content != null) {
                     mRules.any {
-                        it.handleRule(msg).block()!!
+                        val handled = it.handleRule(msg).block()!!
+                        if(handled) {
+                            Logger.logDebug("message was handled by ${it.ruleName}")
+                        }
+                        handled
                     }
                 }
             }
