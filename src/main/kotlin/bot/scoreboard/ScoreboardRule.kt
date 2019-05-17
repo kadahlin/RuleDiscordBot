@@ -1,3 +1,18 @@
+/*
+*Copyright 2019 Kyle Dahlin
+*
+*Licensed under the Apache License, Version 2.0 (the "License");
+*you may not use this file except in compliance with the License.
+*You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+*Unless required by applicable law or agreed to in writing, software
+*distributed under the License is distributed on an "AS IS" BASIS,
+*WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*See the License for the specific language governing permissions and
+*limitations under the License.
+*/
 package bot.scoreboard
 
 import bot.LocalStorage
@@ -14,6 +29,11 @@ private const val SCOREBOARD_SHOW = "scoreboard-show"
 private val NAME = """name=[a-zA-Z]+""".toRegex()
 private val PLAYER = """player=[a-zA-Z]+""".toRegex()
 
+/**
+ * Create and update 'scoreboards' that tracks different games with members.
+ *
+ * Each member of a scoreboard will be assigned a wins value that can be incremented with chat commands
+ */
 internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storage) {
 
     override fun handleRule(message: Message): Mono<Boolean> {
@@ -50,8 +70,7 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
     private fun createScoreboard(content: String, message: Message): String = transaction {
         logDebug("start creating scoreboard")
         val author = message.author.get()
-        val scoreboardName =
-            NAME.find(content)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize() ?: return@transaction "missing scoreboard name"
+        val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
         val count = Scoreboards.select { Scoreboards.name eq scoreboardName }.count()
         if (count != 0) {
             return@transaction "this scoreboard name already exists"
@@ -68,9 +87,8 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
     private fun addPlayer(content: String, message: Message): String = transaction {
         logDebug("start adding player")
         val author = message.author.get()
-        val scoreboardName =
-            NAME.find(content)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize() ?: return@transaction "missing scoreboard name"
-        val playerName = PLAYER.find(content)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize() ?: return@transaction "missing player name"
+        val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
+        val playerName = content.getPlayerValue() ?: return@transaction "missing player name"
 
         val scoreboardQuery = Scoreboards.slice(Scoreboards.id, Scoreboards.ownerSnowflake)
             .select { Scoreboards.name eq scoreboardName }
@@ -101,9 +119,8 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
     private fun addWin(content: String, message: Message): String = transaction {
         logDebug("start adding win")
         val author = message.author.get()
-        val scoreboardName =
-            NAME.find(content)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize() ?: return@transaction "missing scoreboard name"
-        val playerName = PLAYER.find(content)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize() ?: return@transaction "missing player name"
+        val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
+        val playerName = content.getNameValue() ?: return@transaction "missing player name"
 
         val scoreboardQuery = Scoreboards.slice(Scoreboards.id, Scoreboards.ownerSnowflake)
             .select { Scoreboards.name eq scoreboardName }
@@ -136,8 +153,7 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
     }
 
     private fun showScoreboard(content: String): String = transaction {
-        val scoreboardName =
-            NAME.find(content)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize() ?: return@transaction "missing scoreboard name"
+        val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
         val scoreboardQuery = Scoreboards.slice(Scoreboards.id)
             .select { Scoreboards.name eq scoreboardName }
             .firstOrNull() ?: return@transaction "this scoreboard does not exist"
@@ -153,13 +169,27 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
     }
 
     override fun getExplanation(): String? {
-        return "OOF"
+        return StringBuilder().apply {
+            appendln("Create and update scoreboards made of player names and wins")
+            appendln("$SCOREBOARD_CREATE name=<name>")
+            appendln("\tCreate a new scoreboard with the given name")
+            appendln("$SCOREBOARD_ADD_PLAYER name=<name> player=<name>")
+            appendln("\tAdd this player to the given scoreboard (owner only command)")
+            appendln("$SCOREBOARD_ADD_WIN name=<name> player=<name>")
+            appendln("\tGive a win to this player on this scoreboard (owner only command)\n\tIf this player does not exist for this scoreboard they will be created")
+            appendln("$SCOREBOARD_SHOW name=<name>")
+            appendln("\tShow the scoreboard with the given name")
+        }.toString()
     }
 
     private fun String.containsScoreboardCommand() = this.startsWith(SCOREBOARD_CREATE)
             || this.startsWith(SCOREBOARD_ADD_PLAYER)
             || this.startsWith(SCOREBOARD_ADD_WIN)
             || this.startsWith(SCOREBOARD_SHOW)
+
+    private fun String.getNameValue() = NAME.find(this)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize()
+
+    private fun String.getPlayerValue() = PLAYER.find(this)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize()
 
 }
 
