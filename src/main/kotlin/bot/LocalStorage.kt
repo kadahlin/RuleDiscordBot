@@ -46,9 +46,7 @@ internal class LocalStorageImpl : LocalStorage {
         transaction {
             SchemaUtils.create(Admins)
             SchemaUtils.create(Timeouts)
-            SchemaUtils.drop(Scoreboards)
             SchemaUtils.create(Scoreboards)
-            SchemaUtils.drop(ScoreboardPlayers)
             SchemaUtils.create(ScoreboardPlayers)
         }
     }
