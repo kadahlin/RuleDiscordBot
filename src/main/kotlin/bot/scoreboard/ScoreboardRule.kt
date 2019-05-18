@@ -120,7 +120,7 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
         logDebug("start adding win")
         val author = message.author.get()
         val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
-        val playerName = content.getNameValue() ?: return@transaction "missing player name"
+        val playerName = content.getPlayerValue() ?: return@transaction "missing player name"
 
         val scoreboardQuery = Scoreboards.slice(Scoreboards.id, Scoreboards.ownerSnowflake)
             .select { Scoreboards.name eq scoreboardName }
