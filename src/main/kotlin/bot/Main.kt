@@ -32,7 +32,7 @@ fun main(args: Array<String>) {
     val mIds = mutableSetOf<Snowflake>()
     val storage = LocalStorageImpl()
 
-    val client = DiscordClientBuilder(getTokenFromFile("token.txt")).build()
+    val client = DiscordClientBuilder(getTokenFromFile("betatoken.txt")).build()
     parseAndSetLogLevel(args)
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
@@ -60,16 +60,17 @@ fun main(args: Array<String>) {
                     null
                 }
                 println("content is $content")
-                if (content == RULES) {
-                    msg.channel.subscribe { printRules(it) }
-                } else if (content != null) {
+                if (content != null) {
                     mRules.any {
                         val handled = it.handleRule(msg).block()!!
-                        if(handled) {
+                        if (handled) {
                             Logger.logDebug("message was handled by ${it.ruleName}")
                         }
                         handled
                     }
+                }
+                if (content == RULES) {
+                    msg.channel.subscribe { printRules(it) }
                 }
             }
         }

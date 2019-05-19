@@ -21,6 +21,14 @@ import discord4j.core.`object`.entity.Message
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import reactor.core.publisher.Mono
+import discord4j.common.json.MessageResponse
+import discord4j.core.spec.MessageCreateSpec
+import org.apache.http.message.BasicNameValuePair
+import io.netty.handler.codec.http.HttpMethod.POST
+import org.apache.http.HttpEntity
+import org.apache.http.entity.ContentType
+import java.io.FileInputStream
+
 
 private const val SCOREBOARD_CREATE = "scoreboard-create"
 private const val SCOREBOARD_ADD_PLAYER = "scoreboard-add-player"
@@ -58,12 +66,14 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
             content.startsWith(SCOREBOARD_CREATE) -> createScoreboard(content, message)
             content.startsWith(SCOREBOARD_ADD_PLAYER) -> addPlayer(content, message)
             content.startsWith(SCOREBOARD_ADD_WIN) -> addWin(content, message)
-            content.startsWith(SCOREBOARD_SHOW) -> showScoreboard(content)
+            content.startsWith(SCOREBOARD_SHOW) -> showScoreboard(content, message)
             else -> "invalid scoreboard command"
         }
         logDebug("return message was $returnMessage")
-        message.channel.subscribe { channel ->
-            channel.createMessage(returnMessage).subscribe()
+        if (!returnMessage.isNullOrEmpty()) {
+            message.channel.subscribe { channel ->
+                channel.createMessage(returnMessage).subscribe()
+            }
         }
     }
 
@@ -152,20 +162,29 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
         "giving win to player $playerName"
     }
 
-    private fun showScoreboard(content: String): String = transaction {
+    private fun showScoreboard(content: String, message: Message): String? = transaction {
         val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
         val scoreboardQuery = Scoreboards.slice(Scoreboards.id)
             .select { Scoreboards.name eq scoreboardName }
             .firstOrNull() ?: return@transaction "this scoreboard does not exist"
 
         val scoreboardId = scoreboardQuery[Scoreboards.id]
-        val playerStats = ScoreboardPlayers.select {
+        val playerChartPoints = ScoreboardPlayers.select {
             ScoreboardPlayers.scoreboardId eq scoreboardId
-        }.joinToString(separator = ", ") {
-            "${it[ScoreboardPlayers.name]}:${it[ScoreboardPlayers.wins]}"
+        }.map {
+            ChartPoint(label = it[ScoreboardPlayers.name], value = it[ScoreboardPlayers.wins])
         }
 
-        if (playerStats.isEmpty()) "No members for this board" else playerStats
+        val filename = generateWinChart(playerChartPoints, scoreboardName)
+            ?: return@transaction "nothing to show for this scoreboard, possibly no players?"
+
+        val inputStream = FileInputStream(filename)
+        message.channel.subscribe { channel ->
+            channel.createMessage { spec ->
+                spec.addFile(filename, inputStream)
+            }.subscribe()
+        }
+        null
     }
 
     override fun getExplanation(): String? {
