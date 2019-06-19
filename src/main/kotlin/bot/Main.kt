@@ -18,6 +18,7 @@ package bot
 import bot.jojorule.JojoMemeRule
 import bot.leaguerule.LeagueRule
 import bot.scoreboard.ScoreboardRule
+import bot.twitch.TwitchRule
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
@@ -44,34 +45,26 @@ fun main(args: Array<String>) {
                     LeagueRule(storage),
                     JojoMemeRule(storage),
                     ConfigureBotRule(mIds, storage),
-                    ScoreboardRule(storage)
+                    ScoreboardRule(storage),
+                    TwitchRule(client, storage)
                 )
             )
         }
 
     client.eventDispatcher.on(MessageCreateEvent::class.java)
         .map { msg -> msg.message }
-        .subscribe { msg ->
-            val authorId = msg.author.get().id
-            if (!mIds.contains(authorId)) {
-                val content = if (msg.content.isPresent) {
-                    msg.content.get()
-                } else {
-                    null
+        .filter { it.author.map { user -> !user.isBot }.orElse(false) }
+        .filter { message -> message.content.isPresent }
+        .subscribe { message ->
+            mRules.any {
+                val handled = it.handleRule(message).block()!!
+                if (handled) {
+                    Logger.logDebug("message was handled by ${it.ruleName}")
                 }
-                println("content is $content")
-                if (content != null) {
-                    mRules.any {
-                        val handled = it.handleRule(msg).block()!!
-                        if (handled) {
-                            Logger.logDebug("message was handled by ${it.ruleName}")
-                        }
-                        handled
-                    }
-                }
-                if (content == RULES) {
-                    msg.channel.subscribe { printRules(it) }
-                }
+                handled
+            }
+            if (message.content.get() == RULES) {
+                message.channel.subscribe { printRules(it) }
             }
         }
 

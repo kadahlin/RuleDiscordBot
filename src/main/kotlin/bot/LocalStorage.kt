@@ -18,6 +18,7 @@ package bot
 
 import bot.scoreboard.ScoreboardPlayers
 import bot.scoreboard.Scoreboards
+import bot.twitch.StreamNames
 import discord4j.core.`object`.util.Snowflake
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.*
@@ -48,6 +49,7 @@ internal class LocalStorageImpl : LocalStorage {
             SchemaUtils.create(Timeouts)
             SchemaUtils.create(Scoreboards)
             SchemaUtils.create(ScoreboardPlayers)
+            SchemaUtils.create(StreamNames)
         }
     }
 

@@ -1,5 +1,6 @@
 src/main/resources/token.txt
 src/main/resources/betatoken.txt
+src/main/resources/twitchtoken.txt
 .idea/
 .gradle/
 out/
