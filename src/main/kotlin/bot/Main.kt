@@ -18,7 +18,6 @@ package bot
 import bot.jojorule.JojoMemeRule
 import bot.leaguerule.LeagueRule
 import bot.scoreboard.ScoreboardRule
-import bot.twitch.TwitchRule
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
@@ -45,8 +44,7 @@ fun main(args: Array<String>) {
                     LeagueRule(storage),
                     JojoMemeRule(storage),
                     ConfigureBotRule(mIds, storage),
-                    ScoreboardRule(storage),
-                    TwitchRule(client, storage)
+                    ScoreboardRule(storage)
                 )
             )
         }
