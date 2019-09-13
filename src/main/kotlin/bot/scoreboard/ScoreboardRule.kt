@@ -21,12 +21,6 @@ import discord4j.core.`object`.entity.Message
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import reactor.core.publisher.Mono
-import discord4j.common.json.MessageResponse
-import discord4j.core.spec.MessageCreateSpec
-import org.apache.http.message.BasicNameValuePair
-import io.netty.handler.codec.http.HttpMethod.POST
-import org.apache.http.HttpEntity
-import org.apache.http.entity.ContentType
 import java.io.FileInputStream
 
 

@@ -44,7 +44,8 @@ fun main(args: Array<String>) {
                     LeagueRule(storage),
                     JojoMemeRule(storage),
                     ConfigureBotRule(mIds, storage),
-                    ScoreboardRule(storage)
+                    ScoreboardRule(storage),
+                    RockPaperScissorsRule(mIds, storage)
                 )
             )
         }

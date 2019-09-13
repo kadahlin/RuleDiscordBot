@@ -48,6 +48,7 @@ internal class LocalStorageImpl : LocalStorage {
             SchemaUtils.create(Timeouts)
             SchemaUtils.create(Scoreboards)
             SchemaUtils.create(ScoreboardPlayers)
+            SchemaUtils.create(RockPaperScissorGames)
         }
     }
 
