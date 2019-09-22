@@ -23,6 +23,9 @@ import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.coroutines.runBlocking
+import suspendChannel
+import suspendCreateMessage
 
 private val mRules = mutableSetOf<Rule>()
 
@@ -32,7 +35,7 @@ fun main(args: Array<String>) {
     val mIds = mutableSetOf<Snowflake>()
     val storage = LocalStorageImpl()
 
-    val client = DiscordClientBuilder(getTokenFromFile("token.txt")).build()
+    val client = DiscordClientBuilder(getTokenFromFile("betatoken.txt")).build()
     parseAndSetLogLevel(args)
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
@@ -55,15 +58,18 @@ fun main(args: Array<String>) {
         .filter { it.author.map { user -> !user.isBot }.orElse(false) }
         .filter { message -> message.content.isPresent }
         .subscribe { message ->
-            mRules.any {
-                val handled = it.handleRule(message).block()!!
-                if (handled) {
-                    Logger.logDebug("message was handled by ${it.ruleName}")
+            runBlocking {
+                println("get message event")
+                mRules.any {
+                    val handled = it.handleRule(message)
+                    if (handled) {
+                        Logger.logDebug("message was handled by ${it.ruleName}")
+                    }
+                    handled
                 }
-                handled
-            }
-            if (message.content.get() == RULES) {
-                message.channel.subscribe { printRules(it) }
+                if (message.content.get() == RULES) {
+                    message.suspendChannel().printRules()
+                }
             }
         }
 
@@ -80,9 +86,9 @@ private fun parseAndSetLogLevel(args: Array<String>) {
     }
 }
 
-private fun printRules(channel: MessageChannel) {
+private suspend fun MessageChannel.printRules() {
     val ruleMessages = mRules
         .filterNot { it.getExplanation() == null }
         .joinToString(separator = "\n") { "${it.ruleName}:\t${it.getExplanation()}" }
-    channel.createMessage(ruleMessages).subscribe()
+    suspendCreateMessage(ruleMessages)
 }

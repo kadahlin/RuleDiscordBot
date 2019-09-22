@@ -18,8 +18,12 @@ package bot
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
-import reactor.bool.logicalOr
-import reactor.core.publisher.Mono
+import suspendAddReaction
+import suspendAsMember
+import suspendChannel
+import suspendGetMessageById
+import suspendGuild
+import suspendOwner
 
 /**
  * A self contained piece of logic that operates on the messages given to it.
@@ -30,7 +34,7 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
      *
      * @return true if action on the server was taken, false otherwise
      */
-    abstract fun handleRule(message: Message): Mono<Boolean>
+    abstract suspend fun handleRule(message: Message): Boolean
 
     /**
      * Get a human readable description of how to use this rule
@@ -67,27 +71,19 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
         return false
     }
 
-    internal fun Message.canAuthorIssueRules(): Mono<Boolean> {
-        val isAdmin = this.guild
-            .flatMap { author.get().asMember(it.id) }
-            .map { it.roleIds }
-            .flatMap { userRoles ->
-                val admins = storage.getAdminSnowflakes().map { it.snowflake }
-                val isUsersRoleAdmin = userRoles.any {
-                    admins.contains(it)
-                }
-                val isUserIdAdmin = admins.contains(author.get().id)
-                Mono.just(isUsersRoleAdmin || isUserIdAdmin)
-            }
+    internal suspend fun Message.canAuthorIssueRules(): Boolean {
+        val guildForMessage = this.suspendGuild()
+        val member = author.get().suspendAsMember(guildForMessage.id)
+        val roleIds = member.roleIds
 
-        val isOwner = this.guild
-            .flatMap { it.owner }
-            .map { it.id }
-            .flatMap {
-                Mono.just(it == author.get().id)
-            }
+        val admins = storage.getAdminSnowflakes().map { it.snowflake }
+        val isUsersRoleAdmin = roleIds.any { admins.contains(it) }
+        val isUserIdAdmin = admins.contains(author.get().id)
+        val isAdmin = isUsersRoleAdmin || isUserIdAdmin
 
-        return isAdmin.logicalOr(isOwner)
+        val isOwner = this.suspendGuild().suspendOwner().id == author.get().id
+
+        return isAdmin || isOwner
     }
 }
 
@@ -110,11 +106,8 @@ internal fun Message.getSnowflakes(): Set<RoleSnowflake> {
     return users.union(roles)
 }
 
-private fun Message.addReactionToMessage(emoji: ReactionEmoji) {
-    this.channel
-        .flatMap { it.getMessageById(this.id) }
-        .flatMap { it.addReaction(emoji) }
-        .subscribe()
+private suspend fun Message.addReactionToMessage(emoji: ReactionEmoji) {
+    this.suspendChannel().suspendGetMessageById(this.id).suspendAddReaction(emoji)
 }
 
 private fun Message.sendDistortedCopy() {

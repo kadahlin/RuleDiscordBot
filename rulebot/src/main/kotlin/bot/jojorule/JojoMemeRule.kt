@@ -24,10 +24,9 @@ import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import reactor.core.publisher.Mono
+import suspendChannel
+import suspendCreateMessage
 import java.io.File
 
 private const val RULE_PHRASE = "spicy jojo meme"
@@ -49,23 +48,23 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
         mPostedIds.addAll(fileIds)
     }
 
-    override fun handleRule(message: Message): Mono<Boolean> {
+    override suspend fun handleRule(message: Message): Boolean {
         val doesContain = message.containsJojoRule()
         if (doesContain) {
             postJojoMemeFrom(message)
         }
-        return Mono.just(doesContain)
+        return doesContain
     }
 
     override fun getExplanation(): String? {
         return StringBuilder().apply {
-            append("Post a message with the phrase '$RULE_PHRASE'\n")
+            appendln("Post a message with the phrase '$RULE_PHRASE'")
         }.toString()
     }
 
     private fun Message.containsJojoRule() = content.orElse("").toLowerCase().contains(RULE_PHRASE)
 
-    private fun postJojoMemeFrom(message: Message) = GlobalScope.launch {
+    private suspend fun postJojoMemeFrom(message: Message) {
         val channel = message.channelId
         logDebug("jojo message from ${channel.asString()}")
         val redditResponse = client.get<RedditResponse>(JOJO_REDDIT) {
@@ -79,14 +78,12 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
 
         val dataToPost = childList.firstOrNull {
             !mPostedIds.contains(it.data.id) && !it.data.is_video
-        }?.data ?: return@launch
+        }?.data ?: return
 
         saveIdToFile(dataToPost.id)
 
         mPostedIds.add(dataToPost.id)
-        message.channel
-            .flatMap { it.createMessage("${dataToPost.title}\n${dataToPost.url}") }
-            .subscribe()
+        message.suspendChannel().suspendCreateMessage("${dataToPost.title}\n${dataToPost.url}")
     }
 
     @Synchronized

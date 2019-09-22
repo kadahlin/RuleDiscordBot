@@ -19,10 +19,12 @@ import bot.LocalStorage
 import bot.Rule
 import discord4j.core.`object`.entity.Message
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import org.jetbrains.exposed.sql.transactions.transaction
-import reactor.core.publisher.Mono
+import suspendChannel
+import suspendCreateMessage
 import java.io.FileInputStream
-
 
 private const val SCOREBOARD_CREATE = "scoreboard-create"
 private const val SCOREBOARD_ADD_PLAYER = "scoreboard-add-player"
@@ -38,23 +40,23 @@ private val PLAYER = """player=[a-zA-Z]+""".toRegex()
  */
 internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storage) {
 
-    override fun handleRule(message: Message): Mono<Boolean> {
+    override suspend fun handleRule(message: Message): Boolean {
         val content = try {
             message.content.get()
         } catch (e: Exception) {
             logError("error on getting scoreboard content ${e.message}")
-            return Mono.just(false)
+            return false
         }
 
         if (!content.containsScoreboardCommand()) {
             logDebug("content $content does not contain a scoreboard command")
-            return Mono.just(false)
+            return false
         }
         handleScoreboardCommand(message)
-        return Mono.just(true)
+        return true
     }
 
-    private fun handleScoreboardCommand(message: Message) {
+    private suspend fun handleScoreboardCommand(message: Message) {
         val content = message.content.get()
         val returnMessage = when {
             content.startsWith(SCOREBOARD_CREATE) -> createScoreboard(content, message)
@@ -65,9 +67,7 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
         }
         logDebug("return message was $returnMessage")
         if (!returnMessage.isNullOrEmpty()) {
-            message.channel.subscribe { channel ->
-                channel.createMessage(returnMessage).subscribe()
-            }
+            message.suspendChannel().suspendCreateMessage(returnMessage)
         }
     }
 
@@ -156,11 +156,11 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
         "giving win to player $playerName"
     }
 
-    private fun showScoreboard(content: String, message: Message): String? = transaction {
-        val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
+    private suspend fun showScoreboard(content: String, message: Message): String? = newSuspendedTransaction {
+        val scoreboardName = content.getNameValue() ?: return@newSuspendedTransaction "missing scoreboard name"
         val scoreboardQuery = Scoreboards.slice(Scoreboards.id)
             .select { Scoreboards.name eq scoreboardName }
-            .firstOrNull() ?: return@transaction "this scoreboard does not exist"
+            .firstOrNull() ?: return@newSuspendedTransaction "this scoreboard does not exist"
 
         val scoreboardId = scoreboardQuery[Scoreboards.id]
         val playerChartPoints = ScoreboardPlayers.select {
@@ -170,13 +170,12 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
         }
 
         val filename = generateWinChart(playerChartPoints, scoreboardName)
-            ?: return@transaction "nothing to show for this scoreboard, possibly no players?"
+            ?: return@newSuspendedTransaction "nothing to show for this scoreboard, possibly no players?"
 
         val inputStream = FileInputStream(filename)
-        message.channel.subscribe { channel ->
-            channel.createMessage { spec ->
-                spec.addFile(filename, inputStream)
-            }.subscribe()
+        val channel = message.suspendChannel()
+        channel.suspendCreateMessage {
+            addFile(filename, inputStream)
         }
         null
     }
