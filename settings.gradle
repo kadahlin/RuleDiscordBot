@@ -8,4 +8,6 @@ pluginManagement {
     }
 }
 
+include("discord4k", "rulebot")
+
 rootProject.name = 'honkbot'

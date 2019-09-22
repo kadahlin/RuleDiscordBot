@@ -31,9 +31,9 @@ object Admins : IntIdTable() {
 }
 
 internal interface LocalStorage {
-    fun getAdminSnowflakes(): Collection<RoleSnowflake>
-    fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>)
-    fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>)
+    suspend fun getAdminSnowflakes(): Collection<RoleSnowflake>
+    suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>)
+    suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>)
 }
 
 internal class LocalStorageImpl : LocalStorage {
@@ -52,13 +52,13 @@ internal class LocalStorageImpl : LocalStorage {
         }
     }
 
-    override fun getAdminSnowflakes(): Collection<RoleSnowflake> = transaction {
+    override suspend fun getAdminSnowflakes(): Collection<RoleSnowflake> = transaction {
         Admins
             .selectAll()
             .map { RoleSnowflake(Snowflake.of(it[Admins.snowflake]), it[Admins.isRole]) }
     }
 
-    override fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) {
+    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) {
         transaction {
             snowflakes.forEach { roleSnowflake ->
                 Admins.insert {
@@ -70,7 +70,7 @@ internal class LocalStorageImpl : LocalStorage {
         }
     }
 
-    override fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>) {
+    override suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>) {
         transaction {
             Admins.deleteWhere {
                 Admins.snowflake inList snowflakes.map { it.asString() }
