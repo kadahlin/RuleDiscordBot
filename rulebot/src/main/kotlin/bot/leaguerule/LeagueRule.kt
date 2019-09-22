@@ -27,7 +27,6 @@ import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import reactor.core.publisher.Mono
 
 private val leagueRegex = "league rank of [a-zA-Z0-9]+".toRegex()
 private const val SUMMONER_NAME = "SUMMONER_NAME"
@@ -47,12 +46,12 @@ internal class LeagueRule(storage: LocalStorage) : Rule("LeagueRank", storage) {
         getTokenFromFile("leagueapi.txt")
     }
 
-    override fun handleRule(message: Message): Mono<Boolean> {
+    override suspend fun handleRule(message: Message): Boolean {
         val isLeagueMessage = message.containsLeagueRankRule()
         if (isLeagueMessage) {
             printLeagueRankFrom(message)
         }
-        return Mono.just(isLeagueMessage)
+        return isLeagueMessage
     }
 
     override fun getExplanation(): String? {

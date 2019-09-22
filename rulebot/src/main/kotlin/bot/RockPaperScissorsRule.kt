@@ -7,7 +7,8 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import reactor.core.publisher.Mono
+import suspendChannel
+import suspendCreateMessage
 import kotlin.random.Random
 
 private enum class RpsChoice {
@@ -35,30 +36,26 @@ private enum class RpsChoice {
 internal class RockPaperScissorsRule(private val botIds: Set<Snowflake>, storage: LocalStorage) :
     Rule("RockPaperScissors", storage) {
 
-    override fun handleRule(message: Message): Mono<Boolean> {
+    override suspend fun handleRule(message: Message): Boolean {
         val content = message.content.orElse("")
         logDebug("testing '$content' for rps command")
         if (!content.startsWith("rps")) {
-            return Mono.just(false)
+            return false
         }
         handleRpsCommand(message, content)
-        return Mono.just(true)
+        return true
     }
 
-    private fun handleRpsCommand(message: Message, content: String) {
+    private suspend fun handleRpsCommand(message: Message, content: String) {
         val contentPieces = content.split(" ")
         if (contentPieces.size != 2) {
-            message.channel.subscribe { channel ->
-                channel.createMessage("missing a choice").subscribe()
-            }
+            message.suspendChannel().suspendCreateMessage("missing a choice")
             return
         }
 
         val playerChoice = getChoiceFromString(contentPieces[1])
         if (playerChoice == null) {
-            message.channel.subscribe { channel ->
-                channel.createMessage("invalid choice").subscribe()
-            }
+            message.suspendChannel().suspendCreateMessage("invalid choice")
             return
         }
 
@@ -84,7 +81,7 @@ internal class RockPaperScissorsRule(private val botIds: Set<Snowflake>, storage
         printAllGamesForPlayer(message, playerSnowflake, botChoice, didPlayerWin)
     }
 
-    private fun printAllGamesForPlayer(
+    private suspend fun printAllGamesForPlayer(
         message: Message,
         snowflake: Snowflake,
         botChoice: RpsChoice,
@@ -104,9 +101,7 @@ internal class RockPaperScissorsRule(private val botIds: Set<Snowflake>, storage
         }
         val stringMessage =
             "${botChoice.name.toLowerCase().capitalize()}! $resultMessage! You have won $wonGames out of $totalNonDrawGames and have had $totalDraws game(s) end in a draw"
-        message.channel.subscribe { channel ->
-            channel.createMessage(stringMessage).subscribe()
-        }
+        message.suspendChannel().suspendCreateMessage(stringMessage)
     }
 
     private fun getChoiceFromString(content: String): RpsChoice? = when (content) {

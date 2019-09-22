@@ -23,7 +23,10 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import reactor.core.publisher.Mono
+import suspendChannel
+import suspendCreateMessage
+import suspendDelete
+import suspendUserMentions
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -62,27 +65,27 @@ private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
  */
 internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
 
-    override fun handleRule(message: Message): Mono<Boolean> {
+    override suspend fun handleRule(message: Message): Boolean {
         val author = message.author.get()
         if (processRemovalCommand(message)) {
-            return Mono.just(true)
+            return true
         }
         val existingTimeout = getTimeoutForSnowflake(author.id)
         if (existingTimeout != null) {
             if (existingTimeout.startTime + (existingTimeout.minutes * 60L * 1000L) > System.currentTimeMillis()) {
                 //should delete message
-                message.delete().subscribe()
+                message.suspendDelete()
                 logDebug("user $author is still on timeout, deleting")
-                return Mono.just(true)
+                return true
             } else {
                 removeTimeoutForSnowflakes(setOf(author.id))
                 logDebug("removing timeout for user: $author")
             }
         }
-        if (!message.canAuthorIssueRules().block()!!) {
-            return Mono.just(false)
+        if (!message.canAuthorIssueRules()) {
+            return false
         }
-        return Mono.just(processTimeoutCommand(message))
+        return processTimeoutCommand(message)
     }
 
     override fun getExplanation(): String? {
@@ -99,40 +102,36 @@ internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
     }
 
     //true if their was a valid command to process
-    private fun processTimeoutCommand(message: Message): Boolean {
+    private suspend fun processTimeoutCommand(message: Message): Boolean {
         if (!message.containsTimeoutCommand()) return false
         val duration = getDurationFromMessage(message) ?: return false
-        message.userMentions
-            .map { it.id }
-            .collectList()
-            .subscribe { snowflakes ->
-                removeTimeoutForSnowflakes(snowflakes)
-                val newTimeouts = snowflakes.map { snowflake ->
-                    val timeout = Timeout(snowflake, System.currentTimeMillis(), duration)
-                    insertTimeouts(setOf(timeout))
-                    logInfo("adding timeout for user $snowflake at ${timeout.startTime} for ${timeout.minutes} minutes")
-                    timeout
-                }
-                if (newTimeouts.isNotEmpty()) {
-                    message.channel
-                        .flatMap { channel ->
-                            val noun = if (snowflakes.size > 1) "their" else "his"
-                            val adminSnowflake = message.author.get().id.asLong()
-                            channel.createMessage("<@$adminSnowflake> sure thing chief, $noun timeout will end at ${newTimeouts[0].getFormattedEndDate()}")
-                        }.subscribe()
-                }
-            }
+
+        val mentionedSnowflakes = message.suspendUserMentions().map { it.id }
+
+        removeTimeoutForSnowflakes(mentionedSnowflakes)
+        val newTimeouts = mentionedSnowflakes.map { snowflake ->
+            val timeout = Timeout(snowflake, System.currentTimeMillis(), duration)
+            insertTimeouts(setOf(timeout))
+            logInfo("adding timeout for user $snowflake at ${timeout.startTime} for ${timeout.minutes} minutes")
+            timeout
+        }
+        if (newTimeouts.isNotEmpty()) {
+            val channel = message.suspendChannel()
+            val noun = if (mentionedSnowflakes.size > 1) "their" else "his"
+            val adminSnowflake = message.author.get().id.asLong()
+            channel.suspendCreateMessage("<@$adminSnowflake> sure thing chief, $noun timeout will end at ${newTimeouts[0].getFormattedEndDate()}")
+        }
         return true
     }
 
-    private fun processRemovalCommand(message: Message): Boolean {
-        return if (message.containsRemovalCommand() && message.canAuthorIssueRules().block()!!) {
+    private suspend fun processRemovalCommand(message: Message): Boolean {
+        return if (message.containsRemovalCommand() && message.canAuthorIssueRules()) {
             val snowflakes = message.getSnowflakes().map { it.snowflake }
             removeTimeoutForSnowflakes(snowflakes)
 
             logInfo("removing the timeout for ${snowflakes.joinToString { it.asString() }}")
             val adminSnowflake = message.author.get().id.asLong()
-            message.channel.block()?.createMessage("<@$adminSnowflake> timeout removed")?.subscribe()
+            message.suspendChannel().suspendCreateMessage("<@$adminSnowflake> timeout removed")
             true
         } else
             false

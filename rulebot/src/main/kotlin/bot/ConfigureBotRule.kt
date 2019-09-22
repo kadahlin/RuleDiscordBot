@@ -2,7 +2,8 @@ package bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
-import reactor.core.publisher.Mono
+import suspendChannel
+import suspendCreateMessage
 
 private val setAdminRegex = """add admin""".toRegex()
 private val removeAdminRegex = """remove admin""".toRegex()
@@ -17,19 +18,18 @@ internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>, private val stora
         mBotSnowflakes.addAll(botSnowflakes)
     }
 
-    override fun handleRule(message: Message): Mono<Boolean> {
-        if (!message.canAuthorIssueRules().block()!!) {
-            return Mono.just(false)
+    override suspend fun handleRule(message: Message): Boolean {
+        if (!message.canAuthorIssueRules()) {
+            return false
         }
         val mentionsBot = message.getSnowflakes()
             .map { it.snowflake }
-            .any {
-                mBotSnowflakes.contains(it)
-            }
+            .any { mBotSnowflakes.contains(it) }
+
         if (mentionsBot) {
             executeRule(message)
         }
-        return Mono.just(mentionsBot)
+        return mentionsBot
     }
 
     override fun getExplanation(): String? {
@@ -44,20 +44,17 @@ internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>, private val stora
         }.toString()
     }
 
-    private fun executeRule(message: Message) {
-
-        message.content.ifPresent {
-            val content = message.content.get()
-            when {
-                setAdminRegex.containsMatchIn(content) -> setAdmin(message)
-                removeAdminRegex.containsMatchIn(content) -> removeAdmin(message)
-                listAdminsRegex.containsMatchIn(content) -> listAdmins(message)
-            }
+    private suspend fun executeRule(message: Message) {
+        val content = message.content.get()
+        when {
+            setAdminRegex.containsMatchIn(content) -> setAdmin(message)
+            removeAdminRegex.containsMatchIn(content) -> removeAdmin(message)
+            listAdminsRegex.containsMatchIn(content) -> listAdmins(message)
         }
 
     }
 
-    private fun setAdmin(message: Message) {
+    private suspend fun setAdmin(message: Message) {
         val adminSnowflakes = storage.getAdminSnowflakes()
         val newAdmins = message
             .getSnowflakes()
@@ -68,21 +65,18 @@ internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>, private val stora
         storage.addAdminSnowflakes(newAdmins.toSet())
     }
 
-    private fun removeAdmin(message: Message) {
+    private suspend fun removeAdmin(message: Message) {
         val adminsToRemove = message.getSnowflakes().map { it.snowflake }
             .filterNot { mBotSnowflakes.contains(it) }
         logDebug("removing ${adminsToRemove.joinToString(separator = ",") { it.asString() }} from admin list")
         storage.removeAdminSnowflakes(adminsToRemove)
     }
 
-    private fun listAdmins(message: Message) {
+    private suspend fun listAdmins(message: Message) {
         val admins = storage.getAdminSnowflakes()
         val usermentions = admins.map {
             if (it.isRole) "<@&${it.snowflake.asString()}>" else "<@${it.snowflake.asString()}>"
         }
-        message.channel
-            .flatMap {
-                it.createMessage("Admins are: ${usermentions.joinToString(separator = " ")}")
-            }.subscribe()
+        message.suspendChannel().suspendCreateMessage("Admins are: ${usermentions.joinToString(separator = " ")}")
     }
 }
