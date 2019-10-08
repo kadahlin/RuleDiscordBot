@@ -30,13 +30,20 @@ import suspendCreateMessage
 private val mRules = mutableSetOf<Rule>()
 
 private const val RULES = "rules please"
+private const val LOG_LEVEL = "--log-level"
+private const val IS_BETA = "--beta"
 
 fun main(args: Array<String>) {
     val mIds = mutableSetOf<Snowflake>()
     val storage = LocalStorageImpl()
 
-    val client = DiscordClientBuilder(getTokenFromFile("betatoken.txt")).build()
-    parseAndSetLogLevel(args)
+    val metaArgs = parseArgs(args)
+    Logger.setLogLevel(metaArgs[LOG_LEVEL] as?  LogLevel ?: LogLevel.DEBUG)
+    val isBeta = metaArgs[IS_BETA] as? Boolean
+    Logger.logDebug("is Beta? $isBeta")
+    val tokenFile = if(isBeta == true) "betatoken.txt" else "token.txt"
+    val client = DiscordClientBuilder(getTokenFromFile(tokenFile)).build()
+
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
             println("RuleBot is logged in as " + ready.self.username)
@@ -76,14 +83,19 @@ fun main(args: Array<String>) {
     client.login().block()
 }
 
-private fun parseAndSetLogLevel(args: Array<String>) {
+private fun parseArgs(args: Array<String>): Map<String, Any> {
+    val result = mutableMapOf<String, Any>()
     val logIndex = args.indexOf("--log-level")
-    if (logIndex == -1) {
-        Logger.setLogLevel(LogLevel.DEBUG)
-    } else {
+    if (logIndex != -1) {
         val logLevel = args[logIndex + 1].toUpperCase()
-        Logger.setLogLevel(LogLevel.valueOf(logLevel))
+        result[LOG_LEVEL] = LogLevel.valueOf(logLevel)
     }
+
+    val betaIndex = args.indexOf("--beta")
+    if (betaIndex != -1) {
+        result[IS_BETA] = true
+    }
+    return result
 }
 
 private suspend fun MessageChannel.printRules() {
