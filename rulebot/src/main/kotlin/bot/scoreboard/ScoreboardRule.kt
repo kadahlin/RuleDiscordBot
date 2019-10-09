@@ -18,9 +18,9 @@ package bot.scoreboard
 import bot.LocalStorage
 import bot.Rule
 import discord4j.core.`object`.entity.Message
+import discord4j.core.event.domain.message.MessageCreateEvent
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.experimental.suspendedTransactionAsync
 import org.jetbrains.exposed.sql.transactions.transaction
 import suspendChannel
 import suspendCreateMessage
@@ -40,13 +40,9 @@ private val PLAYER = """player=[a-zA-Z]+""".toRegex()
  */
 internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storage) {
 
-    override suspend fun handleRule(message: Message): Boolean {
-        val content = try {
-            message.content.get()
-        } catch (e: Exception) {
-            logError("error on getting scoreboard content ${e.message}")
-            return false
-        }
+    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
+        val message = messageEvent.message
+        val content = message.content.get()
 
         if (!content.containsScoreboardCommand()) {
             logDebug("content $content does not contain a scoreboard command")
@@ -67,7 +63,7 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
         }
         logDebug("return message was $returnMessage")
         if (!returnMessage.isNullOrEmpty()) {
-            message.suspendChannel().suspendCreateMessage(returnMessage)
+            message.suspendChannel()?.suspendCreateMessage(returnMessage)
         }
     }
 
@@ -174,7 +170,7 @@ internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storag
 
         val inputStream = FileInputStream(filename)
         val channel = message.suspendChannel()
-        channel.suspendCreateMessage {
+        channel?.suspendCreateMessage {
             addFile(filename, inputStream)
         }
         null

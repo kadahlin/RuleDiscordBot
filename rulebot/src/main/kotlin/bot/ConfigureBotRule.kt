@@ -2,6 +2,7 @@ package bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.message.MessageCreateEvent
 import suspendChannel
 import suspendCreateMessage
 
@@ -18,7 +19,8 @@ internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>, private val stora
         mBotSnowflakes.addAll(botSnowflakes)
     }
 
-    override suspend fun handleRule(message: Message): Boolean {
+    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
+        val message = messageEvent.message
         if (!message.canAuthorIssueRules()) {
             return false
         }
@@ -77,6 +79,6 @@ internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>, private val stora
         val usermentions = admins.map {
             if (it.isRole) "<@&${it.snowflake.asString()}>" else "<@${it.snowflake.asString()}>"
         }
-        message.suspendChannel().suspendCreateMessage("Admins are: ${usermentions.joinToString(separator = " ")}")
+        message.suspendChannel()?.suspendCreateMessage("Admins are: ${usermentions.joinToString(separator = " ")}")
     }
 }

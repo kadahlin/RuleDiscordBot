@@ -18,6 +18,7 @@ package bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.message.MessageCreateEvent
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
@@ -65,7 +66,8 @@ private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
  */
 internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
 
-    override suspend fun handleRule(message: Message): Boolean {
+    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
+        val message = messageEvent.message
         val author = message.author.get()
         if (processRemovalCommand(message)) {
             return true
@@ -106,7 +108,7 @@ internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
         if (!message.containsTimeoutCommand()) return false
         val duration = getDurationFromMessage(message) ?: return false
 
-        val mentionedSnowflakes = message.suspendUserMentions().map { it.id }
+        val mentionedSnowflakes = message.suspendUserMentions()?.map { it.id } ?: emptySet<Snowflake>()
 
         removeTimeoutForSnowflakes(mentionedSnowflakes)
         val newTimeouts = mentionedSnowflakes.map { snowflake ->
@@ -119,7 +121,7 @@ internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
             val channel = message.suspendChannel()
             val noun = if (mentionedSnowflakes.size > 1) "their" else "his"
             val adminSnowflake = message.author.get().id.asLong()
-            channel.suspendCreateMessage("<@$adminSnowflake> sure thing chief, $noun timeout will end at ${newTimeouts[0].getFormattedEndDate()}")
+            channel?.suspendCreateMessage("<@$adminSnowflake> sure thing chief, $noun timeout will end at ${newTimeouts[0].getFormattedEndDate()}")
         }
         return true
     }
@@ -131,7 +133,7 @@ internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
 
             logInfo("removing the timeout for ${snowflakes.joinToString { it.asString() }}")
             val adminSnowflake = message.author.get().id.asLong()
-            message.suspendChannel().suspendCreateMessage("<@$adminSnowflake> timeout removed")
+            message.suspendChannel()?.suspendCreateMessage("<@$adminSnowflake> timeout removed")
             true
         } else
             false

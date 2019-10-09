@@ -18,13 +18,14 @@ package bot
 import bot.jojorule.JojoMemeRule
 import bot.leaguerule.LeagueRule
 import bot.scoreboard.ScoreboardRule
+import bot.soundboard.SoundboardRule
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.runBlocking
-import suspendChannel
 import suspendCreateMessage
 
 private val mRules = mutableSetOf<Rule>()
@@ -38,10 +39,10 @@ fun main(args: Array<String>) {
     val storage = LocalStorageImpl()
 
     val metaArgs = parseArgs(args)
-    Logger.setLogLevel(metaArgs[LOG_LEVEL] as?  LogLevel ?: LogLevel.DEBUG)
+    Logger.setLogLevel(metaArgs[LOG_LEVEL] as? LogLevel ?: LogLevel.DEBUG)
     val isBeta = metaArgs[IS_BETA] as? Boolean
     Logger.logDebug("is Beta? $isBeta")
-    val tokenFile = if(isBeta == true) "betatoken.txt" else "token.txt"
+    val tokenFile = if (isBeta == true) "betatoken.txt" else "token.txt"
     val client = DiscordClientBuilder(getTokenFromFile(tokenFile)).build()
 
     client.eventDispatcher.on(ReadyEvent::class.java)
@@ -55,34 +56,36 @@ fun main(args: Array<String>) {
                     JojoMemeRule(storage),
                     ConfigureBotRule(mIds, storage),
                     ScoreboardRule(storage),
-                    RockPaperScissorsRule(mIds, storage)
+                    RockPaperScissorsRule(mIds, storage),
+                    SoundboardRule(storage)
                 )
             )
         }
 
     client.eventDispatcher.on(MessageCreateEvent::class.java)
-        .map { msg -> msg.message }
-        .filter { it.author.map { user -> !user.isBot }.orElse(false) }
-        .filter { message -> message.content.isPresent }
-        .subscribe { message ->
+        .filter { it.message.author.map { user -> !user.isBot }.orElse(false) }
+        .filter { event -> event.message.content.isPresent }
+        .subscribe({ messageEvent ->
             runBlocking {
-                println("get message event")
+                Logger.logDebug("got message event $messageEvent")
                 mRules.any {
-                    val handled = it.handleRule(message)
-                    if (handled) {
-                        Logger.logDebug("message was handled by ${it.ruleName}")
-                    }
-                    handled
+                    Logger.logDebug("handling messaging for ${it.ruleName}")
+                    val wasHandled = it.handleRule(messageEvent)
+                    Logger.logDebug("message was ${if (wasHandled) "" else "not "}handled by ${it.ruleName}")
+                    wasHandled
                 }
-                if (message.content.get() == RULES) {
-                    message.suspendChannel().printRules()
+                if (messageEvent.message.content.get() == RULES) {
+                    messageEvent.message.channel.awaitFirstOrNull()?.printRules()
                 }
             }
-        }
+        }, { throwable ->
+            println("throwable in subscription, $throwable")
+        })
 
     client.login().block()
 }
 
+//TODO: need a cleaner way to get the command line args
 private fun parseArgs(args: Array<String>): Map<String, Any> {
     val result = mutableMapOf<String, Any>()
     val logIndex = args.indexOf("--log-level")
