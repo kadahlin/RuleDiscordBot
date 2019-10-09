@@ -17,8 +17,10 @@ package bot.leaguerule
 
 import bot.LocalStorage
 import bot.Rule
+import bot.client
 import bot.getTokenFromFile
 import discord4j.core.`object`.entity.Message
+import discord4j.core.event.domain.message.MessageCreateEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.features.json.JsonFeature
@@ -46,7 +48,8 @@ internal class LeagueRule(storage: LocalStorage) : Rule("LeagueRank", storage) {
         getTokenFromFile("leagueapi.txt")
     }
 
-    override suspend fun handleRule(message: Message): Boolean {
+    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
+        val message = messageEvent.message
         val isLeagueMessage = message.containsLeagueRankRule()
         if (isLeagueMessage) {
             printLeagueRankFrom(message)
@@ -115,12 +118,4 @@ internal class LeagueRule(storage: LocalStorage) : Rule("LeagueRank", storage) {
         val firstRank = ranks[0]
         return "${firstRank.summonerName} is currently ${firstRank.tier.toLowerCase().capitalize()} ${firstRank.rank}"
     }
-
-    private val client
-        get() = HttpClient(Apache) {
-            expectSuccess = false
-            install(JsonFeature) {
-                serializer = KotlinxSerializer()
-            }
-        }
 }

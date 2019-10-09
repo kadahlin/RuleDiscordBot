@@ -18,11 +18,16 @@ package bot
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.message.MessageCreateEvent
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.apache.Apache
+import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.json.serializer.KotlinxSerializer
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import suspendAddReaction
 import suspendAsMember
 import suspendChannel
 import suspendGetMessageById
-import suspendGuild
 import suspendOwner
 
 /**
@@ -34,7 +39,7 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
      *
      * @return true if action on the server was taken, false otherwise
      */
-    abstract suspend fun handleRule(message: Message): Boolean
+    abstract suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean
 
     /**
      * Get a human readable description of how to use this rule
@@ -72,16 +77,17 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
     }
 
     internal suspend fun Message.canAuthorIssueRules(): Boolean {
-        val guildForMessage = this.suspendGuild()
+        val guildForMessage = this.guild.awaitFirstOrNull() ?: return true
         val member = author.get().suspendAsMember(guildForMessage.id)
-        val roleIds = member.roleIds
+        val roleIds = member?.roleIds ?: setOf()
 
         val admins = storage.getAdminSnowflakes().map { it.snowflake }
         val isUsersRoleAdmin = roleIds.any { admins.contains(it) }
         val isUserIdAdmin = admins.contains(author.get().id)
         val isAdmin = isUsersRoleAdmin || isUserIdAdmin
+        println(6)
 
-        val isOwner = this.suspendGuild().suspendOwner().id == author.get().id
+        val isOwner = guildForMessage.suspendOwner()?.id == author.get().id
 
         return isAdmin || isOwner
     }
@@ -107,7 +113,7 @@ internal fun Message.getSnowflakes(): Set<RoleSnowflake> {
 }
 
 private suspend fun Message.addReactionToMessage(emoji: ReactionEmoji) {
-    this.suspendChannel().suspendGetMessageById(this.id).suspendAddReaction(emoji)
+    this.suspendChannel()?.suspendGetMessageById(this.id)?.suspendAddReaction(emoji)
 }
 
 private fun Message.sendDistortedCopy() {
@@ -139,4 +145,13 @@ internal fun getTokenFromFile(filename: String): String {
     val classloader = Thread.currentThread().contextClassLoader
     val inputStream = classloader.getResourceAsStream(filename)
     return String(inputStream.readBytes()).trim()
+}
+
+val client by lazy {
+    HttpClient(Apache) {
+        expectSuccess = false
+        install(JsonFeature) {
+            serializer = KotlinxSerializer()
+        }
+    }
 }

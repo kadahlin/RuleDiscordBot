@@ -17,14 +17,11 @@ package bot.jojorule
 
 import bot.LocalStorage
 import bot.Rule
+import bot.client
 import discord4j.core.`object`.entity.Message
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.apache.Apache
-import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.json.serializer.KotlinxSerializer
+import discord4j.core.event.domain.message.MessageCreateEvent
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import kotlinx.serialization.json.Json
 import suspendChannel
 import suspendCreateMessage
 import java.io.File
@@ -48,7 +45,8 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
         mPostedIds.addAll(fileIds)
     }
 
-    override suspend fun handleRule(message: Message): Boolean {
+    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
+        val message = messageEvent.message
         val doesContain = message.containsJojoRule()
         if (doesContain) {
             postJojoMemeFrom(message)
@@ -71,7 +69,7 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
             header(
                 "User-Agent",
                 "JoJoMeme"
-            )    //reddit api has some interesting behavior, see https://www.reddit.com/r/redditdev/comments/5w60r1/error_429_too_many_requests_i_havent_made_many/
+            )    //see https://www.reddit.com/r/redditdev/comments/5w60r1/error_429_too_many_requests_i_havent_made_many/
         }
         val childList =
             redditResponse.data.children.children   //TODO: figure out kotlinx list deserialization a bit better
@@ -83,7 +81,7 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
         saveIdToFile(dataToPost.id)
 
         mPostedIds.add(dataToPost.id)
-        message.suspendChannel().suspendCreateMessage("${dataToPost.title}\n${dataToPost.url}")
+        message.suspendChannel()?.suspendCreateMessage("${dataToPost.title}\n${dataToPost.url}")
     }
 
     @Synchronized
@@ -98,13 +96,5 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
     } catch (e: Exception) {
         logError("error in loading IDS, ${e.stackTrace}")
         emptySet<String>()
-    }
-
-    private val client by lazy {
-        HttpClient(Apache) {
-            install(JsonFeature) {
-                serializer = KotlinxSerializer(Json.nonstrict)
-            }
-        }
     }
 }

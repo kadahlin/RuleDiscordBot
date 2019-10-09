@@ -2,6 +2,7 @@ package bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.message.MessageCreateEvent
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
@@ -36,7 +37,8 @@ private enum class RpsChoice {
 internal class RockPaperScissorsRule(private val botIds: Set<Snowflake>, storage: LocalStorage) :
     Rule("RockPaperScissors", storage) {
 
-    override suspend fun handleRule(message: Message): Boolean {
+    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
+        val message = messageEvent.message
         val content = message.content.orElse("")
         logDebug("testing '$content' for rps command")
         if (!content.startsWith("rps")) {
@@ -49,13 +51,13 @@ internal class RockPaperScissorsRule(private val botIds: Set<Snowflake>, storage
     private suspend fun handleRpsCommand(message: Message, content: String) {
         val contentPieces = content.split(" ")
         if (contentPieces.size != 2) {
-            message.suspendChannel().suspendCreateMessage("missing a choice")
+            message.suspendChannel()?.suspendCreateMessage("missing a choice")
             return
         }
 
         val playerChoice = getChoiceFromString(contentPieces[1])
         if (playerChoice == null) {
-            message.suspendChannel().suspendCreateMessage("invalid choice")
+            message.suspendChannel()?.suspendCreateMessage("invalid choice")
             return
         }
 
@@ -101,7 +103,7 @@ internal class RockPaperScissorsRule(private val botIds: Set<Snowflake>, storage
         }
         val stringMessage =
             "${botChoice.name.toLowerCase().capitalize()}! $resultMessage! You have won $wonGames out of $totalNonDrawGames and have had $totalDraws game(s) end in a draw"
-        message.suspendChannel().suspendCreateMessage(stringMessage)
+        message.suspendChannel()?.suspendCreateMessage(stringMessage)
     }
 
     private fun getChoiceFromString(content: String): RpsChoice? = when (content) {
