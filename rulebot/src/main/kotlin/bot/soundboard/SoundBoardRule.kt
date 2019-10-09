@@ -44,6 +44,7 @@ internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storag
         player = playerManager.createPlayer()
         provider = Mp4Player(player)
         scheduler = TrackScheduler(player)
+        player.stopTrack()
     }
 
     override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
@@ -56,6 +57,7 @@ internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storag
             messageContent == "${CLIP_COMMAND}join" -> handleJoin(messageEvent)
             messageContent.startsWith("${CLIP_COMMAND}play") -> handlePlay(messageEvent)
             messageContent.startsWith("${CLIP_COMMAND}save") -> handleSave(messageEvent)
+            messageContent.startsWith("${CLIP_COMMAND}stop") -> handleStop(messageEvent)
         }
 
         return true
@@ -63,7 +65,7 @@ internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storag
 
     private suspend fun handleJoin(event: MessageCreateEvent) {
         val isDm = !event.member.isPresent
-        if(isDm) return
+        if (isDm) return
         Logger.logDebug("joining voice")
         val member = event.member.get()
         val voiceState = member.voiceState.awaitFirstOrNull()
@@ -75,7 +77,7 @@ internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storag
 
     private suspend fun handlePlay(event: MessageCreateEvent) {
         val isDm = event.guild.awaitFirstOrNull() == null
-        if(!isDm) return
+        if (!isDm) return
         val messagePieces = event.message.content.get().split(" ")
         if (messagePieces.size > 1) {
             val audioFileName = messagePieces[1]
@@ -87,7 +89,7 @@ internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storag
 
     private suspend fun handleSave(event: MessageCreateEvent) {
         val isDm = event.guild.awaitFirstOrNull() == null
-        if(!isDm) return
+        if (!isDm) return
         val messagePieces = event.message.content.get().split(" ")
         if (messagePieces.size > 1) {
             val fileName = messagePieces[1]
@@ -101,6 +103,12 @@ internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storag
                 File("$AUDIO_DIR/$fileName$extension").outputStream().use { stream -> stream.write(bytes) }
             }
         }
+    }
+
+    private suspend fun handleStop(event: MessageCreateEvent) {
+        val isDm = event.guild.awaitFirstOrNull() == null
+        if (!isDm) return
+        player.stopTrack()
     }
 
     private fun getAudioPathForName(name: String): String? {
