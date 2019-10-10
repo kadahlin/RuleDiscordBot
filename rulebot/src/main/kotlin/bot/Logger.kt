@@ -29,17 +29,17 @@ internal object Logger {
 
     fun setLogLevel(logLevel: LogLevel) {
         Logger.logLevel = logLevel
-        Logger.logDebug("setting log level to $logLevel")
+        logDebug("setting log level to $logLevel")
     }
 
-    fun logDebug(message: String) = Logger.log(message, LogLevel.DEBUG)
+    fun logDebug(message: String) = log(message, LogLevel.DEBUG)
 
-    fun logInfo(message: String) = Logger.log(message, LogLevel.INFO)
+    fun logInfo(message: String) = log(message, LogLevel.INFO)
 
-    fun logError(message: String) = Logger.log(message, LogLevel.ERROR)
+    fun logError(message: String) = log(message, LogLevel.ERROR)
 
     private fun log(message: String, level: LogLevel) {
-        if (level >= Logger.logLevel) {
+        if (level >= logLevel) {
             println(message)
         }
     }
