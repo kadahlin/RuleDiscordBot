@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
     val storage = LocalStorageImpl()
 
     val metaArgs = parseArgs(args)
-    Logger.setLogLevel(metaArgs[LOG_LEVEL] as? LogLevel ?: LogLevel.DEBUG)
+    Logger.setLogLevel(metaArgs[LOG_LEVEL] as? LogLevel ?: LogLevel.INFO)
     val isBeta = metaArgs[IS_BETA] as? Boolean
     Logger.logDebug("is Beta? $isBeta")
     val tokenFile = if (isBeta == true) "betatoken.txt" else "token.txt"

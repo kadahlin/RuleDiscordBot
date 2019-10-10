@@ -85,7 +85,6 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
         val isUsersRoleAdmin = roleIds.any { admins.contains(it) }
         val isUserIdAdmin = admins.contains(author.get().id)
         val isAdmin = isUsersRoleAdmin || isUserIdAdmin
-        println(6)
 
         val isOwner = guildForMessage.suspendOwner()?.id == author.get().id
 

@@ -21,6 +21,8 @@ import java.io.File
 import java.nio.ByteBuffer
 
 private const val CLIP_COMMAND = "!sound"
+private const val PLAY = "play"
+private const val SAVE = "save"
 private const val AUDIO_DIR = "audio"
 
 internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storage) {
@@ -55,9 +57,9 @@ internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storag
 
         when {
             messageContent == "${CLIP_COMMAND}join" -> handleJoin(messageEvent)
-            messageContent.startsWith("${CLIP_COMMAND}play") -> handlePlay(messageEvent)
-            messageContent.startsWith("${CLIP_COMMAND}save") -> handleSave(messageEvent)
-            messageContent.startsWith("${CLIP_COMMAND}stop") -> handleStop(messageEvent)
+            messageContent.startsWith("${CLIP_COMMAND}$PLAY") -> handlePlay(messageEvent)
+            messageContent.startsWith("${CLIP_COMMAND}$SAVE") -> handleSave(messageEvent)
+            messageContent == "${CLIP_COMMAND}stop" -> handleStop(messageEvent)
         }
 
         return true
@@ -96,7 +98,7 @@ internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storag
             Logger.logDebug("saving $fileName")
             event.message.attachments.firstOrNull()?.also {
                 val url = it.url
-                Logger.logDebug("the url was this attachment is $url")
+                Logger.logInfo("the url was this attachment is $url")
                 val dotIndex = url.lastIndexOf(".")
                 val extension = url.substring(dotIndex)
                 val bytes = client.get<ByteArray>(it.url)
