@@ -1,4 +1,4 @@
-package bot
+package com.kyledahlin.rulebot.bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
@@ -10,6 +10,7 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import suspendChannel
 import suspendCreateMessage
+import javax.inject.Inject
 import kotlin.random.Random
 
 private enum class RpsChoice {
@@ -34,8 +35,11 @@ private enum class RpsChoice {
     }
 }
 
-internal class RockPaperScissorsRule(private val botIds: Set<Snowflake>, storage: LocalStorage) :
+internal class RockPaperScissorsRule @Inject constructor(private val botIds: Set<Snowflake>, storage: LocalStorage) :
     Rule("RockPaperScissors", storage) {
+
+    override val priority: Priority
+        get() = Priority.LOW
 
     override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
         val message = messageEvent.message

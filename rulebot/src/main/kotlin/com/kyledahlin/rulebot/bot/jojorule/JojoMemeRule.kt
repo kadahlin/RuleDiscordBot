@@ -13,11 +13,11 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot.jojorule
+package com.kyledahlin.rulebot.bot.jojorule
 
-import bot.LocalStorage
-import bot.Rule
-import bot.client
+import com.kyledahlin.rulebot.bot.LocalStorage
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.client
 import discord4j.core.`object`.entity.Message
 import discord4j.core.event.domain.message.MessageCreateEvent
 import io.ktor.client.request.get
@@ -25,6 +25,7 @@ import io.ktor.client.request.header
 import suspendChannel
 import suspendCreateMessage
 import java.io.File
+import javax.inject.Inject
 
 private const val RULE_PHRASE = "spicy jojo meme"
 private const val JOJO_FILE_NAME = "jojo_id_file"
@@ -34,7 +35,10 @@ private const val JOJO_FILE_NAME = "jojo_id_file"
  *
  * This rule will save to a file any post that it has already posted and will post unique images until the file is modified
  */
-internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
+internal class JojoMemeRule @Inject constructor(storage: LocalStorage) : Rule("JoJoMeme", storage) {
+
+    override val priority: Priority
+        get() = Priority.LOW
 
     //the fetched posts that have already posted while this rule has been active
     private val mPostedIds = mutableSetOf<String>()

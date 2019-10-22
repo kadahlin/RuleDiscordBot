@@ -13,10 +13,10 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot.scoreboard
+package com.kyledahlin.rulebot.bot.scoreboard
 
-import bot.LocalStorage
-import bot.Rule
+import com.kyledahlin.rulebot.bot.LocalStorage
+import com.kyledahlin.rulebot.bot.Rule
 import discord4j.core.`object`.entity.Message
 import discord4j.core.event.domain.message.MessageCreateEvent
 import org.jetbrains.exposed.sql.*
@@ -25,6 +25,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import suspendChannel
 import suspendCreateMessage
 import java.io.FileInputStream
+import javax.inject.Inject
 
 private const val SCOREBOARD_CREATE = "scoreboard-create"
 private const val SCOREBOARD_ADD_PLAYER = "scoreboard-add-player"
@@ -38,7 +39,10 @@ private val PLAYER = """player=[a-zA-Z]+""".toRegex()
  *
  * Each member of a scoreboard will be assigned a wins value that can be incremented with chat commands
  */
-internal class ScoreboardRule(storage: LocalStorage) : Rule("Scoreboard", storage) {
+internal class ScoreboardRule @Inject constructor(storage: LocalStorage) : Rule("Scoreboard", storage) {
+
+    override val priority: Priority
+        get() = Priority.LOW
 
     override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
         val message = messageEvent.message

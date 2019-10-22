@@ -1,17 +1,21 @@
-package bot
+package com.kyledahlin.rulebot.bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.message.MessageCreateEvent
 import suspendChannel
 import suspendCreateMessage
+import javax.inject.Inject
 
 private val setAdminRegex = """add admin""".toRegex()
 private val removeAdminRegex = """remove admin""".toRegex()
 private val listAdminsRegex = """list admins""".toRegex()
 
-internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>, private val storage: LocalStorage) :
+internal class ConfigureBotRule @Inject constructor(botSnowflakes: Set<Snowflake>, private val storage: LocalStorage) :
     Rule("ConfigureBot", storage) {
+
+    override val priority: Priority
+        get() = Priority.NORMAL
 
     private val mBotSnowflakes = mutableSetOf<Snowflake>()
 
@@ -36,8 +40,8 @@ internal class ConfigureBotRule(botSnowflakes: Set<Snowflake>, private val stora
 
     override fun getExplanation(): String? {
         return StringBuilder().apply {
-            appendln("Configure properties of this rule bot")
-            appendln("@ Mention the bot to use")
+            appendln("Configure properties of this rule com.kyledahlin.rulebot.bot")
+            appendln("@ Mention the com.kyledahlin.rulebot.bot to use")
             appendln("Commands:")
             appendln("\t1. add admin <username> or <role>")
             appendln("\t\tadd this role to the 'admin' category and allow access commands")

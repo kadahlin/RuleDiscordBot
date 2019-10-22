@@ -1,9 +1,9 @@
-package bot.soundboard
+package com.kyledahlin.rulebot.bot.soundboard
 
-import bot.LocalStorage
-import bot.Logger
-import bot.Rule
-import bot.client
+import com.kyledahlin.rulebot.bot.LocalStorage
+import com.kyledahlin.rulebot.bot.Logger
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.client
 import com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
@@ -19,13 +19,17 @@ import io.ktor.client.request.get
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import java.io.File
 import java.nio.ByteBuffer
+import javax.inject.Inject
 
 private const val CLIP_COMMAND = "!sound"
 private const val PLAY = "play"
 private const val SAVE = "save"
 private const val AUDIO_DIR = "audio"
 
-internal class SoundboardRule(storage: LocalStorage) : Rule("Soundboard", storage) {
+internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule("Soundboard", storage) {
+
+    override val priority: Priority
+        get() = Priority.NORMAL
 
     // Creates AudioPlayer instances and translates URLs to AudioTrack instances
     private val playerManager = DefaultAudioPlayerManager()

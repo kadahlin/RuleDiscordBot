@@ -13,7 +13,7 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot
+package com.kyledahlin.rulebot.bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.reaction.ReactionEmoji
@@ -34,6 +34,10 @@ import suspendOwner
  * A self contained piece of logic that operates on the messages given to it.
  */
 internal abstract class Rule(internal val ruleName: String, private val storage: LocalStorage) {
+
+    internal enum class Priority {
+        HIGH, NORMAL, LOW
+    }
     /**
      * Process this message and determine if action is necessary.
      *
@@ -45,6 +49,8 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
      * Get a human readable description of how to use this rule
      */
     abstract fun getExplanation(): String?
+
+    abstract val priority: Priority
 
     protected open fun isAdminOnly() = true
 
