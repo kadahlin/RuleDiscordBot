@@ -8,7 +8,6 @@ import com.kyledahlin.rulebot.bot.soundboard.SoundboardRule
 import dagger.*
 import dagger.multibindings.ElementsIntoSet
 import discord4j.core.`object`.util.Snowflake
-import java.util.*
 
 @Module
 internal abstract class StorageModule {
@@ -20,7 +19,7 @@ internal abstract class StorageModule {
 internal class RuleModule {
     @Provides
     @ElementsIntoSet
-    fun provideSomeStrings(
+    fun provideRules(
         jojoRule: JojoMemeRule,
         leagueRule: LeagueRule,
         scoreboardRule: ScoreboardRule,
@@ -29,7 +28,15 @@ internal class RuleModule {
         rockPaperScissorsRule: RockPaperScissorsRule,
         timeoutRule: TimeoutRule
     ): Set<Rule> {
-        return setOf(jojoRule, leagueRule, scoreboardRule, soundboardRule, configureBotRule, rockPaperScissorsRule, timeoutRule)
+        return setOf(
+            jojoRule,
+            leagueRule,
+            scoreboardRule,
+            soundboardRule,
+            configureBotRule,
+            rockPaperScissorsRule,
+            timeoutRule
+        )
     }
 }
 
