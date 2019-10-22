@@ -1,6 +1,6 @@
-package bot.scoreboard
+package com.kyledahlin.rulebot.bot.scoreboard
 
-import bot.Logger
+import com.kyledahlin.rulebot.bot.Logger
 import java.awt.*
 import javax.swing.JPanel
 import java.io.File

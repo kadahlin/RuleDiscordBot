@@ -14,7 +14,7 @@
 *limitations under the License.
 */
 
-package bot
+package com.kyledahlin.rulebot.bot
 
 enum class LogLevel(val value: Int) {
     DEBUG(1), INFO(2), ERROR(2)

@@ -13,7 +13,7 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot.jojorule
+package com.kyledahlin.rulebot.bot.jojorule
 
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringDescriptor

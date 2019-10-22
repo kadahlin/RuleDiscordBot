@@ -1,3 +1,5 @@
+package com.kyledahlin.rulebot
+
 /*
 *Copyright 2019 Kyle Dahlin
 *
@@ -13,30 +15,19 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot
 
-import bot.jojorule.JojoMemeRule
-import bot.leaguerule.LeagueRule
-import bot.scoreboard.ScoreboardRule
-import bot.soundboard.SoundboardRule
+import com.kyledahlin.rulebot.bot.*
 import discord4j.core.DiscordClientBuilder
-import discord4j.core.`object`.entity.MessageChannel
-import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
-import kotlinx.coroutines.reactive.awaitFirstOrNull
-import kotlinx.coroutines.runBlocking
-import suspendCreateMessage
 
 private val mRules = mutableSetOf<Rule>()
 
-private const val RULES = "rules please"
 private const val LOG_LEVEL = "--log-level"
 private const val IS_BETA = "--beta"
 
 fun main(args: Array<String>) {
-    val mIds = mutableSetOf<Snowflake>()
-    val storage = LocalStorageImpl()
+    var ruleManager: RuleManager? = null
 
     val metaArgs = parseArgs(args)
     Logger.setLogLevel(metaArgs[LOG_LEVEL] as? LogLevel ?: LogLevel.INFO)
@@ -48,36 +39,14 @@ fun main(args: Array<String>) {
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
             println("RuleBot is logged in as " + ready.self.username)
-            mIds.add(ready.self.id)
-            mRules.addAll(
-                listOf(
-                    TimeoutRule(storage),
-                    LeagueRule(storage),
-                    JojoMemeRule(storage),
-                    ConfigureBotRule(mIds, storage),
-                    ScoreboardRule(storage),
-                    RockPaperScissorsRule(mIds, storage),
-                    SoundboardRule(storage)
-                )
-            )
+            ruleManager = DaggerBotComponent.builder().setBotIds(setOf(ready.self.id)).build().ruleManager()
         }
 
     client.eventDispatcher.on(MessageCreateEvent::class.java)
         .filter { it.message.author.map { user -> !user.isBot }.orElse(false) }
         .filter { event -> event.message.content.isPresent }
         .subscribe({ messageEvent ->
-            runBlocking {
-                Logger.logDebug("got message event $messageEvent")
-                mRules.any {
-                    Logger.logDebug("handling messaging for ${it.ruleName}")
-                    val wasHandled = it.handleRule(messageEvent)
-                    Logger.logDebug("message was ${if (wasHandled) "" else "not "}handled by ${it.ruleName}")
-                    wasHandled
-                }
-                if (messageEvent.message.content.get() == RULES) {
-                    messageEvent.message.channel.awaitFirstOrNull()?.printRules()
-                }
-            }
+            ruleManager?.processMessageCreateEvent(messageEvent)
         }, { throwable ->
             println("throwable in subscription, $throwable")
         })
@@ -99,11 +68,4 @@ private fun parseArgs(args: Array<String>): Map<String, Any> {
         result[IS_BETA] = true
     }
     return result
-}
-
-private suspend fun MessageChannel.printRules() {
-    val ruleMessages = mRules
-        .filterNot { it.getExplanation() == null }
-        .joinToString(separator = "\n") { "${it.ruleName}:\t${it.getExplanation()}" }
-    suspendCreateMessage(ruleMessages)
 }

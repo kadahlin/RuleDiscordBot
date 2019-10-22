@@ -13,22 +13,19 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot.leaguerule
+package com.kyledahlin.rulebot.bot.leaguerule
 
-import bot.LocalStorage
-import bot.Rule
-import bot.client
-import bot.getTokenFromFile
+import com.kyledahlin.rulebot.bot.LocalStorage
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.client
+import com.kyledahlin.rulebot.bot.getTokenFromFile
 import discord4j.core.`object`.entity.Message
 import discord4j.core.event.domain.message.MessageCreateEvent
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.apache.Apache
-import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 private val leagueRegex = "league rank of [a-zA-Z0-9]+".toRegex()
 private const val SUMMONER_NAME = "SUMMONER_NAME"
@@ -42,7 +39,10 @@ private const val summonerRequest =
 /**
  * Print the league of legends rank for a given player
  */
-internal class LeagueRule(storage: LocalStorage) : Rule("LeagueRank", storage) {
+internal class LeagueRule @Inject constructor(storage: LocalStorage) : Rule("LeagueRank", storage) {
+
+    override val priority: Priority
+        get() = Priority.LOW
 
     private val leagueApiKey by lazy {
         getTokenFromFile("leagueapi.txt")

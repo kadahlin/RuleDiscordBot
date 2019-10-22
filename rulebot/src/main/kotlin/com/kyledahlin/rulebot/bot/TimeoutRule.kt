@@ -14,7 +14,7 @@
 *limitations under the License.
 */
 
-package bot
+package com.kyledahlin.rulebot.bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
@@ -30,6 +30,7 @@ import suspendDelete
 import suspendUserMentions
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
 internal object Timeouts : IntIdTable() {
     val snowflake = varchar("snowflake", 64)
@@ -64,7 +65,10 @@ private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
  *
  * Any message that a user on timeout types will be instantly deleted
  */
-internal class TimeoutRule(storage: LocalStorage) : Rule("Timeout", storage) {
+internal class TimeoutRule @Inject constructor(storage: LocalStorage) : Rule("Timeout", storage) {
+
+    override val priority: Priority
+        get() = Priority.HIGH
 
     override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
         val message = messageEvent.message
