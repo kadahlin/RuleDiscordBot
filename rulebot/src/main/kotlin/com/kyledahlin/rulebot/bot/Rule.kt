@@ -38,6 +38,7 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
     internal enum class Priority {
         HIGH, NORMAL, LOW
     }
+
     /**
      * Process this message and determine if action is necessary.
      *
