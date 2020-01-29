@@ -18,6 +18,7 @@ package com.kyledahlin.rulebot.bot
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.MessageCreateEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
@@ -44,7 +45,7 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
      *
      * @return true if action on the server was taken, false otherwise
      */
-    abstract suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean
+    abstract suspend fun handleEvent(event: Event): Boolean
 
     /**
      * Get a human readable description of how to use this rule

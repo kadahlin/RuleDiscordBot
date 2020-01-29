@@ -17,6 +17,7 @@ package com.kyledahlin.rulebot.bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.MessageCreateEvent
 import suspendChannel
 import suspendCreateMessage
@@ -38,8 +39,9 @@ internal class ConfigureBotRule @Inject constructor(botSnowflakes: Set<Snowflake
         mBotSnowflakes.addAll(botSnowflakes)
     }
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val message = messageEvent.message
+    override suspend fun handleEvent(event: Event): Boolean {
+        if (event !is MessageCreateEvent) return false
+        val message = event.message
         if (!message.canAuthorIssueRules()) {
             return false
         }
@@ -55,8 +57,8 @@ internal class ConfigureBotRule @Inject constructor(botSnowflakes: Set<Snowflake
 
     override fun getExplanation(): String? {
         return StringBuilder().apply {
-            appendln("Configure properties of this rule com.kyledahlin.rulebot.bot")
-            appendln("@ Mention the com.kyledahlin.rulebot.bot to use")
+            appendln("Configure properties of this rule bot")
+            appendln("@ Mention the bot to use")
             appendln("Commands:")
             appendln("\t1. add admin <username> or <role>")
             appendln("\t\tadd this role to the 'admin' category and allow access commands")

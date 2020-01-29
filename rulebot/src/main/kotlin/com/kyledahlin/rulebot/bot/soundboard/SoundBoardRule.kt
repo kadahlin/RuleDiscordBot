@@ -23,11 +23,14 @@ import com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
+import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.voice.AudioProvider
 import io.ktor.client.request.get
@@ -41,6 +44,9 @@ private const val PLAY = "play"
 private const val SAVE = "save"
 private const val AUDIO_DIR = "audio"
 
+/**
+ *
+ */
 internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule("Soundboard", storage) {
 
     override val priority: Priority
@@ -58,7 +64,7 @@ internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule(
             audioDir.mkdir()
         }
         // Allow playerManager to parse remote sources like YouTube links
-        AudioSourceManagers.registerRemoteSources(playerManager)    //TODO: needed?
+        AudioSourceManagers.registerRemoteSources(playerManager)
         AudioSourceManagers.registerLocalSource(playerManager)
 
         // Create an AudioPlayer so Discord4J can receive audio data
@@ -66,19 +72,30 @@ internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule(
         provider = Mp4Player(player)
         scheduler = TrackScheduler(player)
         player.stopTrack()
+        player.addListener(object : AudioEventAdapter() {
+            override fun onTrackEnd(player: AudioPlayer?, track: AudioTrack?, endReason: AudioTrackEndReason?) {
+                Logger.logDebug(endReason?.name ?: "unknown end reason")
+            }
+
+            override fun onTrackStart(player: AudioPlayer?, track: AudioTrack?) {
+                super.onTrackStart(player, track)
+                Logger.logDebug("track start")
+            }
+        })
     }
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val messageContent = messageEvent.message.content.get()
+    override suspend fun handleEvent(event: Event): Boolean {
+        if (event !is MessageCreateEvent) return false
+        val messageContent = event.message.content.get()
         if (!messageContent.startsWith(CLIP_COMMAND)) {
             return false
         }
 
         when {
-            messageContent == "${CLIP_COMMAND}join" -> handleJoin(messageEvent)
-            messageContent.startsWith("${CLIP_COMMAND}$PLAY") -> handlePlay(messageEvent)
-            messageContent.startsWith("${CLIP_COMMAND}$SAVE") -> handleSave(messageEvent)
-            messageContent == "${CLIP_COMMAND}stop" -> handleStop(messageEvent)
+            messageContent == "${CLIP_COMMAND}join" -> handleJoin(event)
+            messageContent.startsWith("${CLIP_COMMAND}$PLAY") -> handlePlay(event)
+            messageContent.startsWith("${CLIP_COMMAND}$SAVE") -> handleSave(event)
+            messageContent == "${CLIP_COMMAND}stop" -> handleStop(event)
         }
 
         return true
@@ -117,7 +134,7 @@ internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule(
             Logger.logDebug("saving $fileName")
             event.message.attachments.firstOrNull()?.also {
                 val url = it.url
-                Logger.logInfo("the url was this attachment is $url")
+                Logger.logInfo("the url for this attachment is $url")
                 val dotIndex = url.lastIndexOf(".")
                 val extension = url.substring(dotIndex)
                 val bytes = client.get<ByteArray>(it.url)
