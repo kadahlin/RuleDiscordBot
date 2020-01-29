@@ -35,7 +35,7 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
             Logger.logDebug("got message event $messageEvent")
             rules.any {
                 Logger.logDebug("handling messaging for ${it.ruleName}")
-                val wasHandled = it.handleRule(messageEvent)
+                val wasHandled = it.handleEvent(messageEvent)
                 Logger.logDebug("message was ${if (wasHandled) "" else "not "}handled by ${it.ruleName}")
                 wasHandled
             }
@@ -51,6 +51,5 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
             .joinToString(separator = "\n") { "${it.ruleName}:\t${it.getExplanation()}" }
         suspendCreateMessage(ruleMessages)
     }
-
 }
 

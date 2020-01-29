@@ -17,6 +17,7 @@ package com.kyledahlin.rulebot.bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.MessageCreateEvent
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.insert
@@ -50,14 +51,20 @@ private enum class RpsChoice {
     }
 }
 
+/**
+ * Simulate a rock paper scissors game against one of the users in chat.
+ *
+ * Maintains a record of games won / lost for each player
+ */
 internal class RockPaperScissorsRule @Inject constructor(private val botIds: Set<Snowflake>, storage: LocalStorage) :
     Rule("RockPaperScissors", storage) {
 
     override val priority: Priority
         get() = Priority.LOW
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val message = messageEvent.message
+    override suspend fun handleEvent(event: Event): Boolean {
+        if (event !is MessageCreateEvent) return false
+        val message = event.message
         val content = message.content.orElse("")
         logDebug("testing '$content' for rps command")
         if (!content.startsWith("rps")) {

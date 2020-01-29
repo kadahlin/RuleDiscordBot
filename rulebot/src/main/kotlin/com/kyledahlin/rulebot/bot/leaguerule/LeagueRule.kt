@@ -20,6 +20,7 @@ import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.rulebot.bot.client
 import com.kyledahlin.rulebot.bot.getTokenFromFile
 import discord4j.core.`object`.entity.Message
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.MessageCreateEvent
 import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers
@@ -48,8 +49,9 @@ internal class LeagueRule @Inject constructor(storage: LocalStorage) : Rule("Lea
         getTokenFromFile("leagueapi.txt")
     }
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val message = messageEvent.message
+    override suspend fun handleEvent(event: Event): Boolean {
+        if (event !is MessageCreateEvent) return false
+        val message = event.message
         val isLeagueMessage = message.containsLeagueRankRule()
         if (isLeagueMessage) {
             printLeagueRankFrom(message)

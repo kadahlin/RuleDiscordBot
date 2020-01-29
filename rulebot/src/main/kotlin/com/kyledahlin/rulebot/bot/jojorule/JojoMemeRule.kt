@@ -19,6 +19,7 @@ import com.kyledahlin.rulebot.bot.LocalStorage
 import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.rulebot.bot.client
 import discord4j.core.`object`.entity.Message
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.MessageCreateEvent
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -49,8 +50,9 @@ internal class JojoMemeRule @Inject constructor(storage: LocalStorage) : Rule("J
         mPostedIds.addAll(fileIds)
     }
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val message = messageEvent.message
+    override suspend fun handleEvent(event: Event): Boolean {
+        if (event !is MessageCreateEvent) return false
+        val message = event.message
         val doesContain = message.containsJojoRule()
         if (doesContain) {
             postJojoMemeFrom(message)
