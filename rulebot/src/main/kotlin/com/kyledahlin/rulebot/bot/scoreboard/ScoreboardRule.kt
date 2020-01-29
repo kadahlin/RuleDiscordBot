@@ -18,6 +18,7 @@ package com.kyledahlin.rulebot.bot.scoreboard
 import com.kyledahlin.rulebot.bot.LocalStorage
 import com.kyledahlin.rulebot.bot.Rule
 import discord4j.core.`object`.entity.Message
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.MessageCreateEvent
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -44,8 +45,9 @@ internal class ScoreboardRule @Inject constructor(storage: LocalStorage) : Rule(
     override val priority: Priority
         get() = Priority.LOW
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val message = messageEvent.message
+    override suspend fun handleEvent(event: Event): Boolean {
+        if (event !is MessageCreateEvent) return false
+        val message = event.message
         val content = message.content.get()
 
         if (!content.containsScoreboardCommand()) {

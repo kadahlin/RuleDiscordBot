@@ -18,6 +18,7 @@ package com.kyledahlin.rulebot.bot
 
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.Event
 import discord4j.core.event.domain.message.MessageCreateEvent
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.deleteWhere
@@ -70,8 +71,9 @@ internal class TimeoutRule @Inject constructor(storage: LocalStorage) : Rule("Ti
     override val priority: Priority
         get() = Priority.HIGH
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val message = messageEvent.message
+    override suspend fun handleEvent(event: Event): Boolean {
+        if (event !is MessageCreateEvent) return false
+        val message = event.message
         val author = message.author.get()
         if (processRemovalCommand(message)) {
             return true
