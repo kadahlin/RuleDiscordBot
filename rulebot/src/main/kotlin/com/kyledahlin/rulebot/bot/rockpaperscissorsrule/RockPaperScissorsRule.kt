@@ -13,26 +13,18 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package com.kyledahlin.rulebot.bot
+package com.kyledahlin.rulebot.bot.rockpaperscissorsrule
 
-import discord4j.core.`object`.entity.Message
+import com.kyledahlin.rulebot.DiscordWrapper
+import com.kyledahlin.rulebot.bot.*
 import discord4j.core.`object`.util.Snowflake
-import discord4j.core.event.domain.Event
-import discord4j.core.event.domain.message.MessageCreateEvent
-import org.jetbrains.exposed.dao.IntIdTable
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.transactions.transaction
-import suspendChannel
-import suspendCreateMessage
 import javax.inject.Inject
 import kotlin.random.Random
 
 private enum class RpsChoice {
     ROCK, PAPER, SCISSORS;
 
-    infix fun winAgainst(otherChoice: RpsChoice): Boolean? = when {
+    infix fun winsAgainst(otherChoice: RpsChoice): Boolean? = when {
         this == ROCK -> when (otherChoice) {
             ROCK -> null
             PAPER -> false
@@ -56,41 +48,46 @@ private enum class RpsChoice {
  *
  * Maintains a record of games won / lost for each player
  */
-internal class RockPaperScissorsRule @Inject constructor(private val botIds: Set<Snowflake>, storage: LocalStorage) :
-    Rule("RockPaperScissors", storage) {
+internal class RockPaperScissorsRule @Inject constructor(
+    private val botIds: Set<Snowflake>,
+    storage: LocalStorage,
+    private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
+    private val rockPaperScissorsStorage: RockPaperScissorsStorage
+) :
+    Rule("RockPaperScissors", storage, getDiscordWrapperForEvent) {
 
     override val priority: Priority
         get() = Priority.LOW
 
-    override suspend fun handleEvent(event: Event): Boolean {
-        if (event !is MessageCreateEvent) return false
-        val message = event.message
-        val content = message.content.orElse("")
+    override suspend fun handleEvent(event: RuleBotEvent): Boolean {
+        if (event !is MessageCreated) return false
+        val content = event.content
         logDebug("testing '$content' for rps command")
         if (!content.startsWith("rps")) {
             return false
         }
-        handleRpsCommand(message, content)
+        handleRpsCommand(event)
         return true
     }
 
-    private suspend fun handleRpsCommand(message: Message, content: String) {
-        val contentPieces = content.split(" ")
+    private suspend fun handleRpsCommand(event: MessageCreated) {
+        val contentPieces = event.content.split(" ")
+        val wrapper = getDiscordWrapperForEvent(event) ?: return
         if (contentPieces.size != 2) {
-            message.suspendChannel()?.suspendCreateMessage("missing a choice")
+            wrapper.sendMessage("missing a choice")
             return
         }
 
         val playerChoice = getChoiceFromString(contentPieces[1])
         if (playerChoice == null) {
-            message.suspendChannel()?.suspendCreateMessage("invalid choice")
+            wrapper.sendMessage("invalid choice")
             return
         }
 
-        val playerSnowflake = message.author.get().id
+        val playerSnowflake = event.author
 
         val botChoice = getRandomChoice()
-        val didPlayerWin = playerChoice winAgainst botChoice
+        val didPlayerWin = playerChoice winsAgainst botChoice
         var draw = false
         var winner = botIds.first()
         if (didPlayerWin == null) {
@@ -105,17 +102,17 @@ internal class RockPaperScissorsRule @Inject constructor(private val botIds: Set
             winner = winner,
             draw = draw
         )
-        insertNewRpsGame(game)
-        printAllGamesForPlayer(message, playerSnowflake, botChoice, didPlayerWin)
+        rockPaperScissorsStorage.insertRpsGame(game)
+        printAllGamesForPlayer(wrapper, playerSnowflake, botChoice, didPlayerWin)
     }
 
     private suspend fun printAllGamesForPlayer(
-        message: Message,
+        wrapper: DiscordWrapper,
         snowflake: Snowflake,
         botChoice: RpsChoice,
         didPlayerWin: Boolean?
     ) {
-        val games = getAllRpsGamesForPlayer(snowflake)
+        val games = rockPaperScissorsStorage.getAllRpsGamesForPlayer(snowflake)
         games.forEach {
             println("queried $it")
         }
@@ -129,7 +126,7 @@ internal class RockPaperScissorsRule @Inject constructor(private val botIds: Set
         }
         val stringMessage =
             "${botChoice.name.toLowerCase().capitalize()}! $resultMessage! You have won $wonGames out of $totalNonDrawGames and have had $totalDraws game(s) end in a draw"
-        message.suspendChannel()?.suspendCreateMessage(stringMessage)
+        wrapper.sendMessage(stringMessage)
     }
 
     private fun getChoiceFromString(content: String): RpsChoice? = when (content) {
@@ -146,27 +143,6 @@ internal class RockPaperScissorsRule @Inject constructor(private val botIds: Set
         else -> RpsChoice.ROCK
     }
 
-    private fun insertNewRpsGame(rpsGame: RockPaperScissorGame) = transaction {
-        println("inserting $rpsGame")
-        RockPaperScissorGames.insert {
-            it[participant1] = rpsGame.participant1.asString()
-            it[participant2] = rpsGame.participant2.asString()
-            it[winner] = rpsGame.winner.asString()
-            it[draw] = rpsGame.draw
-        }
-    }
-
-    private fun getAllRpsGamesForPlayer(snowflake: Snowflake): Collection<RockPaperScissorGame> = transaction {
-        RockPaperScissorGames.select { RockPaperScissorGames.participant1 eq snowflake.asString() or (RockPaperScissorGames.participant2 eq snowflake.asString()) }
-            .map {
-                val participant1 = it[RockPaperScissorGames.participant1]
-                val participant2 = it[RockPaperScissorGames.participant2]
-                val winner = it[RockPaperScissorGames.winner]
-                val draw = it[RockPaperScissorGames.draw]
-                RockPaperScissorGame(Snowflake.of(participant1), Snowflake.of(participant2), Snowflake.of(winner), draw)
-            }.toList()
-    }
-
     override fun getExplanation() = StringBuilder().apply {
         appendln("Start a message with 'rps'")
         appendln("the next word needs to be either rock, paper, scissors or r,p,s")
@@ -179,10 +155,3 @@ data class RockPaperScissorGame(
     val winner: Snowflake,
     val draw: Boolean
 )
-
-object RockPaperScissorGames : IntIdTable() {
-    val participant1 = varchar("participant1", 64)
-    val participant2 = varchar("participant2", 64)
-    val winner = varchar("winner", 64)
-    val draw = bool("draw")
-}

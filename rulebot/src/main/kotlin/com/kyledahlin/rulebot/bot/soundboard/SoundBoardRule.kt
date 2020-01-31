@@ -15,10 +15,7 @@
 */
 package com.kyledahlin.rulebot.bot.soundboard
 
-import com.kyledahlin.rulebot.bot.LocalStorage
-import com.kyledahlin.rulebot.bot.Logger
-import com.kyledahlin.rulebot.bot.Rule
-import com.kyledahlin.rulebot.bot.client
+import com.kyledahlin.rulebot.bot.*
 import com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
@@ -30,11 +27,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason
 import com.sedmelluq.discord.lavaplayer.track.playback.MutableAudioFrame
-import discord4j.core.event.domain.Event
-import discord4j.core.event.domain.message.MessageCreateEvent
 import discord4j.voice.AudioProvider
 import io.ktor.client.request.get
-import kotlinx.coroutines.reactive.awaitFirstOrNull
 import java.io.File
 import java.nio.ByteBuffer
 import javax.inject.Inject
@@ -47,7 +41,10 @@ private const val AUDIO_DIR = "audio"
 /**
  *
  */
-internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule("Soundboard", storage) {
+internal class SoundboardRule @Inject constructor(
+    storage: LocalStorage,
+    val getDiscordWrapper: GetDiscordWrapperForEvent
+) : Rule("Soundboard", storage, getDiscordWrapper) {
 
     override val priority: Priority
         get() = Priority.NORMAL
@@ -84,9 +81,9 @@ internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule(
         })
     }
 
-    override suspend fun handleEvent(event: Event): Boolean {
-        if (event !is MessageCreateEvent) return false
-        val messageContent = event.message.content.get()
+    override suspend fun handleEvent(event: RuleBotEvent): Boolean {
+        if (event !is MessageCreated) return false
+        val messageContent = event.content
         if (!messageContent.startsWith(CLIP_COMMAND)) {
             return false
         }
@@ -101,22 +98,17 @@ internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule(
         return true
     }
 
-    private suspend fun handleJoin(event: MessageCreateEvent) {
-        val isDm = !event.member.isPresent
-        if (isDm) return
+    private suspend fun handleJoin(event: MessageCreated) {
+        val wrapper = getDiscordWrapper(event) ?: return
+
         Logger.logDebug("joining voice")
-        val member = event.member.get()
-        val voiceState = member.voiceState.awaitFirstOrNull()
-        val channel = voiceState?.channel?.awaitFirstOrNull()
-        channel?.join { voiceChannelSpec ->
-            voiceChannelSpec.setProvider(provider)
-        }?.subscribe()
+        wrapper.joinVoiceChannel { setProvider(provider) }
     }
 
-    private suspend fun handlePlay(event: MessageCreateEvent) {
-        val isDm = event.guild.awaitFirstOrNull() == null
+    private suspend fun handlePlay(event: MessageCreated) {
+        val isDm = getDiscordWrapper(event)?.isDm == true
         if (!isDm) return
-        val messagePieces = event.message.content.get().split(" ")
+        val messagePieces = event.content.split(" ")
         if (messagePieces.size > 1) {
             val audioFileName = messagePieces[1]
             val filePath = getAudioPathForName(audioFileName)
@@ -125,14 +117,14 @@ internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule(
         }
     }
 
-    private suspend fun handleSave(event: MessageCreateEvent) {
-        val isDm = event.guild.awaitFirstOrNull() == null
+    private suspend fun handleSave(event: MessageCreated) {
+        val isDm = getDiscordWrapper(event)?.isDm == true
         if (!isDm) return
-        val messagePieces = event.message.content.get().split(" ")
+        val messagePieces = event.content.split(" ")
         if (messagePieces.size > 1) {
             val fileName = messagePieces[1]
             Logger.logDebug("saving $fileName")
-            event.message.attachments.firstOrNull()?.also {
+            event.attachments.firstOrNull()?.also {
                 val url = it.url
                 Logger.logInfo("the url for this attachment is $url")
                 val dotIndex = url.lastIndexOf(".")
@@ -143,8 +135,8 @@ internal class SoundboardRule @Inject constructor(storage: LocalStorage) : Rule(
         }
     }
 
-    private suspend fun handleStop(event: MessageCreateEvent) {
-        val isDm = event.guild.awaitFirstOrNull() == null
+    private suspend fun handleStop(event: MessageCreated) {
+        val isDm = getDiscordWrapper(event)?.isDm == true
         if (!isDm) return
         player.stopTrack()
     }
