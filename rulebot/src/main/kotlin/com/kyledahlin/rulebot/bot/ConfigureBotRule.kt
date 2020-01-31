@@ -15,20 +15,19 @@
 */
 package com.kyledahlin.rulebot.bot
 
-import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.util.Snowflake
-import discord4j.core.event.domain.Event
-import discord4j.core.event.domain.message.MessageCreateEvent
-import suspendChannel
-import suspendCreateMessage
 import javax.inject.Inject
 
 private val setAdminRegex = """add admin""".toRegex()
 private val removeAdminRegex = """remove admin""".toRegex()
 private val listAdminsRegex = """list admins""".toRegex()
 
-internal class ConfigureBotRule @Inject constructor(botSnowflakes: Set<Snowflake>, private val storage: LocalStorage) :
-    Rule("ConfigureBot", storage) {
+internal class ConfigureBotRule @Inject constructor(
+    botSnowflakes: Set<Snowflake>,
+    private val storage: LocalStorage,
+    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
+) :
+    Rule("ConfigureBot", storage, getDiscordWrapperForEvent) {
 
     override val priority: Priority
         get() = Priority.NORMAL
@@ -39,18 +38,17 @@ internal class ConfigureBotRule @Inject constructor(botSnowflakes: Set<Snowflake
         mBotSnowflakes.addAll(botSnowflakes)
     }
 
-    override suspend fun handleEvent(event: Event): Boolean {
-        if (event !is MessageCreateEvent) return false
-        val message = event.message
-        if (!message.canAuthorIssueRules()) {
+    override suspend fun handleEvent(event: RuleBotEvent): Boolean {
+        if (event !is MessageCreated) return false
+        if (!event.canAuthorIssueRules()) {
             return false
         }
-        val mentionsBot = message.getSnowflakes()
+        val mentionsBot = event.snowflakes
             .map { it.snowflake }
             .any { mBotSnowflakes.contains(it) }
 
         if (mentionsBot) {
-            executeRule(message)
+            executeRule(event)
         }
         return mentionsBot
     }
@@ -67,20 +65,20 @@ internal class ConfigureBotRule @Inject constructor(botSnowflakes: Set<Snowflake
         }.toString()
     }
 
-    private suspend fun executeRule(message: Message) {
-        val content = message.content.get()
+    private suspend fun executeRule(event: RuleBotEvent) {
+        if (event !is MessageCreated) return
         when {
-            setAdminRegex.containsMatchIn(content) -> setAdmin(message)
-            removeAdminRegex.containsMatchIn(content) -> removeAdmin(message)
-            listAdminsRegex.containsMatchIn(content) -> listAdmins(message)
+            setAdminRegex.containsMatchIn(event.content) -> setAdmin(event)
+            removeAdminRegex.containsMatchIn(event.content) -> removeAdmin(event)
+            listAdminsRegex.containsMatchIn(event.content) -> listAdmins(event)
         }
 
     }
 
-    private suspend fun setAdmin(message: Message) {
+    private suspend fun setAdmin(event: MessageCreated) {
         val adminSnowflakes = storage.getAdminSnowflakes()
-        val newAdmins = message
-            .getSnowflakes()
+        val newAdmins = event
+            .snowflakes
             .filter {
                 !mBotSnowflakes.contains(it.snowflake) || !adminSnowflakes.contains(it)
             }
@@ -88,18 +86,18 @@ internal class ConfigureBotRule @Inject constructor(botSnowflakes: Set<Snowflake
         storage.addAdminSnowflakes(newAdmins.toSet())
     }
 
-    private suspend fun removeAdmin(message: Message) {
-        val adminsToRemove = message.getSnowflakes().map { it.snowflake }
+    private suspend fun removeAdmin(event: MessageCreated) {
+        val adminsToRemove = event.snowflakes.map { it.snowflake }
             .filterNot { mBotSnowflakes.contains(it) }
         logDebug("removing ${adminsToRemove.joinToString(separator = ",") { it.asString() }} from admin list")
         storage.removeAdminSnowflakes(adminsToRemove)
     }
 
-    private suspend fun listAdmins(message: Message) {
+    private suspend fun listAdmins(event: MessageCreated) {
         val admins = storage.getAdminSnowflakes()
-        val usermentions = admins.map {
+        val userMentions = admins.map {
             if (it.isRole) "<@&${it.snowflake.asString()}>" else "<@${it.snowflake.asString()}>"
         }
-        message.suspendChannel()?.suspendCreateMessage("Admins are: ${usermentions.joinToString(separator = " ")}")
+        getDiscordWrapperForEvent(event)?.sendMessage("Admins are: ${userMentions.joinToString(separator = " ")}")
     }
 }

@@ -15,12 +15,13 @@
 */
 package com.kyledahlin.rulebot
 
-import com.kyledahlin.rulebot.bot.*
+import com.kyledahlin.rulebot.bot.DaggerBotComponent
+import com.kyledahlin.rulebot.bot.LogLevel
+import com.kyledahlin.rulebot.bot.Logger
+import com.kyledahlin.rulebot.bot.getTokenFromFile
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
-
-private val mRules = mutableSetOf<Rule>()
 
 private const val LOG_LEVEL = "--log-level"
 private const val IS_BETA = "--beta"
