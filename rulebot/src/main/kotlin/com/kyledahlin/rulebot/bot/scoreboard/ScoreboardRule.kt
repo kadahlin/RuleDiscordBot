@@ -15,16 +15,7 @@
 */
 package com.kyledahlin.rulebot.bot.scoreboard
 
-import com.kyledahlin.rulebot.bot.LocalStorage
-import com.kyledahlin.rulebot.bot.Rule
-import discord4j.core.`object`.entity.Message
-import discord4j.core.event.domain.Event
-import discord4j.core.event.domain.message.MessageCreateEvent
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
-import suspendChannel
-import suspendCreateMessage
+import com.kyledahlin.rulebot.bot.*
 import java.io.FileInputStream
 import javax.inject.Inject
 
@@ -40,146 +31,111 @@ private val PLAYER = """player=[a-zA-Z]+""".toRegex()
  *
  * Each member of a scoreboard will be assigned a wins value that can be incremented with chat commands
  */
-internal class ScoreboardRule @Inject constructor(storage: LocalStorage) : Rule("Scoreboard", storage) {
+internal class ScoreboardRule @Inject constructor(
+    storage: LocalStorage,
+    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
+    val scoreboardStorage: ScoreboardStorage
+) :
+    Rule("Scoreboard", storage, getDiscordWrapperForEvent) {
 
     override val priority: Priority
         get() = Priority.LOW
 
-    override suspend fun handleEvent(event: Event): Boolean {
-        if (event !is MessageCreateEvent) return false
-        val message = event.message
-        val content = message.content.get()
+    override suspend fun handleEvent(event: RuleBotEvent): Boolean {
+        if (event !is MessageCreated) return false
 
-        if (!content.containsScoreboardCommand()) {
-            logDebug("content $content does not contain a scoreboard command")
+        if (!event.content.containsScoreboardCommand()) {
+            logDebug("content ${event.content} does not contain a scoreboard command")
             return false
         }
-        handleScoreboardCommand(message)
+        handleScoreboardCommand(event)
         return true
     }
 
-    private suspend fun handleScoreboardCommand(message: Message) {
-        val content = message.content.get()
+    private suspend fun handleScoreboardCommand(event: MessageCreated) {
+        val content = event.content
         val returnMessage = when {
-            content.startsWith(SCOREBOARD_CREATE) -> createScoreboard(content, message)
-            content.startsWith(SCOREBOARD_ADD_PLAYER) -> addPlayer(content, message)
-            content.startsWith(SCOREBOARD_ADD_WIN) -> addWin(content, message)
-            content.startsWith(SCOREBOARD_SHOW) -> showScoreboard(content, message)
+            content.startsWith(SCOREBOARD_CREATE) -> createScoreboard(content, event)
+            content.startsWith(SCOREBOARD_ADD_PLAYER) -> addPlayer(content, event)
+            content.startsWith(SCOREBOARD_ADD_WIN) -> addWin(content, event)
+            content.startsWith(SCOREBOARD_SHOW) -> showScoreboard(content, event)
             else -> "invalid scoreboard command"
         }
         logDebug("return message was $returnMessage")
         if (!returnMessage.isNullOrEmpty()) {
-            message.suspendChannel()?.suspendCreateMessage(returnMessage)
+            getDiscordWrapperForEvent(event)?.sendMessage(returnMessage)
         }
     }
 
-    private fun createScoreboard(content: String, message: Message): String = transaction {
+    private fun createScoreboard(content: String, event: MessageCreated): String {
         logDebug("start creating scoreboard")
-        val author = message.author.get()
-        val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
-        val count = Scoreboards.select { Scoreboards.name eq scoreboardName }.count()
-        if (count != 0) {
-            return@transaction "this scoreboard name already exists"
+        val scoreboardName = content.getNameValue() ?: return "missing scoreboard name"
+        val exists = scoreboardStorage.getScoreboardIdForName(scoreboardName) != null
+        if (exists) {
+            return "this scoreboard name already exists"
         }
 
-        Scoreboards.insert {
-            it[name] = scoreboardName
-            it[ownerSnowflake] = author.id.asString()
-        }
+        scoreboardStorage.insertScoreboard(scoreboardName, event.author)
 
-        "Scoreboard $scoreboardName has been created"
+        return "Scoreboard $scoreboardName has been created"
     }
 
-    private fun addPlayer(content: String, message: Message): String = transaction {
+    private fun addPlayer(content: String, event: MessageCreated): String {
         logDebug("start adding player")
-        val author = message.author.get()
-        val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
-        val playerName = content.getPlayerValue() ?: return@transaction "missing player name"
+        val scoreboardName = content.getNameValue() ?: return "missing scoreboard name"
+        val playerName = content.getPlayerValue() ?: return "missing player name"
 
-        val scoreboardQuery = Scoreboards.slice(Scoreboards.id, Scoreboards.ownerSnowflake)
-            .select { Scoreboards.name eq scoreboardName }
-            .firstOrNull() ?: return@transaction "this scoreboard does not exist"
+        val scoreboardId =
+            scoreboardStorage.getScoreboardIdForName(scoreboardName) ?: return "scoreboard does not exist"
+        val exists = scoreboardStorage.doesScoreboardHavePlayer(scoreboardId, playerName)
 
-        val scoreboardId = scoreboardQuery[Scoreboards.id]
-        if (author.id.asString() != scoreboardQuery[Scoreboards.ownerSnowflake]) {
-            return@transaction "You are not the owner of this scoreboard"
+        if (exists) {
+            return "this player already exists for this game"
         }
 
-        val existingCount = ScoreboardPlayers.select {
-            ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName)
-        }.count()
-
-        if (existingCount != 0) {
-            return@transaction "this player already exists for this game"
-        }
-
-        ScoreboardPlayers.insert {
-            it[ScoreboardPlayers.name] = playerName
-            it[ScoreboardPlayers.scoreboardId] = scoreboardId
-            it[wins] = 0
-        }
-
-        "Player $playerName has been added to $scoreboardName"
+        scoreboardStorage.addPlayer(scoreboardId, playerName, wins = 0)
+        return "Player $playerName has been added to $scoreboardName"
     }
 
-    private fun addWin(content: String, message: Message): String = transaction {
+    private fun addWin(content: String, event: MessageCreated): String {
         logDebug("start adding win")
-        val author = message.author.get()
-        val scoreboardName = content.getNameValue() ?: return@transaction "missing scoreboard name"
-        val playerName = content.getPlayerValue() ?: return@transaction "missing player name"
+        val author = event.author
+        val scoreboardName = content.getNameValue() ?: return "missing scoreboard name"
+        val playerName = content.getPlayerValue() ?: return "missing player name"
 
-        val scoreboardQuery = Scoreboards.slice(Scoreboards.id, Scoreboards.ownerSnowflake)
-            .select { Scoreboards.name eq scoreboardName }
-            .firstOrNull() ?: return@transaction "this scoreboard does not exist"
+        val scoreboardId =
+            scoreboardStorage.getScoreboardIdForName(scoreboardName) ?: return "this scoreboard does not exist"
 
-        val scoreboardId = scoreboardQuery[Scoreboards.id]
-        if (author.id.asString() != scoreboardQuery[Scoreboards.ownerSnowflake]) {
-            return@transaction "You are not the owner of this scoreboard"
-        }
-
-        val existingCount = ScoreboardPlayers.select {
-            ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName)
-        }.count()
-
-        if (existingCount != 0) {
-            ScoreboardPlayers.update({ ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName) }) {
-                with(SqlExpressionBuilder) {
-                    it.update(ScoreboardPlayers.wins, ScoreboardPlayers.wins + 1)
-                }
-            }
+        val hasPlayer = scoreboardStorage.doesScoreboardHavePlayer(scoreboardId, playerName)
+        if (hasPlayer) {
+            scoreboardStorage.giveWinToPlayer(scoreboardId, playerName)
         } else {
-            ScoreboardPlayers.insert {
-                it[ScoreboardPlayers.name] = playerName
-                it[ScoreboardPlayers.wins] = 1
-                it[ScoreboardPlayers.scoreboardId] = scoreboardId
-            }
+            scoreboardStorage.addPlayer(scoreboardId, playerName, wins = 1)
         }
 
-        "giving win to player $playerName"
+        return "giving win to player $playerName"
     }
 
-    private suspend fun showScoreboard(content: String, message: Message): String? = newSuspendedTransaction {
-        val scoreboardName = content.getNameValue() ?: return@newSuspendedTransaction "missing scoreboard name"
-        val scoreboardQuery = Scoreboards.slice(Scoreboards.id)
-            .select { Scoreboards.name eq scoreboardName }
-            .firstOrNull() ?: return@newSuspendedTransaction "this scoreboard does not exist"
+    private suspend fun showScoreboard(content: String, event: MessageCreated): String? {
+        val scoreboardName = content.getNameValue() ?: return "missing scoreboard name"
 
-        val scoreboardId = scoreboardQuery[Scoreboards.id]
-        val playerChartPoints = ScoreboardPlayers.select {
-            ScoreboardPlayers.scoreboardId eq scoreboardId
-        }.map {
-            ChartPoint(label = it[ScoreboardPlayers.name], value = it[ScoreboardPlayers.wins])
-        }
+        val scoreboardId = scoreboardStorage.getScoreboardIdForName(scoreboardName)
+            ?: return "this scoreboard does not exist"
+
+        val playerChartPoints = scoreboardStorage.getPlayersForScoreboard(scoreboardId)
+            .map { (name, wins) ->
+                ChartPoint(label = name, value = wins)
+            }
 
         val filename = generateWinChart(playerChartPoints, scoreboardName)
-            ?: return@newSuspendedTransaction "nothing to show for this scoreboard, possibly no players?"
+            ?: return "nothing to show for this scoreboard, possibly no players?"
 
         val inputStream = FileInputStream(filename)
-        val channel = message.suspendChannel()
-        channel?.suspendCreateMessage {
+        val wrapper = getDiscordWrapperForEvent(event)
+        wrapper?.sendMessage {
             addFile(filename, inputStream)
         }
-        null
+        return null
     }
 
     override fun getExplanation(): String? {
@@ -205,16 +161,4 @@ internal class ScoreboardRule @Inject constructor(storage: LocalStorage) : Rule(
 
     private fun String.getPlayerValue() = PLAYER.find(this)?.value?.split("=")?.get(1)?.toLowerCase()?.capitalize()
 
-}
-
-object Scoreboards : Table() {
-    val id = integer("id").primaryKey().autoIncrement()
-    val ownerSnowflake = varchar("snowflake", 64)
-    val name = varchar("name", 30)
-}
-
-object ScoreboardPlayers : Table() {
-    val name = varchar("name", 30).primaryKey(0)
-    val wins = integer("wins")
-    val scoreboardId = integer("scoreboard_id").references(Scoreboards.id, ReferenceOption.CASCADE).primaryKey(1)
 }

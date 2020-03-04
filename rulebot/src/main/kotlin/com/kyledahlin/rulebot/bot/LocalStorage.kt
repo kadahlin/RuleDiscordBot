@@ -15,8 +15,10 @@
 */
 package com.kyledahlin.rulebot.bot
 
+import com.kyledahlin.rulebot.bot.rockpaperscissorsrule.RockPaperScissorGames
 import com.kyledahlin.rulebot.bot.scoreboard.ScoreboardPlayers
 import com.kyledahlin.rulebot.bot.scoreboard.Scoreboards
+import com.kyledahlin.rulebot.bot.timeoutrule.Timeouts
 import discord4j.core.`object`.util.Snowflake
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.*
