@@ -13,38 +13,50 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot
+package com.kyledahlin.rulebot.bot
 
+import com.kyledahlin.rulebot.DiscordWrapper
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
-import discord4j.core.event.domain.message.MessageCreateEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
-import kotlinx.coroutines.reactive.awaitFirstOrNull
+import kotlinx.serialization.json.JSON
+import kotlinx.serialization.json.Json
 import suspendAddReaction
-import suspendAsMember
 import suspendChannel
 import suspendGetMessageById
-import suspendOwner
+
+typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards DiscordWrapper?
 
 /**
  * A self contained piece of logic that operates on the messages given to it.
  */
-internal abstract class Rule(internal val ruleName: String, private val storage: LocalStorage) {
+internal abstract class Rule(
+    internal val ruleName: String,
+    private val storage: LocalStorage,
+    private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
+) {
+
+    internal enum class Priority {
+        HIGH, NORMAL, LOW
+    }
+
     /**
      * Process this message and determine if action is necessary.
      *
      * @return true if action on the server was taken, false otherwise
      */
-    abstract suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean
+    abstract suspend fun handleEvent(event: RuleBotEvent): Boolean
 
     /**
      * Get a human readable description of how to use this rule
      */
     abstract fun getExplanation(): String?
+
+    abstract val priority: Priority
 
     protected open fun isAdminOnly() = true
 
@@ -76,19 +88,16 @@ internal abstract class Rule(internal val ruleName: String, private val storage:
         return false
     }
 
-    internal suspend fun Message.canAuthorIssueRules(): Boolean {
-        val guildForMessage = this.guild.awaitFirstOrNull() ?: return true
-        val member = author.get().suspendAsMember(guildForMessage.id)
-        val roleIds = member?.roleIds ?: setOf()
+    internal suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
+        val wrapper = getDiscordWrapperForEvent(this) ?: return false
+        val roleIds = wrapper.getRoleIds()
 
         val admins = storage.getAdminSnowflakes().map { it.snowflake }
         val isUsersRoleAdmin = roleIds.any { admins.contains(it) }
-        val isUserIdAdmin = admins.contains(author.get().id)
+        val isUserIdAdmin = admins.contains(author)
         val isAdmin = isUsersRoleAdmin || isUserIdAdmin
-        println(6)
 
-        val isOwner = guildForMessage.suspendOwner()?.id == author.get().id
-
+        val isOwner = wrapper.getGuildOwnerId() == author
         return isAdmin || isOwner
     }
 }
@@ -151,7 +160,7 @@ val client by lazy {
     HttpClient(Apache) {
         expectSuccess = false
         install(JsonFeature) {
-            serializer = KotlinxSerializer()
+            serializer = KotlinxSerializer(json = Json.nonstrict)
         }
     }
 }

@@ -13,22 +13,11 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot.leaguerule
+package com.kyledahlin.rulebot.bot.leaguerule
 
-import bot.LocalStorage
-import bot.Rule
-import bot.client
-import bot.getTokenFromFile
-import discord4j.core.`object`.entity.Message
-import discord4j.core.event.domain.message.MessageCreateEvent
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.apache.Apache
-import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.json.serializer.KotlinxSerializer
+import com.kyledahlin.rulebot.bot.*
 import io.ktor.client.request.get
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 private val leagueRegex = "league rank of [a-zA-Z0-9]+".toRegex()
 private const val SUMMONER_NAME = "SUMMONER_NAME"
@@ -42,17 +31,24 @@ private const val summonerRequest =
 /**
  * Print the league of legends rank for a given player
  */
-internal class LeagueRule(storage: LocalStorage) : Rule("LeagueRank", storage) {
+internal class LeagueRule @Inject constructor(
+    storage: LocalStorage,
+    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
+) :
+    Rule("LeagueRank", storage, getDiscordWrapperForEvent) {
+
+    override val priority: Priority
+        get() = Priority.LOW
 
     private val leagueApiKey by lazy {
         getTokenFromFile("leagueapi.txt")
     }
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val message = messageEvent.message
-        val isLeagueMessage = message.containsLeagueRankRule()
+    override suspend fun handleEvent(event: RuleBotEvent): Boolean {
+        if (event !is MessageCreated) return false
+        val isLeagueMessage = event.containsLeagueRankRule()
         if (isLeagueMessage) {
-            printLeagueRankFrom(message)
+            printLeagueRankFrom(event)
         }
         return isLeagueMessage
     }
@@ -64,28 +60,19 @@ internal class LeagueRule(storage: LocalStorage) : Rule("LeagueRank", storage) {
         }.toString()
     }
 
-    private fun Message.containsLeagueRankRule(): Boolean {
-        val content = content.orElse("")
-        return leagueRegex.containsMatchIn(content)
-    }
+    private fun MessageCreated.containsLeagueRankRule() = leagueRegex.containsMatchIn(content)
 
-    private fun printLeagueRankFrom(message: Message) {
-        GlobalScope.launch(Dispatchers.IO) {
-            val content = message.content.orElse("")
-            val firstMatch = leagueRegex.find(content)?.value!!
-            val username = firstMatch.split("\\s+".toRegex()).last()
-            val summonerId = getSummonerId(username)
-            if (summonerId == null) {
-                message.channel
-                    .flatMap { it.createMessage("this player doesn't seem to exist") }
-                    .subscribe()
-            } else {
-                val leagueMessage = getFirstRankString(summonerId)
-                if (leagueMessage != null) {
-                    message.channel
-                        .flatMap { it.createMessage(leagueMessage) }
-                        .subscribe()
-                }
+    private suspend fun printLeagueRankFrom(event: MessageCreated) {
+        val wrapper = getDiscordWrapperForEvent(event) ?: return
+        val firstMatch = leagueRegex.find(event.content)?.value!!
+        val username = firstMatch.split("\\s+".toRegex()).last()
+        val summonerId = getSummonerId(username)
+        if (summonerId == null) {
+            wrapper.sendMessage("this player doesn't seem to exist")
+        } else {
+            val leagueMessage = getFirstRankString(summonerId)
+            if (leagueMessage != null) {
+                wrapper.sendMessage(leagueMessage)
             }
         }
     }
