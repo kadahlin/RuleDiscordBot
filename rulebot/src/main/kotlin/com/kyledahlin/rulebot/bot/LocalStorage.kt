@@ -13,17 +13,19 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
+package com.kyledahlin.rulebot.bot
 
-package bot
-
-import bot.scoreboard.ScoreboardPlayers
-import bot.scoreboard.Scoreboards
+import com.kyledahlin.rulebot.bot.rockpaperscissorsrule.RockPaperScissorGames
+import com.kyledahlin.rulebot.bot.scoreboard.ScoreboardPlayers
+import com.kyledahlin.rulebot.bot.scoreboard.Scoreboards
+import com.kyledahlin.rulebot.bot.timeoutrule.Timeouts
 import discord4j.core.`object`.util.Snowflake
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.sql.Connection
+import javax.inject.Inject
 
 object Admins : IntIdTable() {
     val snowflake = varchar("snowflake", 64)
@@ -36,7 +38,7 @@ internal interface LocalStorage {
     suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>)
 }
 
-internal class LocalStorageImpl : LocalStorage {
+internal class LocalStorageImpl @Inject constructor() : LocalStorage {
 
     init {
         Database.connect("jdbc:h2:./rulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")

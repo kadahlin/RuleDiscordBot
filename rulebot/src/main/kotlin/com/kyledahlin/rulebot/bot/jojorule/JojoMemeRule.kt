@@ -13,18 +13,13 @@
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
-package bot.jojorule
+package com.kyledahlin.rulebot.bot.jojorule
 
-import bot.LocalStorage
-import bot.Rule
-import bot.client
-import discord4j.core.`object`.entity.Message
-import discord4j.core.event.domain.message.MessageCreateEvent
+import com.kyledahlin.rulebot.bot.*
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import suspendChannel
-import suspendCreateMessage
 import java.io.File
+import javax.inject.Inject
 
 private const val RULE_PHRASE = "spicy jojo meme"
 private const val JOJO_FILE_NAME = "jojo_id_file"
@@ -34,7 +29,14 @@ private const val JOJO_FILE_NAME = "jojo_id_file"
  *
  * This rule will save to a file any post that it has already posted and will post unique images until the file is modified
  */
-internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
+internal class JojoMemeRule @Inject constructor(
+    storage: LocalStorage,
+    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
+) :
+    Rule("JoJoMeme", storage, getDiscordWrapperForEvent) {
+
+    override val priority: Priority
+        get() = Priority.LOW
 
     //the fetched posts that have already posted while this rule has been active
     private val mPostedIds = mutableSetOf<String>()
@@ -45,11 +47,11 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
         mPostedIds.addAll(fileIds)
     }
 
-    override suspend fun handleRule(messageEvent: MessageCreateEvent): Boolean {
-        val message = messageEvent.message
-        val doesContain = message.containsJojoRule()
+    override suspend fun handleEvent(event: RuleBotEvent): Boolean {
+        if (event !is MessageCreated) return false
+        val doesContain = event.containsJojoRule()
         if (doesContain) {
-            postJojoMemeFrom(message)
+            postJojoMemeFrom(event)
         }
         return doesContain
     }
@@ -60,11 +62,10 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
         }.toString()
     }
 
-    private fun Message.containsJojoRule() = content.orElse("").toLowerCase().contains(RULE_PHRASE)
+    private fun MessageCreated.containsJojoRule() = content.toLowerCase().contains(RULE_PHRASE)
 
-    private suspend fun postJojoMemeFrom(message: Message) {
-        val channel = message.channelId
-        logDebug("jojo message from ${channel.asString()}")
+    private suspend fun postJojoMemeFrom(event: MessageCreated) {
+        val wrapper = getDiscordWrapperForEvent(event) ?: return
         val redditResponse = client.get<RedditResponse>(JOJO_REDDIT) {
             header(
                 "User-Agent",
@@ -81,7 +82,7 @@ internal class JojoMemeRule(storage: LocalStorage) : Rule("JoJoMeme", storage) {
         saveIdToFile(dataToPost.id)
 
         mPostedIds.add(dataToPost.id)
-        message.suspendChannel()?.suspendCreateMessage("${dataToPost.title}\n${dataToPost.url}")
+        wrapper.sendMessage("${dataToPost.title}\n${dataToPost.url}")
     }
 
     @Synchronized

@@ -8,6 +8,7 @@ pluginManagement {
     }
 }
 
-include("discord4k", "rulebot")
+include ":discord4k"
+include ":rulebot"
 
-rootProject.name = 'honkbot'
+rootProject.name = 'rulebot'
