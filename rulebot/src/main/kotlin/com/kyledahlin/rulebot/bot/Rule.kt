@@ -23,6 +23,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
+import kotlinx.serialization.json.JSON
+import kotlinx.serialization.json.Json
 import suspendAddReaction
 import suspendChannel
 import suspendGetMessageById
@@ -158,7 +160,7 @@ val client by lazy {
     HttpClient(Apache) {
         expectSuccess = false
         install(JsonFeature) {
-            serializer = KotlinxSerializer()
+            serializer = KotlinxSerializer(json = Json.nonstrict)
         }
     }
 }
