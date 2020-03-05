@@ -20,7 +20,7 @@ import java.io.File
 import java.util.*
 import javax.inject.Inject
 
-private const val PASSAGE_FILE_NAME = "KARL_condensed"
+private const val PASSAGE_FILE_NAME = "KARL_condensed.txt"
 private const val DELIMITER = "||"
 private const val TRIGGER = "bluepill me"
 
@@ -33,19 +33,15 @@ internal class MarxPassageRule @Inject constructor(
 ) : Rule("MarxPassages", storage, getDiscordWrapperForEvent) {
 
     private val random = Random()
-    private val _passages: Array<String> = File(PASSAGE_FILE_NAME)
-        .readText()
-        .split(DELIMITER)
-        .toTypedArray()
 
     override val priority: Priority
-        get() = Rule.Priority.LOW
+        get() = Priority.LOW
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
         if (event !is MessageCreated) return false
 
         return if (event.content.contains(TRIGGER)) {
-            val passage = _passages[random.nextInt(_passages.size)]
+            val passage = getPassage()
             getDiscordWrapperForEvent(event)?.sendMessage(passage)
             true
         } else {
@@ -53,7 +49,13 @@ internal class MarxPassageRule @Inject constructor(
         }
     }
 
+    private suspend fun getPassage(): String {
+        val passages = getStringFromResourceFile("KARL_condensed.txt").split(DELIMITER)
+        val passage = passages[random.nextInt(passages.size)]
+        return passage
+    }
+
     override fun getExplanation(): String? {
-        return "Post a random passage from Karl Marx's 'Capital Volume One'\nSimply post a message with the phrase $TRIGGER to receive a selection"
+        return "Post a random passage from Karl Marx's 'Capital Volume One'\nSimply post a message with the phrase $TRIGGER to receive a selection\n"
     }
 }

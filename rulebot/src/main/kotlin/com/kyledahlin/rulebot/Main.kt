@@ -18,7 +18,7 @@ package com.kyledahlin.rulebot
 import com.kyledahlin.rulebot.bot.DaggerBotComponent
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
-import com.kyledahlin.rulebot.bot.getTokenFromFile
+import com.kyledahlin.rulebot.bot.getStringFromResourceFile
 import discord4j.core.DiscordClientBuilder
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -34,7 +34,7 @@ fun main(args: Array<String>) {
     val isBeta = metaArgs[IS_BETA] as? Boolean
     Logger.logDebug("is Beta? $isBeta")
     val tokenFile = if (isBeta == true) "betatoken.txt" else "token.txt"
-    val client = DiscordClientBuilder(getTokenFromFile(tokenFile)).build()
+    val client = DiscordClientBuilder(getStringFromResourceFile(tokenFile)).build()
 
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
