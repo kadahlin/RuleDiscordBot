@@ -59,5 +59,8 @@ jacoco {
 jacocoTestReport {
     reports {
         html.destination file("${buildDir}/jacocoHtml")
+        xml.enabled = true
     }
 }
+
+check.dependsOn jacocoTestReport
