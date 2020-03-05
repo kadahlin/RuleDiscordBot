@@ -67,7 +67,7 @@ internal class ScoreboardRule @Inject constructor(
         }
     }
 
-    private fun createScoreboard(content: String, event: MessageCreated): String {
+    private suspend fun createScoreboard(content: String, event: MessageCreated): String {
         logDebug("start creating scoreboard")
         val scoreboardName = content.getNameValue() ?: return "missing scoreboard name"
         val exists = scoreboardStorage.getScoreboardIdForName(scoreboardName) != null
@@ -80,7 +80,7 @@ internal class ScoreboardRule @Inject constructor(
         return "Scoreboard $scoreboardName has been created"
     }
 
-    private fun addPlayer(content: String, event: MessageCreated): String {
+    private suspend fun addPlayer(content: String, event: MessageCreated): String {
         logDebug("start adding player")
         val scoreboardName = content.getNameValue() ?: return "missing scoreboard name"
         val playerName = content.getPlayerValue() ?: return "missing player name"
@@ -97,7 +97,7 @@ internal class ScoreboardRule @Inject constructor(
         return "Player $playerName has been added to $scoreboardName"
     }
 
-    private fun addWin(content: String, event: MessageCreated): String {
+    private suspend fun addWin(content: String, event: MessageCreated): String {
         logDebug("start adding win")
         val author = event.author
         val scoreboardName = content.getNameValue() ?: return "missing scoreboard name"

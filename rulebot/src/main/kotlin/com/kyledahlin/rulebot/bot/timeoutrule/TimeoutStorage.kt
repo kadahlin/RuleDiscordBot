@@ -5,7 +5,7 @@ import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -39,7 +39,7 @@ internal data class Timeout(
 
 @Singleton
 internal class TimeoutStorage @Inject constructor() {
-    fun insertTimeouts(timeouts: Collection<Timeout>) = transaction {
+    suspend fun insertTimeouts(timeouts: Collection<Timeout>) = newSuspendedTransaction {
         for (timeout in timeouts) {
             Timeouts.insert {
                 it[snowflake] = timeout.snowflake.asString()
@@ -49,9 +49,9 @@ internal class TimeoutStorage @Inject constructor() {
         }
     }
 
-    fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? = transaction {
+    suspend fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? = newSuspendedTransaction {
         val existing = Timeouts.select { Timeouts.snowflake eq snowflake.asString() }
-            .firstOrNull() ?: return@transaction null
+            .firstOrNull() ?: return@newSuspendedTransaction null
 
         Timeout(
             snowflake,
@@ -60,7 +60,7 @@ internal class TimeoutStorage @Inject constructor() {
         )
     }
 
-    fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) = transaction {
+    suspend fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) = newSuspendedTransaction {
         Timeouts.deleteWhere {
             Timeouts.snowflake inList snowflakes.map { it.asString() }
         }

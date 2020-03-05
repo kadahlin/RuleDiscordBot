@@ -27,6 +27,7 @@ import kotlinx.serialization.json.Json
 import suspendAddReaction
 import suspendChannel
 import suspendGetMessageById
+import suspendGuild
 
 typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards DiscordWrapper?
 
@@ -103,6 +104,7 @@ internal abstract class Rule(
 
 internal data class RoleSnowflake(
     val snowflake: Snowflake,
+    val guildSnowflake: Snowflake?,
     val isRole: Boolean = false
 ) {
     override fun equals(other: Any?): Boolean {
@@ -114,9 +116,10 @@ internal data class RoleSnowflake(
 }
 
 //return all users and roles that were mentioned in this message
-internal fun Message.getSnowflakes(): Set<RoleSnowflake> {
-    val users = userMentionIds.map { RoleSnowflake(it) }
-    val roles = roleMentionIds.map { RoleSnowflake(it, isRole = true) }
+internal suspend fun Message.getSnowflakes(): Set<RoleSnowflake> {
+    val guildId = suspendGuild()?.id
+    val users = userMentionIds.map { RoleSnowflake(it, guildId) }
+    val roles = roleMentionIds.map { RoleSnowflake(it, guildId, isRole = true) }
     return users.union(roles)
 }
 
