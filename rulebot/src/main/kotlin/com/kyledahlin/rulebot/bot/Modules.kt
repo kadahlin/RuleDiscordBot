@@ -4,6 +4,7 @@ import com.kyledahlin.rulebot.DiscordCache
 import com.kyledahlin.rulebot.RuleManager
 import com.kyledahlin.rulebot.bot.jojorule.JojoMemeRule
 import com.kyledahlin.rulebot.bot.leaguerule.LeagueRule
+import com.kyledahlin.rulebot.bot.marxrule.MarxPassageRule
 import com.kyledahlin.rulebot.bot.rockpaperscissorsrule.RockPaperScissorsRule
 import com.kyledahlin.rulebot.bot.scoreboard.ScoreboardRule
 import com.kyledahlin.rulebot.bot.soundboard.SoundboardRule
@@ -39,6 +40,7 @@ internal class RuleModule {
         soundboardRule: SoundboardRule,
         configureBotRule: ConfigureBotRule,
         rockPaperScissorsRule: RockPaperScissorsRule,
+        marxPassageRule: MarxPassageRule,
         timeoutRule: TimeoutRule
     ): Set<Rule> {
         return setOf(
@@ -48,7 +50,8 @@ internal class RuleModule {
             soundboardRule,
             configureBotRule,
             rockPaperScissorsRule,
-            timeoutRule
+            timeoutRule,
+            marxPassageRule
         )
     }
 }
