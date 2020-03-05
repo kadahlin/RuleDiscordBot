@@ -16,17 +16,19 @@
 package com.kyledahlin.rulebot.bot.rockpaperscissorsrule
 
 import discord4j.core.`object`.util.Snowflake
+import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Singleton
-class RockPaperScissorsStorage @Inject constructor() {
-    fun insertRpsGame(rpsGame: RockPaperScissorGame) = transaction {
+class RockPaperScissorsStorage @Inject constructor(@Named("storage") val context: CoroutineDispatcher) {
+    suspend fun insertRpsGame(rpsGame: RockPaperScissorGame) = newSuspendedTransaction(context) {
         println("inserting $rpsGame")
         RockPaperScissorGames.insert {
             it[participant1] = rpsGame.participant1.asString()
@@ -36,20 +38,21 @@ class RockPaperScissorsStorage @Inject constructor() {
         }
     }
 
-    fun getAllRpsGamesForPlayer(snowflake: Snowflake): Collection<RockPaperScissorGame> = transaction {
-        RockPaperScissorGames.select { RockPaperScissorGames.participant1 eq snowflake.asString() or (RockPaperScissorGames.participant2 eq snowflake.asString()) }
-            .map {
-                val participant1 = it[RockPaperScissorGames.participant1]
-                val participant2 = it[RockPaperScissorGames.participant2]
-                val winner = it[RockPaperScissorGames.winner]
-                val draw = it[RockPaperScissorGames.draw]
-                RockPaperScissorGame(
-                    Snowflake.of(
-                        participant1
-                    ), Snowflake.of(participant2), Snowflake.of(winner), draw
-                )
-            }.toList()
-    }
+    suspend fun getAllRpsGamesForPlayer(snowflake: Snowflake): Collection<RockPaperScissorGame> =
+        newSuspendedTransaction(context) {
+            RockPaperScissorGames.select { RockPaperScissorGames.participant1 eq snowflake.asString() or (RockPaperScissorGames.participant2 eq snowflake.asString()) }
+                .map {
+                    val participant1 = it[RockPaperScissorGames.participant1]
+                    val participant2 = it[RockPaperScissorGames.participant2]
+                    val winner = it[RockPaperScissorGames.winner]
+                    val draw = it[RockPaperScissorGames.draw]
+                    RockPaperScissorGame(
+                        Snowflake.of(
+                            participant1
+                        ), Snowflake.of(participant2), Snowflake.of(winner), draw
+                    )
+                }.toList()
+        }
 }
 
 object RockPaperScissorGames : IntIdTable() {

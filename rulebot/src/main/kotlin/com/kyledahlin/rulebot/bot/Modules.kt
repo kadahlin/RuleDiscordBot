@@ -12,6 +12,10 @@ import com.kyledahlin.rulebot.bot.timeoutrule.TimeoutRule
 import dagger.*
 import dagger.multibindings.ElementsIntoSet
 import discord4j.core.`object`.util.Snowflake
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.newSingleThreadContext
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -27,6 +31,14 @@ internal class FunctionModule {
     @Provides
     @Singleton
     fun providesGetMetaData(cache: DiscordCache): GetDiscordWrapperForEvent = cache::getMetadataForEvent
+
+    @ObsoleteCoroutinesApi
+    @Provides
+    @Singleton
+    @Named("storage")
+    fun providesStorageDispatcher(): CoroutineDispatcher {
+        return newSingleThreadContext("storage")
+    }
 }
 
 @Module

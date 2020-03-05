@@ -16,7 +16,7 @@
 package com.kyledahlin.rulebot.bot.leaguerule
 
 import kotlinx.serialization.*
-import kotlinx.serialization.internal.StringDescriptor
+import kotlinx.serialization.builtins.list
 
 //Objects representing JSON that is returned from the league of legends api
 
@@ -39,7 +39,7 @@ class RankedLeagueList(
     @Serializer(RankedLeagueList::class)
     companion object : KSerializer<RankedLeagueList> {
 
-        override val descriptor = StringDescriptor.withName("RankedLeagueList")
+        override val descriptor: SerialDescriptor = PrimitiveDescriptor("RankedLeagueList", PrimitiveKind.STRING)
 
         override fun serialize(encoder: Encoder, obj: RankedLeagueList) {
             RankedLeague.serializer().list.serialize(encoder, obj.leagues)
