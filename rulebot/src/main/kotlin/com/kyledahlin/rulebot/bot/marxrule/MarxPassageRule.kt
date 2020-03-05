@@ -16,7 +16,6 @@
 package com.kyledahlin.rulebot.bot.marxrule
 
 import com.kyledahlin.rulebot.bot.*
-import java.io.File
 import java.util.*
 import javax.inject.Inject
 
@@ -57,5 +56,11 @@ internal class MarxPassageRule @Inject constructor(
 
     override fun getExplanation(): String? {
         return "Post a random passage from Karl Marx's 'Capital Volume One'\nSimply post a message with the phrase $TRIGGER to receive a selection\n"
+    }
+
+    companion object {
+        fun getTestValidEvent() = MessageCreated(content = TRIGGER)
+
+        fun getTestInvalidEvent() = MessageCreated()
     }
 }

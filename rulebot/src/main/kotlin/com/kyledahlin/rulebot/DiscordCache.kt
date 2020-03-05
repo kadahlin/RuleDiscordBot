@@ -41,7 +41,7 @@ private const val CACHE_SIZE = 20
  */
 @Singleton
 class DiscordCache @Inject constructor() {
-    private val _messages: Deque<DiscordWrapper> = ArrayDeque<DiscordWrapper>()
+    private val _messages: Deque<DiscordWrapper> = ArrayDeque()
 
     fun add(event: RuleBotEvent, channel: MessageChannel, guild: Guild, member: Member) {
         Logger.logDebug("this is ${toString()}")
