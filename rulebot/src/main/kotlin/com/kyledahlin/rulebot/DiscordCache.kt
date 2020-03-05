@@ -27,7 +27,6 @@ import suspendChannel
 import suspendCreateMessage
 import suspendDelete
 import suspendGetMessageById
-import suspendOwner
 import suspendVoiceState
 import java.util.*
 import javax.inject.Inject
@@ -69,6 +68,8 @@ interface DiscordWrapper {
 
     suspend fun getGuildOwnerId(): Snowflake?
 
+    suspend fun getGuildId(): Snowflake?
+
     val isDm: Boolean
 
     fun getRoleIds(): Set<Snowflake>
@@ -98,6 +99,8 @@ private class EventMetadata(
     }
 
     override suspend fun getGuildOwnerId() = guild?.ownerId
+
+    override suspend fun getGuildId() = guild?.id
 
     override fun getRoleIds() = member.roleIds
 
