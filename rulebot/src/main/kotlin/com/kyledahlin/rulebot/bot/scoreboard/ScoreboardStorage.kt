@@ -16,13 +16,15 @@
 package com.kyledahlin.rulebot.bot.scoreboard
 
 import discord4j.core.`object`.util.Snowflake
+import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Singleton
-class ScoreboardStorage @Inject constructor() {
+class ScoreboardStorage @Inject constructor(@Named("storage") val context: CoroutineDispatcher) {
     suspend fun getScoreboardIdForName(name: String): Int? = newSuspendedTransaction {
         val query = Scoreboards.slice(Scoreboards.id)
             .select { Scoreboards.name eq name }

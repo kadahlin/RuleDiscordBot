@@ -38,8 +38,9 @@ fun main(args: Array<String>) {
 
     client.eventDispatcher.on(ReadyEvent::class.java)
         .subscribe { ready ->
-            println("RuleBot is logged in as " + ready.self.username)
-            ruleManager = DaggerBotComponent.builder().setBotIds(setOf(ready.self.id)).build().ruleManager()
+            println("RuleBot is logged in as ${ready.self.username} for ${ready.guilds.size} guilds")
+            if (ruleManager == null)
+                ruleManager = DaggerBotComponent.builder().setBotIds(setOf(ready.self.id)).build().ruleManager()
         }
 
     client.eventDispatcher.on(MessageCreateEvent::class.java)
@@ -48,7 +49,8 @@ fun main(args: Array<String>) {
         .subscribe({ messageEvent ->
             ruleManager?.processMessageCreateEvent(messageEvent)
         }, { throwable ->
-            println("throwable in subscription, $throwable")
+            Logger.logError("throwable in subscription, $throwable")
+            throwable.printStackTrace()
         })
 
     client.login().block()
