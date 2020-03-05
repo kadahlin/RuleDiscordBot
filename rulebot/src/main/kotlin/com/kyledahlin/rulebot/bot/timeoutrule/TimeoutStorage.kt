@@ -1,6 +1,7 @@
 package com.kyledahlin.rulebot.bot.timeoutrule
 
 import discord4j.core.`object`.util.Snowflake
+import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
@@ -9,7 +10,9 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
+import kotlin.coroutines.CoroutineContext
 
 internal object Timeouts : IntIdTable() {
     val snowflake = varchar("snowflake", 64)
@@ -38,8 +41,8 @@ internal data class Timeout(
 }
 
 @Singleton
-internal class TimeoutStorage @Inject constructor() {
-    suspend fun insertTimeouts(timeouts: Collection<Timeout>) = newSuspendedTransaction {
+internal class TimeoutStorage @Inject constructor(@Named("storage") val context: CoroutineDispatcher) {
+    suspend fun insertTimeouts(timeouts: Collection<Timeout>) = newSuspendedTransaction(context) {
         for (timeout in timeouts) {
             Timeouts.insert {
                 it[snowflake] = timeout.snowflake.asString()
@@ -49,7 +52,7 @@ internal class TimeoutStorage @Inject constructor() {
         }
     }
 
-    suspend fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? = newSuspendedTransaction {
+    suspend fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? = newSuspendedTransaction(context) {
         val existing = Timeouts.select { Timeouts.snowflake eq snowflake.asString() }
             .firstOrNull() ?: return@newSuspendedTransaction null
 
@@ -60,7 +63,7 @@ internal class TimeoutStorage @Inject constructor() {
         )
     }
 
-    suspend fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) = newSuspendedTransaction {
+    suspend fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) = newSuspendedTransaction(context) {
         Timeouts.deleteWhere {
             Timeouts.snowflake inList snowflakes.map { it.asString() }
         }

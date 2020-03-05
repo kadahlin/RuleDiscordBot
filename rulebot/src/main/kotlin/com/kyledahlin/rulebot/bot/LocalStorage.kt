@@ -20,6 +20,7 @@ import com.kyledahlin.rulebot.bot.scoreboard.ScoreboardPlayers
 import com.kyledahlin.rulebot.bot.scoreboard.Scoreboards
 import com.kyledahlin.rulebot.bot.timeoutrule.Timeouts
 import discord4j.core.`object`.util.Snowflake
+import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -27,6 +28,8 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.sql.Connection
 import javax.inject.Inject
+import javax.inject.Named
+import kotlin.coroutines.CoroutineContext
 
 object Admins : IntIdTable() {
     val snowflake = varchar("snowflake", 64)
@@ -40,7 +43,7 @@ internal interface LocalStorage {
     suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>, guildId: Snowflake)
 }
 
-internal class LocalStorageImpl @Inject constructor() : LocalStorage {
+internal class LocalStorageImpl @Inject constructor(@Named("storage") val context: CoroutineDispatcher) : LocalStorage {
 
     init {
         Database.connect("jdbc:h2:./rulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")
@@ -57,7 +60,7 @@ internal class LocalStorageImpl @Inject constructor() : LocalStorage {
         }
     }
 
-    override suspend fun getAdminSnowflakes(): Collection<RoleSnowflake> = newSuspendedTransaction {
+    override suspend fun getAdminSnowflakes(): Collection<RoleSnowflake> = newSuspendedTransaction(context) {
         Admins
             .selectAll()
             .map {
@@ -76,7 +79,7 @@ internal class LocalStorageImpl @Inject constructor() : LocalStorage {
             }
     }
 
-    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) = newSuspendedTransaction {
+    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) = newSuspendedTransaction(context) {
         snowflakes.forEach { roleSnowflake ->
             Admins.insert {
                 it[snowflake] = roleSnowflake.snowflake.asString()
@@ -88,7 +91,7 @@ internal class LocalStorageImpl @Inject constructor() : LocalStorage {
     }
 
     override suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>, guildId: Snowflake) =
-        newSuspendedTransaction<Unit> {
+        newSuspendedTransaction<Unit>(context) {
             Admins.deleteWhere {
                 (Admins.snowflake inList snowflakes.map { it.asString() }) and (Admins.guildSnowflake eq guildId.asString())
             }

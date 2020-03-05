@@ -16,16 +16,13 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.bot.*
-import com.kyledahlin.rulebot.bot.Logger
-import com.kyledahlin.rulebot.bot.MessageCreated
-import com.kyledahlin.rulebot.bot.Rule
-import com.kyledahlin.rulebot.bot.getSnowflakes
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.awaitFirstOrNull
-import kotlinx.coroutines.runBlocking
 import suspendChannel
 import suspendCreateMessage
 import suspendGuild
@@ -38,8 +35,7 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
     private val rules: List<Rule> = rules.sortedBy { it.priority.ordinal }
 
     fun processMessageCreateEvent(messageEvent: MessageCreateEvent) {
-        Logger.logDebug(cache.toString())
-        runBlocking {
+        GlobalScope.launch {
             Logger.logDebug("got message event $messageEvent")
             val (messageCreated, guild, channel, member) = convertMessageCreateEvent(messageEvent)
             cache.add(messageCreated as RuleBotEvent, channel as MessageChannel, guild as Guild, member as Member)
@@ -61,10 +57,10 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
         val author = event.message.author.get().id
         val snowflakes = event.message.getSnowflakes()
         val channel = event.message.suspendChannel()
-        val member = if(event.member.isPresent) event.member.get() else null
+        val member = if (event.member.isPresent) event.member.get() else null
         val attachments = event.message.attachments.map { AttachmentUrl(it.url) }
 
-        val messageCreated =  MessageCreated(event.message.id, content, author, snowflakes, attachments)
+        val messageCreated = MessageCreated(event.message.id, content, author, snowflakes, attachments)
         return listOf(messageCreated, guild, channel, member)
     }
 

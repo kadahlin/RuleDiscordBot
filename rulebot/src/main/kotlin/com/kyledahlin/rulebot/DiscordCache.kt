@@ -15,7 +15,6 @@
 */
 package com.kyledahlin.rulebot
 
-import com.kyledahlin.rulebot.bot.Logger
 import com.kyledahlin.rulebot.bot.RuleBotEvent
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
@@ -43,7 +42,6 @@ class DiscordCache @Inject constructor() {
     private val _messages: Deque<DiscordWrapper> = ArrayDeque()
 
     fun add(event: RuleBotEvent, channel: MessageChannel, guild: Guild, member: Member) {
-        Logger.logDebug("this is ${toString()}")
         if (_messages.size > CACHE_SIZE) {
             _messages.pollFirst()
         }
@@ -51,7 +49,6 @@ class DiscordCache @Inject constructor() {
     }
 
     fun getMetadataForEvent(event: RuleBotEvent): DiscordWrapper? {
-        Logger.logDebug("this is ${toString()}")
         return _messages.firstOrNull { it.event === event }
     }
 }
