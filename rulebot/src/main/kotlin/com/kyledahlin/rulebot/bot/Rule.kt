@@ -149,7 +149,7 @@ private fun distortText(text: String): String {
 }
 
 //Load a token (one line string) from resources
-internal fun getTokenFromFile(filename: String): String {
+internal fun getStringFromResourceFile(filename: String): String {
     val classloader = Thread.currentThread().contextClassLoader
     val inputStream = classloader.getResourceAsStream(filename)
     return String(inputStream.readBytes()).trim()

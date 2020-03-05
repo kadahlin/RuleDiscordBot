@@ -41,7 +41,7 @@ internal class LeagueRule @Inject constructor(
         get() = Priority.LOW
 
     private val leagueApiKey by lazy {
-        getTokenFromFile("leagueapi.txt")
+        getStringFromResourceFile("leagueapi.txt")
     }
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
