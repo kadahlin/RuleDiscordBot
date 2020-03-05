@@ -72,7 +72,6 @@ internal class ConfigureBotRule @Inject constructor(
             removeAdminRegex.containsMatchIn(event.content) -> removeAdmin(event)
             listAdminsRegex.containsMatchIn(event.content) -> listAdmins(event)
         }
-
     }
 
     private suspend fun setAdmin(event: MessageCreated) {
@@ -87,14 +86,20 @@ internal class ConfigureBotRule @Inject constructor(
     }
 
     private suspend fun removeAdmin(event: MessageCreated) {
-        val adminsToRemove = event.snowflakes.map { it.snowflake }
+        val guildId = getDiscordWrapperForEvent(event)?.getGuildId() ?: return
+        val adminsToRemove = event
+            .snowflakes
+            .map { it.snowflake }
             .filterNot { mBotSnowflakes.contains(it) }
         logDebug("removing ${adminsToRemove.joinToString(separator = ",") { it.asString() }} from admin list")
-        storage.removeAdminSnowflakes(adminsToRemove)
+        storage.removeAdminSnowflakes(adminsToRemove, guildId)
     }
 
     private suspend fun listAdmins(event: MessageCreated) {
-        val admins = storage.getAdminSnowflakes()
+        val wrapper = getDiscordWrapperForEvent(event) ?: return
+        val admins = storage.getAdminSnowflakes().filter {
+            it.guildSnowflake == wrapper.getGuildId()
+        }
         val userMentions = admins.map {
             if (it.isRole) "<@&${it.snowflake.asString()}>" else "<@${it.snowflake.asString()}>"
         }

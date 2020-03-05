@@ -23,19 +23,21 @@ import discord4j.core.`object`.util.Snowflake
 import org.jetbrains.exposed.dao.IntIdTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.sql.Connection
 import javax.inject.Inject
 
 object Admins : IntIdTable() {
     val snowflake = varchar("snowflake", 64)
+    val guildSnowflake = varchar("guild_snowflake", 64)
     val isRole = bool("isRole")
 }
 
 internal interface LocalStorage {
     suspend fun getAdminSnowflakes(): Collection<RoleSnowflake>
     suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>)
-    suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>)
+    suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>, guildId: Snowflake)
 }
 
 internal class LocalStorageImpl @Inject constructor() : LocalStorage {
@@ -51,33 +53,45 @@ internal class LocalStorageImpl @Inject constructor() : LocalStorage {
             SchemaUtils.create(Scoreboards)
             SchemaUtils.create(ScoreboardPlayers)
             SchemaUtils.create(RockPaperScissorGames)
+            SchemaUtils.createMissingTablesAndColumns(Admins)
         }
     }
 
-    override suspend fun getAdminSnowflakes(): Collection<RoleSnowflake> = transaction {
+    override suspend fun getAdminSnowflakes(): Collection<RoleSnowflake> = newSuspendedTransaction {
         Admins
             .selectAll()
-            .map { RoleSnowflake(Snowflake.of(it[Admins.snowflake]), it[Admins.isRole]) }
-    }
-
-    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) {
-        transaction {
-            snowflakes.forEach { roleSnowflake ->
-                Admins.insert {
-                    it[snowflake] = roleSnowflake.snowflake.asString()
-                    it[isRole] = roleSnowflake.isRole
+            .map {
+                val guildIdString = it[Admins.guildSnowflake]
+                val guildSnowflake = if (guildIdString.isEmpty()) {
+                    null
+                } else {
+                    Snowflake.of(guildIdString)
                 }
-                Unit
+
+                RoleSnowflake(
+                    Snowflake.of(it[Admins.snowflake]),
+                    guildSnowflake,
+                    it[Admins.isRole]
+                )
             }
+    }
+
+    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) = newSuspendedTransaction {
+        snowflakes.forEach { roleSnowflake ->
+            Admins.insert {
+                it[snowflake] = roleSnowflake.snowflake.asString()
+                it[isRole] = roleSnowflake.isRole
+                it[guildSnowflake] = roleSnowflake.guildSnowflake?.asString() ?: ""
+            }
+            Unit
         }
     }
 
-    override suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>) {
-        transaction {
+    override suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>, guildId: Snowflake) =
+        newSuspendedTransaction<Unit> {
             Admins.deleteWhere {
-                Admins.snowflake inList snowflakes.map { it.asString() }
+                (Admins.snowflake inList snowflakes.map { it.asString() }) and (Admins.guildSnowflake eq guildId.asString())
             }
         }
-    }
 }
 

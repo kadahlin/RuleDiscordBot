@@ -27,7 +27,6 @@ import suspendChannel
 import suspendCreateMessage
 import suspendDelete
 import suspendGetMessageById
-import suspendOwner
 import suspendVoiceState
 import java.util.*
 import javax.inject.Inject
@@ -41,7 +40,7 @@ private const val CACHE_SIZE = 20
  */
 @Singleton
 class DiscordCache @Inject constructor() {
-    private val _messages: Deque<DiscordWrapper> = ArrayDeque<DiscordWrapper>()
+    private val _messages: Deque<DiscordWrapper> = ArrayDeque()
 
     fun add(event: RuleBotEvent, channel: MessageChannel, guild: Guild, member: Member) {
         Logger.logDebug("this is ${toString()}")
@@ -68,6 +67,8 @@ interface DiscordWrapper {
     suspend fun sendMessage(withSpec: MessageCreateSpec.() -> Unit)
 
     suspend fun getGuildOwnerId(): Snowflake?
+
+    suspend fun getGuildId(): Snowflake?
 
     val isDm: Boolean
 
@@ -98,6 +99,8 @@ private class EventMetadata(
     }
 
     override suspend fun getGuildOwnerId() = guild?.ownerId
+
+    override suspend fun getGuildId() = guild?.id
 
     override fun getRoleIds() = member.roleIds
 

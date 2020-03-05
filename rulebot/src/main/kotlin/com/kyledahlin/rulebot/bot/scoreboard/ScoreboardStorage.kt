@@ -17,13 +17,13 @@ package com.kyledahlin.rulebot.bot.scoreboard
 
 import discord4j.core.`object`.util.Snowflake
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ScoreboardStorage @Inject constructor() {
-    fun getScoreboardIdForName(name: String): Int? = transaction {
+    suspend fun getScoreboardIdForName(name: String): Int? = newSuspendedTransaction {
         val query = Scoreboards.slice(Scoreboards.id)
             .select { Scoreboards.name eq name }
             .firstOrNull()
@@ -31,27 +31,27 @@ class ScoreboardStorage @Inject constructor() {
         query?.get(Scoreboards.id)
     }
 
-    fun insertScoreboard(name: String, author: Snowflake) {
+    suspend fun insertScoreboard(name: String, author: Snowflake) = newSuspendedTransaction {
         Scoreboards.insert {
             it[Scoreboards.name] = name
             it[ownerSnowflake] = author.asString()
         }
     }
 
-    fun getPlayersForScoreboard(scoreboardId: Int): Collection<Pair<String, Int>> = transaction {
+    suspend fun getPlayersForScoreboard(scoreboardId: Int): Collection<Pair<String, Int>> = newSuspendedTransaction {
         val query = ScoreboardPlayers.select {
             ScoreboardPlayers.scoreboardId eq scoreboardId
         }
         query.map { Pair(it[ScoreboardPlayers.name], it[ScoreboardPlayers.wins]) }
     }
 
-    fun doesScoreboardHavePlayer(scoreboardId: Int, playerName: String): Boolean = transaction {
+    suspend fun doesScoreboardHavePlayer(scoreboardId: Int, playerName: String): Boolean = newSuspendedTransaction {
         ScoreboardPlayers.select {
             ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName)
         }.count() != 0
     }
 
-    fun addPlayer(scoreboardId: Int, playerName: String, wins: Int = 0) = transaction {
+    suspend fun addPlayer(scoreboardId: Int, playerName: String, wins: Int = 0) = newSuspendedTransaction {
         ScoreboardPlayers.insert {
             it[ScoreboardPlayers.name] = playerName
             it[ScoreboardPlayers.wins] = wins
@@ -59,15 +59,13 @@ class ScoreboardStorage @Inject constructor() {
         }
     }
 
-    fun giveWinToPlayer(scoreboardId: Int, playerName: String) {
+    suspend fun giveWinToPlayer(scoreboardId: Int, playerName: String) = newSuspendedTransaction {
         ScoreboardPlayers.update({ ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName) }) {
             with(SqlExpressionBuilder) {
                 it.update(ScoreboardPlayers.wins, ScoreboardPlayers.wins + 1)
             }
         }
     }
-
-
 }
 
 object Scoreboards : Table() {

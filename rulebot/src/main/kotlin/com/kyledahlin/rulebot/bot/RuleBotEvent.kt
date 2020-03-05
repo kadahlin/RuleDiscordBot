@@ -20,9 +20,9 @@ import discord4j.core.`object`.util.Snowflake
 
 sealed class RuleBotEvent(val id: Snowflake)
 internal class MessageCreated(
-    id: Snowflake,
-    val content: String,
-    val author: Snowflake,
-    val snowflakes: Set<RoleSnowflake>,
-    val attachments: Collection<AttachmentUrl>
+    id: Snowflake = Snowflake.of(1L),
+    val content: String = "",
+    val author: Snowflake = Snowflake.of(1L),
+    val snowflakes: Set<RoleSnowflake> = emptySet(),
+    val attachments: Collection<AttachmentUrl> = emptySet()
 ) : RuleBotEvent(id)
