@@ -40,7 +40,7 @@ object Admins : IntIdTable() {
 internal interface LocalStorage {
     suspend fun getAdminSnowflakes(): Collection<RoleSnowflake>
     suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>)
-    suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>, guildId: Snowflake)
+    suspend fun removeAdminSnowflakes(snowflakes: Collection<RoleSnowflake>, guildId: Snowflake)
 }
 
 internal class LocalStorageImpl @Inject constructor(@Named("storage") val context: CoroutineDispatcher) : LocalStorage {
@@ -90,10 +90,10 @@ internal class LocalStorageImpl @Inject constructor(@Named("storage") val contex
         }
     }
 
-    override suspend fun removeAdminSnowflakes(snowflakes: Collection<Snowflake>, guildId: Snowflake) =
+    override suspend fun removeAdminSnowflakes(snowflakes: Collection<RoleSnowflake>, guildId: Snowflake) =
         newSuspendedTransaction<Unit>(context) {
             Admins.deleteWhere {
-                (Admins.snowflake inList snowflakes.map { it.asString() }) and (Admins.guildSnowflake eq guildId.asString())
+                (Admins.snowflake inList snowflakes.map { it.snowflake.asString() }) and (Admins.guildSnowflake eq guildId.asString())
             }
         }
 }

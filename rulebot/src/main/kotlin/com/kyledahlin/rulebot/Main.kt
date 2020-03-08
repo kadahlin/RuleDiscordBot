@@ -25,11 +25,15 @@ import discord4j.core.event.domain.message.MessageCreateEvent
 
 private const val LOG_LEVEL = "--log-level"
 private const val IS_BETA = "--beta"
+private const val LOG_RULES = "--log-rules"
 
 fun main(args: Array<String>) {
     var ruleManager: RuleManager? = null
 
     val metaArgs = parseArgs(args)
+    metaArgs[LOG_RULES]?.let {
+        Logger.setRulesToLog(it as List<String>)
+    }
     Logger.setLogLevel(metaArgs[LOG_LEVEL] as? LogLevel ?: LogLevel.INFO)
     val isBeta = metaArgs[IS_BETA] as? Boolean
     Logger.logDebug("is Beta? $isBeta")
@@ -59,15 +63,20 @@ fun main(args: Array<String>) {
 //TODO: need a cleaner way to get the command line args
 private fun parseArgs(args: Array<String>): Map<String, Any> {
     val result = mutableMapOf<String, Any>()
-    val logIndex = args.indexOf("--log-level")
+    val logIndex = args.indexOf(LOG_LEVEL)
     if (logIndex != -1) {
         val logLevel = args[logIndex + 1].toUpperCase()
         result[LOG_LEVEL] = LogLevel.valueOf(logLevel)
     }
 
-    val betaIndex = args.indexOf("--beta")
+    val betaIndex = args.indexOf(IS_BETA)
     if (betaIndex != -1) {
         result[IS_BETA] = true
+    }
+    val logRules = args.indexOf(LOG_RULES)
+    if (logRules != -1) {
+        val rulesToLog = args[logRules + 1].toUpperCase()
+        result[LOG_RULES] = rulesToLog.split(",")
     }
     return result
 }
