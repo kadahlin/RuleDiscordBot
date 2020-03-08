@@ -32,10 +32,10 @@ internal class ConfigureBotRule @Inject constructor(
     override val priority: Priority
         get() = Priority.NORMAL
 
-    private val mBotSnowflakes = mutableSetOf<Snowflake>()
+    private val _botSnowflakes = mutableSetOf<Snowflake>()
 
     init {
-        mBotSnowflakes.addAll(botSnowflakes)
+        _botSnowflakes.addAll(botSnowflakes)
     }
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
@@ -43,9 +43,12 @@ internal class ConfigureBotRule @Inject constructor(
         if (!event.canAuthorIssueRules()) {
             return false
         }
+        logDebug("this message mentions [${event.snowflakes.map { it.snowflake }}] and the bot snowflakes are [${_botSnowflakes}]")
         val mentionsBot = event.snowflakes
             .map { it.snowflake }
-            .any { mBotSnowflakes.contains(it) }
+            .any { _botSnowflakes.contains(it) }
+
+        logDebug("does this event mention the bot? [$mentionsBot]")
 
         if (mentionsBot) {
             executeRule(event)
@@ -65,12 +68,11 @@ internal class ConfigureBotRule @Inject constructor(
         }.toString()
     }
 
-    private suspend fun executeRule(event: RuleBotEvent) {
-        if (event !is MessageCreated) return
+    private suspend fun executeRule(messageCreated: MessageCreated) {
         when {
-            setAdminRegex.containsMatchIn(event.content) -> setAdmin(event)
-            removeAdminRegex.containsMatchIn(event.content) -> removeAdmin(event)
-            listAdminsRegex.containsMatchIn(event.content) -> listAdmins(event)
+            setAdminRegex.containsMatchIn(messageCreated.content) -> setAdmin(messageCreated)
+            removeAdminRegex.containsMatchIn(messageCreated.content) -> removeAdmin(messageCreated)
+            listAdminsRegex.containsMatchIn(messageCreated.content) -> listAdmins(messageCreated)
         }
     }
 
@@ -79,7 +81,7 @@ internal class ConfigureBotRule @Inject constructor(
         val newAdmins = event
             .snowflakes
             .filter {
-                !mBotSnowflakes.contains(it.snowflake) || !adminSnowflakes.contains(it)
+                !_botSnowflakes.contains(it.snowflake) || !adminSnowflakes.contains(it)
             }
         logDebug("adding ${newAdmins.joinToString(separator = ",") { it.snowflake.asString() }} to the admin list")
         storage.addAdminSnowflakes(newAdmins.toSet())
@@ -90,7 +92,7 @@ internal class ConfigureBotRule @Inject constructor(
         val adminsToRemove = event
             .snowflakes
             .map { it.snowflake }
-            .filterNot { mBotSnowflakes.contains(it) }
+            .filterNot { _botSnowflakes.contains(it) }
         logDebug("removing ${adminsToRemove.joinToString(separator = ",") { it.asString() }} from admin list")
         storage.removeAdminSnowflakes(adminsToRemove, guildId)
     }

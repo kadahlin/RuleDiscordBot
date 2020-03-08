@@ -26,10 +26,29 @@ enum class LogLevel(val value: Int) {
 internal object Logger {
 
     private var logLevel = LogLevel.DEBUG
+    private var rulesToLog: Set<String>? = null
 
     fun setLogLevel(logLevel: LogLevel) {
         Logger.logLevel = logLevel
-        logDebug("setting log level to $logLevel")
+        println("setting log level to $logLevel")
+    }
+
+    fun setRulesToLog(names: Collection<String>) {
+        rulesToLog = names.map { it.toLowerCase() }.toSet()
+        println("Logging specific rules: [$rulesToLog]")
+    }
+
+    fun logRuleError(rule: Rule, message: String) = logIfSpecified(rule, message, LogLevel.ERROR)
+
+    fun logRuleDebug(rule: Rule, message: String) = logIfSpecified(rule, message, LogLevel.DEBUG)
+
+    fun logRuleInfo(rule: Rule, message: String) = logIfSpecified(rule, message, LogLevel.INFO)
+
+    private fun logIfSpecified(rule: Rule, message: String, logLevel: LogLevel) {
+        val isRuleToLog = rulesToLog?.contains(rule.ruleName.toLowerCase()) ?: true
+        if (isRuleToLog) {
+            log(message, logLevel)
+        }
     }
 
     fun logDebug(message: String) = log(message, LogLevel.DEBUG)
