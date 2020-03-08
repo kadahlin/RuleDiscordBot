@@ -19,7 +19,7 @@ import com.kyledahlin.rulebot.AttachmentUrl
 import discord4j.core.`object`.util.Snowflake
 
 sealed class RuleBotEvent(val id: Snowflake)
-internal class MessageCreated(
+class MessageCreated(
     id: Snowflake = Snowflake.of(1L),
     val content: String = "",
     val author: Snowflake = Snowflake.of(1L),
