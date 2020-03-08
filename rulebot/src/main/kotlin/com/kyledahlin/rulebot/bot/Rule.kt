@@ -35,13 +35,13 @@ typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @J
 /**
  * A self contained piece of logic that operates on the messages given to it.
  */
-internal abstract class Rule(
+abstract class Rule(
     internal val ruleName: String,
     private val storage: LocalStorage,
     private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
 ) {
 
-    internal enum class Priority {
+    enum class Priority {
         HIGH, NORMAL, LOW
     }
 
@@ -104,7 +104,7 @@ internal abstract class Rule(
     }
 }
 
-internal data class RoleSnowflake(
+data class RoleSnowflake(
     val snowflake: Snowflake,
     val guildSnowflake: Snowflake?,
     val isRole: Boolean = false

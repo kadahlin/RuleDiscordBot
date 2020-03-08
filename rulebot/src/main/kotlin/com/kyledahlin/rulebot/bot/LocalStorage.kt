@@ -37,7 +37,7 @@ object Admins : IntIdTable() {
     val isRole = bool("isRole")
 }
 
-internal interface LocalStorage {
+interface LocalStorage {
     suspend fun getAdminSnowflakes(): Collection<RoleSnowflake>
     suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>)
     suspend fun removeAdminSnowflakes(snowflakes: Collection<RoleSnowflake>, guildId: Snowflake)
