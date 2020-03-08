@@ -65,21 +65,21 @@ internal abstract class Rule(
      * Log information that is only useful when debugging
      */
     protected fun logDebug(logMessage: String) {
-        Logger.logDebug("[${ruleName}Rule] $logMessage")
+        Logger.logRuleDebug(this, "[${ruleName}Rule] $logMessage")
     }
 
     /**
      * Log information that is useful when seeing past actions
      */
     protected fun logInfo(logMessage: String) {
-        Logger.logInfo("[${ruleName}Rule] $logMessage")
+        Logger.logRuleInfo(this, "[${ruleName}Rule] $logMessage")
     }
 
     /**
      * Log information related to a program error
      */
     protected fun logError(logMessage: String) {
-        Logger.logError("[${ruleName}Rule] $logMessage")
+        Logger.logRuleError(this, "[${ruleName}Rule] $logMessage")
     }
 
     override fun equals(other: Any?): Boolean {
@@ -99,6 +99,7 @@ internal abstract class Rule(
         val isAdmin = isUsersRoleAdmin || isUserIdAdmin
 
         val isOwner = wrapper.getGuildOwnerId() == author
+        logDebug("checking if user is admin [$isAdmin] or isOwner [$isOwner]")
         return isAdmin || isOwner
     }
 }
