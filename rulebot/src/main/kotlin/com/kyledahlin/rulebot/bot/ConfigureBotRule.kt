@@ -91,9 +91,8 @@ internal class ConfigureBotRule @Inject constructor(
         val guildId = getDiscordWrapperForEvent(event)?.getGuildId() ?: return
         val adminsToRemove = event
             .snowflakes
-            .map { it.snowflake }
-            .filterNot { _botSnowflakes.contains(it) }
-        logDebug("removing ${adminsToRemove.joinToString(separator = ",") { it.asString() }} from admin list")
+            .filterNot { _botSnowflakes.contains(it.snowflake) }
+        logDebug("removing ${adminsToRemove.joinToString(separator = ",")} from admin list")
         storage.removeAdminSnowflakes(adminsToRemove, guildId)
     }
 
