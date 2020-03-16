@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -148,7 +148,9 @@ internal class ScoreboardRule @Inject constructor(
             appendln("$SCOREBOARD_ADD_PLAYER name=<name> player=<name>")
             appendln("\tAdd this player to the given scoreboard (owner only command)")
             appendln("$SCOREBOARD_ADD_WIN name=<name> player=<name>")
-            appendln("\tGive a win to this player on this scoreboard (owner only command)\n\tIf this player does not exist for this scoreboard they will be created")
+            appendln(
+                "\tGive a win to this player on this scoreboard (owner only command)\n\tIf this player does not exist for this scoreboard they will be created"
+            )
             appendln("$SCOREBOARD_SHOW name=<name>")
             appendln("\tShow the scoreboard with the given name")
         }.toString()

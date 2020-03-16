@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
 import com.kyledahlin.rulebot.bot.RuleBotEvent
 import com.kyledahlin.rulebot.bot.RuleBotScope
 import javax.inject.Inject
-import javax.inject.Singleton
 
 interface JavaEventStorage : GetDiscordWrapperForEvent {
     fun getDiscordWrapperForEvent(event: RuleBotEvent): JavaDiscordWrapper?

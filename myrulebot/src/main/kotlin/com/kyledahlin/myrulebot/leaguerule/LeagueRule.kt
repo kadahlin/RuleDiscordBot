@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -81,7 +81,8 @@ internal class LeagueRule @Inject constructor(
 
     private suspend fun getSummonerId(leagueUsername: String): String? {
         val newRequest = summonerRequest.replace(
-            SUMMONER_NAME, leagueUsername)
+            SUMMONER_NAME, leagueUsername
+        )
         val request = newRequest + leagueApiKey
         logDebug("summoner request is $request")
         val summonerResponse = try {
@@ -96,7 +97,8 @@ internal class LeagueRule @Inject constructor(
 
     private suspend fun getFirstRankString(summonerId: String): String? {
         val newRequest = rankRequest.replace(
-            SUMMONER_ID, summonerId)
+            SUMMONER_ID, summonerId
+        )
         val ranks = try {
             client.get<RankedLeagueList>(newRequest + leagueApiKey).leagues
         } catch (e: Exception) {
