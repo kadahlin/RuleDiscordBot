@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import com.kyledahlin.rulebot.AttachmentUrl
 import discord4j.core.`object`.util.Snowflake
 
 sealed class RuleBotEvent(val id: Snowflake)
-internal class MessageCreated(
+class MessageCreated(
     id: Snowflake = Snowflake.of(1L),
     val content: String = "",
     val author: Snowflake = Snowflake.of(1L),

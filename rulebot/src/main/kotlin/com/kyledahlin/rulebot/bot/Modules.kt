@@ -1,84 +1,108 @@
+/*
+*Copyright 2020 Kyle Dahlin
+*
+*Licensed under the Apache License, Version 2.0 (the "License");
+*you may not use this file except in compliance with the License.
+*You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+*Unless required by applicable law or agreed to in writing, software
+*distributed under the License is distributed on an "AS IS" BASIS,
+*WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*See the License for the specific language governing permissions and
+*limitations under the License.
+*/
 package com.kyledahlin.rulebot.bot
 
 import com.kyledahlin.rulebot.DiscordCache
-import com.kyledahlin.rulebot.RuleManager
-import com.kyledahlin.rulebot.bot.jojorule.JojoMemeRule
-import com.kyledahlin.rulebot.bot.leaguerule.LeagueRule
-import com.kyledahlin.rulebot.bot.marxrule.MarxPassageRule
-import com.kyledahlin.rulebot.bot.rockpaperscissorsrule.RockPaperScissorsRule
-import com.kyledahlin.rulebot.bot.scoreboard.ScoreboardRule
-import com.kyledahlin.rulebot.bot.soundboard.SoundboardRule
-import com.kyledahlin.rulebot.bot.timeoutrule.TimeoutRule
+import com.kyledahlin.rulebot.RuleBot
+import com.kyledahlin.rulebot.bot.java.JavaEventStorage
+import com.kyledahlin.rulebot.bot.java.JavaEventStorageImpl
+import com.kyledahlin.rulebot.bot.java.JavaLocalStorage
+import com.kyledahlin.rulebot.bot.java.JavaLocalStorageImpl
 import dagger.*
-import dagger.multibindings.ElementsIntoSet
-import discord4j.core.`object`.util.Snowflake
+import dagger.multibindings.IntoSet
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.newSingleThreadContext
 import javax.inject.Named
-import javax.inject.Singleton
+import javax.inject.Qualifier
+import javax.inject.Scope
 
 @Module
 internal abstract class StorageModule {
     @Binds
-    @Singleton
+    @RuleBotScope
     abstract fun bindsLocalStorage(localStorageImpl: LocalStorageImpl): LocalStorage
+
+    @Binds
+    @RuleBotScope
+    abstract fun bindsJavaLocalStorage(localStorageImpl: JavaLocalStorageImpl): JavaLocalStorage
+
+    @Binds
+    @RuleBotScope
+    abstract fun bindsJavaEventStorage(localStorageImpl: JavaEventStorageImpl): JavaEventStorage
 }
+
+@Qualifier
+@Retention
+internal annotation class CoreRules
 
 @Module
 internal class FunctionModule {
 
     @Provides
-    @Singleton
+    @RuleBotScope
     fun providesGetMetaData(cache: DiscordCache): GetDiscordWrapperForEvent = cache::getMetadataForEvent
+
+    @Provides
+    @RuleBotScope
+    fun providesGetBotIds(cache: DiscordCache): GetBotIds = cache::getBotIds
 
     @ObsoleteCoroutinesApi
     @Provides
-    @Singleton
+    @RuleBotScope
     @Named("storage")
     fun providesStorageDispatcher(): CoroutineDispatcher {
         return newSingleThreadContext("storage")
     }
-}
 
-@Module
-internal class RuleModule {
     @Provides
-    @ElementsIntoSet
-    fun provideRules(
-        jojoRule: JojoMemeRule,
-        leagueRule: LeagueRule,
-        scoreboardRule: ScoreboardRule,
-        soundboardRule: SoundboardRule,
-        configureBotRule: ConfigureBotRule,
-        rockPaperScissorsRule: RockPaperScissorsRule,
-        marxPassageRule: MarxPassageRule,
-        timeoutRule: TimeoutRule
-    ): Set<Rule> {
-        return setOf(
-            jojoRule,
-            leagueRule,
-            scoreboardRule,
-            soundboardRule,
-            configureBotRule,
-            rockPaperScissorsRule,
-            timeoutRule,
-            marxPassageRule
-        )
+    @IntoSet
+    @RuleBotScope
+    fun providesConfigureBotRule(
+        cache: DiscordCache,
+        storage: LocalStorage,
+        getDiscordWrapperForEvent: GetDiscordWrapperForEvent
+    ): Rule {
+        return ConfigureBotRule(cache, storage, getDiscordWrapperForEvent)
     }
 }
 
-@Singleton
-@Component(modules = [StorageModule::class, FunctionModule::class, RuleModule::class])
-internal interface BotComponent {
+@RuleBotScope
+@Component(modules = [StorageModule::class, FunctionModule::class])
+interface BotComponent {
 
-    fun ruleManager(): RuleManager
+    fun botBuilder(): RuleBot.Builder
+
+    @Named("storage")
+    fun storageDispatcher(): CoroutineDispatcher
+    fun localStorage(): LocalStorage
+    fun javaLocalStorage(): JavaLocalStorage
+    fun javaEventStorage(): JavaEventStorage
+    fun discordWrapper(): GetDiscordWrapperForEvent
+    fun botIds(): GetBotIds
 
     @Component.Builder
     interface Builder {
         fun build(): BotComponent
 
         @BindsInstance
-        fun setBotIds(snowflakes: Set<Snowflake>): Builder
+        fun setToken(token: String): Builder
     }
 }
+
+@Scope
+@Retention
+internal annotation class RuleBotScope
