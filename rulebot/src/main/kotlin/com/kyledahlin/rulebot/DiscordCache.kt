@@ -16,6 +16,7 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.bot.RuleBotEvent
+import com.kyledahlin.rulebot.bot.RuleBotScope
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
@@ -29,7 +30,6 @@ import suspendGetMessageById
 import suspendVoiceState
 import java.util.*
 import javax.inject.Inject
-import javax.inject.Singleton
 
 private const val CACHE_SIZE = 20
 
@@ -37,11 +37,12 @@ private const val CACHE_SIZE = 20
  * Hold the [CACHE_SIZE] latest messages and the corresponding [MessageChannel] that they belong
  * to.
  */
-@Singleton
-class DiscordCache @Inject constructor() {
+@RuleBotScope
+internal class DiscordCache @Inject constructor() {
     private val _messages: Deque<DiscordWrapper> = ArrayDeque()
+    private val _botIds = mutableSetOf<Snowflake>()
 
-    fun add(event: RuleBotEvent, channel: MessageChannel, guild: Guild, member: Member) {
+    internal fun add(event: RuleBotEvent, channel: MessageChannel, guild: Guild, member: Member) {
         if (_messages.size > CACHE_SIZE) {
             _messages.pollFirst()
         }
@@ -51,6 +52,12 @@ class DiscordCache @Inject constructor() {
     fun getMetadataForEvent(event: RuleBotEvent): DiscordWrapper? {
         return _messages.firstOrNull { it.event === event }
     }
+
+    fun addBotId(snowflake: Snowflake) {
+        _botIds.add(snowflake)
+    }
+
+    fun getBotIds(): Set<Snowflake> = _botIds
 }
 
 interface DiscordWrapper {

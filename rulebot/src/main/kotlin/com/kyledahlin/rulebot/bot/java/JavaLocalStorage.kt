@@ -17,10 +17,10 @@ package com.kyledahlin.rulebot.bot.java
 
 import com.kyledahlin.rulebot.bot.LocalStorage
 import com.kyledahlin.rulebot.bot.RoleSnowflake
+import com.kyledahlin.rulebot.bot.RuleBotScope
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
-import javax.inject.Singleton
 
 interface JavaLocalStorage : LocalStorage {
     fun getAdminSnowflakesJ(): Collection<RoleSnowflake>
@@ -33,7 +33,7 @@ interface JavaLocalStorage : LocalStorage {
     )
 }
 
-@Singleton
+@RuleBotScope
 class JavaLocalStorageImpl @Inject constructor(private val _localStorage: LocalStorage) : JavaLocalStorage {
     override suspend fun getAdminSnowflakes() = _localStorage.getAdminSnowflakes()
 
