@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -158,9 +158,9 @@ private class BarChart(
             .size
 
         return when (playersAbove) {
-            0 -> FIRST_COLOR
-            1 -> SECOND_COLOR
-            2 -> THIRD_COLOR
+            0    -> FIRST_COLOR
+            1    -> SECOND_COLOR
+            2    -> THIRD_COLOR
             else -> OTHER_COLOR
         }
     }

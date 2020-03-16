@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import javax.inject.Inject
 import javax.inject.Named
-import javax.inject.Singleton
 
 @MyRuleBotScope
 class RockPaperScissorsStorage @Inject constructor(@Named("storage") val context: CoroutineDispatcher) {

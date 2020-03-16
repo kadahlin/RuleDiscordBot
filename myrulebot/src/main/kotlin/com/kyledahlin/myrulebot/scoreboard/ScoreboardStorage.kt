@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import javax.inject.Inject
 import javax.inject.Named
-import javax.inject.Singleton
 
 @MyRuleBotScope
 class ScoreboardStorage @Inject constructor(@Named("storage") val context: CoroutineDispatcher) {
@@ -67,7 +66,9 @@ class ScoreboardStorage @Inject constructor(@Named("storage") val context: Corou
         ScoreboardPlayers.update({ ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName) }) {
             with(SqlExpressionBuilder) {
                 it.update(
-                    com.kyledahlin.myrulebot.scoreboard.ScoreboardPlayers.wins, com.kyledahlin.myrulebot.scoreboard.ScoreboardPlayers.wins + 1)
+                    com.kyledahlin.myrulebot.scoreboard.ScoreboardPlayers.wins,
+                    com.kyledahlin.myrulebot.scoreboard.ScoreboardPlayers.wins + 1
+                )
             }
         }
     }
