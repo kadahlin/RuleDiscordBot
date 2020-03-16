@@ -31,6 +31,7 @@ import suspendGetMessageById
 import suspendGuild
 
 typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards DiscordWrapper?
+typealias GetBotIds = () -> @JvmSuppressWildcards Set<Snowflake>
 
 /**
  * A self contained piece of logic that operates on the messages given to it.
@@ -89,7 +90,7 @@ abstract class Rule(
         return false
     }
 
-    internal suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
+    protected suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
         val wrapper = getDiscordWrapperForEvent(this) ?: return false
         val roleIds = wrapper.getRoleIds()
 
@@ -153,8 +154,8 @@ private fun distortText(text: String): String {
     }.joinToString(separator = "") { it.toString() }
 }
 
-//Load a token (one line string) from resources
-internal fun getStringFromResourceFile(filename: String): String {
+//Load the string content of a file from the resources
+fun getStringFromResourceFile(filename: String): String {
     val classloader = Thread.currentThread().contextClassLoader
     val inputStream = classloader.getResourceAsStream(filename)
     return String(inputStream.readBytes()).trim()

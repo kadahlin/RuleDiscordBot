@@ -15,15 +15,14 @@
 */
 package com.kyledahlin.rulebot.bot
 
-import discord4j.core.`object`.util.Snowflake
-import javax.inject.Inject
+import com.kyledahlin.rulebot.DiscordCache
 
 private val setAdminRegex = """add admin""".toRegex()
 private val removeAdminRegex = """remove admin""".toRegex()
 private val listAdminsRegex = """list admins""".toRegex()
 
-internal class ConfigureBotRule @Inject constructor(
-    botSnowflakes: Set<Snowflake>,
+internal class ConfigureBotRule constructor(
+    private val _cache: DiscordCache,
     private val storage: LocalStorage,
     val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
 ) :
@@ -32,21 +31,16 @@ internal class ConfigureBotRule @Inject constructor(
     override val priority: Priority
         get() = Priority.NORMAL
 
-    private val _botSnowflakes = mutableSetOf<Snowflake>()
-
-    init {
-        _botSnowflakes.addAll(botSnowflakes)
-    }
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
         if (event !is MessageCreated) return false
         if (!event.canAuthorIssueRules()) {
             return false
         }
-        logDebug("this message mentions [${event.snowflakes.map { it.snowflake }}] and the bot snowflakes are [${_botSnowflakes}]")
+        logDebug("this message mentions [${event.snowflakes.map { it.snowflake }}] and the bot snowflakes are [${_cache.getBotIds()}]")
         val mentionsBot = event.snowflakes
             .map { it.snowflake }
-            .any { _botSnowflakes.contains(it) }
+            .any { _cache.getBotIds().contains(it) }
 
         logDebug("does this event mention the bot? [$mentionsBot]")
 
@@ -70,9 +64,9 @@ internal class ConfigureBotRule @Inject constructor(
 
     private suspend fun executeRule(messageCreated: MessageCreated) {
         when {
-            setAdminRegex.containsMatchIn(messageCreated.content) -> setAdmin(messageCreated)
+            setAdminRegex.containsMatchIn(messageCreated.content)    -> setAdmin(messageCreated)
             removeAdminRegex.containsMatchIn(messageCreated.content) -> removeAdmin(messageCreated)
-            listAdminsRegex.containsMatchIn(messageCreated.content) -> listAdmins(messageCreated)
+            listAdminsRegex.containsMatchIn(messageCreated.content)  -> listAdmins(messageCreated)
         }
     }
 
@@ -81,7 +75,7 @@ internal class ConfigureBotRule @Inject constructor(
         val newAdmins = event
             .snowflakes
             .filter {
-                !_botSnowflakes.contains(it.snowflake) || !adminSnowflakes.contains(it)
+                !_cache.getBotIds().contains(it.snowflake) || !adminSnowflakes.contains(it)
             }
         logDebug("adding ${newAdmins.joinToString(separator = ",") { it.snowflake.asString() }} to the admin list")
         storage.addAdminSnowflakes(newAdmins.toSet())
@@ -91,7 +85,7 @@ internal class ConfigureBotRule @Inject constructor(
         val guildId = getDiscordWrapperForEvent(event)?.getGuildId() ?: return
         val adminsToRemove = event
             .snowflakes
-            .filterNot { _botSnowflakes.contains(it.snowflake) }
+            .filterNot { _cache.getBotIds().contains(it.snowflake) }
         logDebug("removing ${adminsToRemove.joinToString(separator = ",")} from admin list")
         storage.removeAdminSnowflakes(adminsToRemove, guildId)
     }

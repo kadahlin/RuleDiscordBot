@@ -11,6 +11,10 @@ buildscript {
     }
 }
 
+def getScriptPath(filename) {
+    return projectDir.absolutePath + "/gradle/scripts/" + filename
+}
+
 allprojects {
     repositories {
         mavenCentral()

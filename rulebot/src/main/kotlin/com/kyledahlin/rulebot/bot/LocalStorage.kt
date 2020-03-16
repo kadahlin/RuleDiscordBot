@@ -15,10 +15,6 @@
 */
 package com.kyledahlin.rulebot.bot
 
-import com.kyledahlin.rulebot.bot.rockpaperscissorsrule.RockPaperScissorGames
-import com.kyledahlin.rulebot.bot.scoreboard.ScoreboardPlayers
-import com.kyledahlin.rulebot.bot.scoreboard.Scoreboards
-import com.kyledahlin.rulebot.bot.timeoutrule.Timeouts
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.exposed.dao.IntIdTable
@@ -29,7 +25,6 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.sql.Connection
 import javax.inject.Inject
 import javax.inject.Named
-import kotlin.coroutines.CoroutineContext
 
 object Admins : IntIdTable() {
     val snowflake = varchar("snowflake", 64)
@@ -52,10 +47,6 @@ internal class LocalStorageImpl @Inject constructor(@Named("storage") val contex
 
         transaction {
             SchemaUtils.create(Admins)
-            SchemaUtils.create(Timeouts)
-            SchemaUtils.create(Scoreboards)
-            SchemaUtils.create(ScoreboardPlayers)
-            SchemaUtils.create(RockPaperScissorGames)
             SchemaUtils.createMissingTablesAndColumns(Admins)
         }
     }

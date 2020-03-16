@@ -18,6 +18,7 @@ package com.kyledahlin.rulebot.bot.java
 import com.kyledahlin.rulebot.DiscordWrapper
 import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
 import com.kyledahlin.rulebot.bot.RuleBotEvent
+import com.kyledahlin.rulebot.bot.RuleBotScope
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,7 +26,7 @@ interface JavaEventStorage : GetDiscordWrapperForEvent {
     fun getDiscordWrapperForEvent(event: RuleBotEvent): JavaDiscordWrapper?
 }
 
-@Singleton
+@RuleBotScope
 class JavaEventStorageImpl @Inject constructor(
     private val wrapperFunction: GetDiscordWrapperForEvent
 ) : JavaEventStorage {
