@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -31,17 +31,18 @@ import suspendGetMessageById
 import suspendGuild
 
 typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards DiscordWrapper?
+typealias GetBotIds = () -> @JvmSuppressWildcards Set<Snowflake>
 
 /**
  * A self contained piece of logic that operates on the messages given to it.
  */
-internal abstract class Rule(
+abstract class Rule(
     internal val ruleName: String,
     private val storage: LocalStorage,
     private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
 ) {
 
-    internal enum class Priority {
+    enum class Priority {
         HIGH, NORMAL, LOW
     }
 
@@ -89,7 +90,7 @@ internal abstract class Rule(
         return false
     }
 
-    internal suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
+    protected suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
         val wrapper = getDiscordWrapperForEvent(this) ?: return false
         val roleIds = wrapper.getRoleIds()
 
@@ -104,7 +105,7 @@ internal abstract class Rule(
     }
 }
 
-internal data class RoleSnowflake(
+data class RoleSnowflake(
     val snowflake: Snowflake,
     val guildSnowflake: Snowflake?,
     val isRole: Boolean = false
@@ -153,8 +154,8 @@ private fun distortText(text: String): String {
     }.joinToString(separator = "") { it.toString() }
 }
 
-//Load a token (one line string) from resources
-internal fun getStringFromResourceFile(filename: String): String {
+//Load the string content of a file from the resources
+fun getStringFromResourceFile(filename: String): String {
     val classloader = Thread.currentThread().contextClassLoader
     val inputStream = classloader.getResourceAsStream(filename)
     return String(inputStream.readBytes()).trim()
