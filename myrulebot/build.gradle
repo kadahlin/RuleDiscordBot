@@ -1,8 +1,13 @@
 apply from: getScriptPath('module.gradle')
 
+repositories {
+    maven { url "https://jitpack.io" }
+}
+
 dependencies {
     implementation project(":rulebot")
 
+    implementation("it.skrape:skrapeit-core:1.0.0-alpha6")
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0"
 
     //networking
