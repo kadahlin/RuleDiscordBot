@@ -19,6 +19,7 @@ import com.kyledahlin.myrulebot.MyRuleBotScope
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.select
@@ -27,8 +28,8 @@ import javax.inject.Inject
 import javax.inject.Named
 
 @MyRuleBotScope
-class RockPaperScissorsStorage @Inject constructor(@Named("storage") val context: CoroutineDispatcher) {
-    suspend fun insertRpsGame(rpsGame: RockPaperScissorGame) = newSuspendedTransaction(context) {
+class RockPaperScissorsStorage @Inject constructor(private val _db: Database, @Named("storage") val context: CoroutineDispatcher) {
+    suspend fun insertRpsGame(rpsGame: RockPaperScissorGame) = newSuspendedTransaction(context, _db) {
         println("inserting $rpsGame")
         RockPaperScissorGames.insert {
             it[RockPaperScissorGames.participant1] = rpsGame.participant1.asString()
@@ -39,7 +40,7 @@ class RockPaperScissorsStorage @Inject constructor(@Named("storage") val context
     }
 
     suspend fun getAllRpsGamesForPlayer(snowflake: Snowflake): Collection<RockPaperScissorGame> =
-        newSuspendedTransaction(context) {
+        newSuspendedTransaction(context, _db) {
             RockPaperScissorGames
                 .select { RockPaperScissorGames.participant1 eq snowflake.asString() or (RockPaperScissorGames.participant2 eq snowflake.asString()) }
                 .map {
