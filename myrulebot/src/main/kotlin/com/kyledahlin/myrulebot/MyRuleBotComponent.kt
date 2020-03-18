@@ -15,11 +15,11 @@
 */
 package com.kyledahlin.myrulebot
 
+import com.kyledahlin.myrulebot.corona.CoronaRule
 import com.kyledahlin.myrulebot.jojorule.JojoMemeRule
 import com.kyledahlin.myrulebot.leaguerule.LeagueRule
 import com.kyledahlin.myrulebot.marxrule.MarxPassageRule
 import com.kyledahlin.myrulebot.rockpaperscissorsrule.RockPaperScissorsRule
-import com.kyledahlin.myrulebot.samplejava.SampleJavaRule
 import com.kyledahlin.myrulebot.scoreboard.ScoreboardRule
 import com.kyledahlin.myrulebot.soundboard.SoundboardRule
 import com.kyledahlin.myrulebot.timeoutrule.TimeoutRule
@@ -53,14 +53,14 @@ internal class MyRuleBotModule {
             leagueRule: LeagueRule,
             marxPassageRule: MarxPassageRule,
             rockPaperScissorsRule: RockPaperScissorsRule,
-            sampleJavaRule: SampleJavaRule,
             scoreboardRule: ScoreboardRule,
             soundboardRule: SoundboardRule,
-            timeoutRule: TimeoutRule
+            timeoutRule: TimeoutRule,
+            coronaRule: CoronaRule
         ): Set<Rule> {
             return setOf(
-                jojoMemeRule, leagueRule, marxPassageRule, rockPaperScissorsRule, sampleJavaRule, scoreboardRule, soundboardRule,
-                timeoutRule
+                jojoMemeRule, leagueRule, marxPassageRule, rockPaperScissorsRule, scoreboardRule, soundboardRule,
+                timeoutRule, coronaRule
             )
         }
     }
