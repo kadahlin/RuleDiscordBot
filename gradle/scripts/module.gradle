@@ -1,0 +1,40 @@
+apply plugin: 'java'
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'kotlinx-serialization'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'jacoco'
+
+sourceSets.main.java.srcDirs = ['src/main/kotlin']
+sourceSets.test.java.srcDirs = ['src/test/kotlin']
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions {
+        freeCompilerArgs = ["-XXLanguage:+InlineClasses"]
+    }
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jacoco {
+    toolVersion = "0.8.5"
+    reportsDir = file("$buildDir/jacocoCoverageReport")
+}
+
+jacocoTestReport {
+    reports {
+        html.destination file("${buildDir}/jacocoHtml")
+        xml.enabled = true
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}
+
+check.dependsOn jacocoTestReport

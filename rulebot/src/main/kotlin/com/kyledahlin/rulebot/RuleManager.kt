@@ -1,5 +1,5 @@
 /*
-*Copyright 2019 Kyle Dahlin
+*Copyright 2020 Kyle Dahlin
 *
 *Licensed under the Apache License, Version 2.0 (the "License");
 *you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import com.kyledahlin.rulebot.bot.*
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
 import discord4j.core.`object`.entity.MessageChannel
+import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -30,16 +31,29 @@ import javax.inject.Inject
 
 private const val RULES = "rules please"
 
+@RuleBotScope
 internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<Rule>, val cache: DiscordCache) {
 
-    private val rules: List<Rule> = rules.sortedBy { it.priority.ordinal }
+    private var _rules: List<Rule> = rules.sortedBy { it.priority.ordinal }
+
+    fun addRules(rules: Collection<Rule>) {
+        _rules = _rules.toMutableList().apply {
+            addAll(rules)
+            sortBy { it.priority.ordinal }
+        }
+    }
+
+    fun addBotIds(botIds: Collection<Snowflake>) {
+        botIds.forEach(cache::addBotId)
+    }
 
     fun processMessageCreateEvent(messageEvent: MessageCreateEvent) {
+        Logger.logDebug("processing event for ${_rules.size} rules")
         GlobalScope.launch {
             Logger.logDebug("got message event $messageEvent")
             val (messageCreated, guild, channel, member) = convertMessageCreateEvent(messageEvent)
             cache.add(messageCreated as RuleBotEvent, channel as MessageChannel, guild as Guild, member as Member)
-            rules.any {
+            _rules.any {
                 Logger.logDebug("handling messaging for ${it.ruleName}")
                 val wasHandled = it.handleEvent(messageCreated)
                 Logger.logDebug("message was ${if (wasHandled) "" else "not "}handled by ${it.ruleName}")
@@ -65,7 +79,7 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
     }
 
     private suspend fun MessageChannel.printRules() {
-        val ruleMessages = rules
+        val ruleMessages = _rules
             .filterNot { it.getExplanation() == null }
             .joinToString(separator = "\n") { "${it.ruleName}:\t${it.getExplanation()}" }
         suspendCreateMessage(ruleMessages)
