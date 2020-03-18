@@ -19,21 +19,25 @@ import com.kyledahlin.myrulebot.rockpaperscissorsrule.RockPaperScissorGames
 import com.kyledahlin.myrulebot.scoreboard.ScoreboardPlayers
 import com.kyledahlin.myrulebot.scoreboard.Scoreboards
 import com.kyledahlin.myrulebot.timeoutrule.Timeouts
+import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.sql.Connection
 
 internal object MyRuleBotStorage {
 
-    fun create() {
-//        Database.connect("jdbc:h2:./myrulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")
-//        TransactionManager.manager.defaultIsolationLevel =
-//            Connection.TRANSACTION_SERIALIZABLE // Or Connection.TRANSACTION_READ_UNCOMMITTED
+    fun getDatabase(): Database {
+        val db = Database.connect("jdbc:h2:./myrulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")
+        TransactionManager.manager.defaultIsolationLevel =
+            Connection.TRANSACTION_SERIALIZABLE // Or Connection.TRANSACTION_READ_UNCOMMITTED
 
-        transaction {
+        transaction(db) {
             SchemaUtils.create(Timeouts)
             SchemaUtils.create(Scoreboards)
             SchemaUtils.create(ScoreboardPlayers)
             SchemaUtils.create(RockPaperScissorGames)
         }
+        return db
     }
 }

@@ -43,7 +43,6 @@ fun main(args: Array<String>) {
         }
         this.logLevel = logLevel
     }
-    MyRuleBotStorage.create()
     builder.build().start()
 }
 
