@@ -24,7 +24,6 @@ private const val IS_BETA = "--beta"
 private const val LOG_RULES = "--log-rules"
 
 fun main(args: Array<String>) {
-    MyRuleBotStorage.create()
     val metaArgs = parseArgs(args)
 
     val rulesToLog = metaArgs[LOG_RULES] as? List<String>
@@ -44,6 +43,7 @@ fun main(args: Array<String>) {
         }
         this.logLevel = logLevel
     }
+    MyRuleBotStorage.create()
     builder.build().start()
 }
 
