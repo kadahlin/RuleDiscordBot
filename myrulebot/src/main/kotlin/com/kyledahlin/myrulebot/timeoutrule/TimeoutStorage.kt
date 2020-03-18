@@ -19,6 +19,7 @@ import com.kyledahlin.myrulebot.MyRuleBotScope
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
@@ -55,8 +56,8 @@ internal data class Timeout(
 }
 
 @MyRuleBotScope
-internal class TimeoutStorage @Inject constructor(@Named("storage") val context: CoroutineDispatcher) {
-    suspend fun insertTimeouts(timeouts: Collection<Timeout>) = newSuspendedTransaction(context) {
+internal class TimeoutStorage @Inject constructor(private val _db: Database, @Named("storage") val context: CoroutineDispatcher) {
+    suspend fun insertTimeouts(timeouts: Collection<Timeout>) = newSuspendedTransaction(context, _db) {
         for (timeout in timeouts) {
             Timeouts.insert {
                 it[Timeouts.snowflake] = timeout.snowflake.asString()
@@ -66,7 +67,7 @@ internal class TimeoutStorage @Inject constructor(@Named("storage") val context:
         }
     }
 
-    suspend fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? = newSuspendedTransaction(context) {
+    suspend fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? = newSuspendedTransaction(context, _db) {
         val existing = Timeouts
             .select { Timeouts.snowflake eq snowflake.asString() }
             .firstOrNull() ?: return@newSuspendedTransaction null
@@ -78,7 +79,7 @@ internal class TimeoutStorage @Inject constructor(@Named("storage") val context:
         )
     }
 
-    suspend fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) = newSuspendedTransaction(context) {
+    suspend fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) = newSuspendedTransaction(context, _db) {
         Timeouts.deleteWhere {
             Timeouts.snowflake inList snowflakes.map { it.asString() }
         }

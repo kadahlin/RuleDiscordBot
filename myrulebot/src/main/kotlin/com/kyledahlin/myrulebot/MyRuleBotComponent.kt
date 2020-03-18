@@ -29,6 +29,7 @@ import dagger.Component
 import dagger.Module
 import dagger.Provides
 import dagger.multibindings.ElementsIntoSet
+import org.jetbrains.exposed.sql.Database
 import javax.inject.Scope
 
 @Scope
@@ -63,5 +64,10 @@ internal class MyRuleBotModule {
                 timeoutRule, coronaRule
             )
         }
+
+        @JvmStatic
+        @Provides
+        @MyRuleBotScope
+        fun providesDatabase(): Database = MyRuleBotStorage.getDatabase()
     }
 }

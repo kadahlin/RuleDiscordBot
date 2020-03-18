@@ -40,18 +40,19 @@ interface LocalStorage {
 
 internal class LocalStorageImpl @Inject constructor(@Named("storage") val context: CoroutineDispatcher) : LocalStorage {
 
+    private val _db: Database = Database.connect("jdbc:h2:./rulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")
+
     init {
-        Database.connect("jdbc:h2:./rulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")
         TransactionManager.manager.defaultIsolationLevel =
             Connection.TRANSACTION_SERIALIZABLE // Or Connection.TRANSACTION_READ_UNCOMMITTED
 
-        transaction {
+        transaction(db = _db) {
             SchemaUtils.create(Admins)
             SchemaUtils.createMissingTablesAndColumns(Admins)
         }
     }
 
-    override suspend fun getAdminSnowflakes(): Collection<RoleSnowflake> = newSuspendedTransaction(context) {
+    override suspend fun getAdminSnowflakes(): Collection<RoleSnowflake> = newSuspendedTransaction(context, _db) {
         Admins
             .selectAll()
             .map {
@@ -70,7 +71,7 @@ internal class LocalStorageImpl @Inject constructor(@Named("storage") val contex
             }
     }
 
-    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) = newSuspendedTransaction(context) {
+    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) = newSuspendedTransaction(context, _db) {
         snowflakes.forEach { roleSnowflake ->
             Admins.insert {
                 it[snowflake] = roleSnowflake.snowflake.asString()
@@ -82,7 +83,7 @@ internal class LocalStorageImpl @Inject constructor(@Named("storage") val contex
     }
 
     override suspend fun removeAdminSnowflakes(snowflakes: Collection<RoleSnowflake>, guildId: Snowflake) =
-        newSuspendedTransaction<Unit>(context) {
+        newSuspendedTransaction<Unit>(context, _db) {
             Admins.deleteWhere {
                 (Admins.snowflake inList snowflakes.map { it.snowflake.asString() }) and (Admins.guildSnowflake eq guildId.asString())
             }
