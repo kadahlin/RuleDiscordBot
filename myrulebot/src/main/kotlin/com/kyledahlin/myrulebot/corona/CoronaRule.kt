@@ -15,7 +15,6 @@
 */
 package com.kyledahlin.myrulebot.corona
 
-import com.kyledahlin.myrulebot.main
 import com.kyledahlin.rulebot.DiscordWrapper
 import com.kyledahlin.rulebot.bot.*
 import io.ktor.client.request.get
@@ -24,10 +23,7 @@ import it.skrape.extract
 import it.skrape.selects.eachText
 import it.skrape.selects.html5.div
 import it.skrape.skrape
-import java.lang.Exception
 import java.text.DecimalFormat
-import java.text.NumberFormat
-import java.util.*
 import javax.inject.Inject
 
 private const val TRIGGER = "!corona"
@@ -59,9 +55,9 @@ class CoronaRule @Inject constructor(
             return
         }
 
-        val rate: Double = if (deaths == 0L) 0.0 else cases.toDouble() / deaths
+        val rate: Double = if (cases == 0L) 0.0 else (deaths / cases.toDouble()) * 100
         wrapper.sendMessage(
-            "At this moment there are ${cases.toFormatString()} cases with ${deaths.toFormatString()} deaths ${rate.toFormatString()} mortality rate)"
+            "At this moment there are ${cases.toFormatString()} cases with ${deaths.toFormatString()} deaths (${rate.toFormatString()}% mortality rate)"
         )
     }
 
@@ -109,6 +105,6 @@ class CoronaRule @Inject constructor(
     }
 }
 
-private fun Number.toFormatString() {
-    DecimalFormat("#,###.00").format(this)
+private fun Number.toFormatString(): String {
+    return DecimalFormat("#,###.00").format(this)
 }
