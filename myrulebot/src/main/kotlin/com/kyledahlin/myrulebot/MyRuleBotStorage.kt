@@ -26,21 +26,18 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.sql.Connection
 import javax.inject.Inject
 
-@MyRuleBotScope
-internal class MyRuleBotStorage @Inject constructor() {
+internal object MyRuleBotStorage {
 
-    companion object {
-        init {
-            Database.connect("jdbc:h2:./myrulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")
-            TransactionManager.manager.defaultIsolationLevel =
-                Connection.TRANSACTION_SERIALIZABLE // Or Connection.TRANSACTION_READ_UNCOMMITTED
+    fun create() {
+        Database.connect("jdbc:h2:./myrulebot;DB_CLOSE_DELAY=-1;", "org.h2.Driver")
+        TransactionManager.manager.defaultIsolationLevel =
+            Connection.TRANSACTION_SERIALIZABLE // Or Connection.TRANSACTION_READ_UNCOMMITTED
 
-            transaction {
-                SchemaUtils.create(Timeouts)
-                SchemaUtils.create(Scoreboards)
-                SchemaUtils.create(ScoreboardPlayers)
-                SchemaUtils.create(RockPaperScissorGames)
-            }
+        transaction {
+            SchemaUtils.create(Timeouts)
+            SchemaUtils.create(Scoreboards)
+            SchemaUtils.create(ScoreboardPlayers)
+            SchemaUtils.create(RockPaperScissorGames)
         }
     }
 }
