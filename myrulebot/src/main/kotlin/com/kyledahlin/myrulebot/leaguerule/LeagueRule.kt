@@ -43,7 +43,7 @@ internal class LeagueRule @Inject constructor(
         get() = Priority.LOW
 
     private val leagueApiKey by lazy {
-        getStringFromResourceFile("leagueapi.txt")
+        getStringFromResourceFile("RGAPI-ef950e26-958e-4427-bc9e-3f330dd7934f")
     }
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
