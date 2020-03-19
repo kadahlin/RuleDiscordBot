@@ -54,7 +54,7 @@ internal class FunctionModule {
 
     @Provides
     @RuleBotScope
-    fun providesGetMetaData(cache: DiscordCache): GetDiscordWrapperForEvent = cache::getMetadataForEvent
+    fun providesGetDiscordWrapper(cache: DiscordCache): GetDiscordWrapperForEvent = cache::getWrapperForEvent
 
     @Provides
     @RuleBotScope
@@ -91,6 +91,7 @@ interface BotComponent {
     fun localStorage(): LocalStorage
     fun javaLocalStorage(): JavaLocalStorage
     fun javaEventStorage(): JavaEventStorage
+    fun cache(): DiscordCache
     fun discordWrapper(): GetDiscordWrapperForEvent
     fun botIds(): GetBotIds
 

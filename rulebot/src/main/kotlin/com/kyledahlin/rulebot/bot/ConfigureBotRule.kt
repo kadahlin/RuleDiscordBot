@@ -16,6 +16,7 @@
 package com.kyledahlin.rulebot.bot
 
 import com.kyledahlin.rulebot.DiscordCache
+import kotlinx.serialization.json.JsonObject
 
 private val setAdminRegex = """add admin""".toRegex()
 private val removeAdminRegex = """remove admin""".toRegex()
@@ -99,5 +100,9 @@ internal class ConfigureBotRule constructor(
             if (it.isRole) "<@&${it.snowflake.asString()}>" else "<@${it.snowflake.asString()}>"
         }
         getDiscordWrapperForEvent(event)?.sendMessage("Admins are: ${userMentions.joinToString(separator = " ")}")
+    }
+
+    override suspend fun configure(data: Any): Any {
+        return JsonObject(mapOf())
     }
 }

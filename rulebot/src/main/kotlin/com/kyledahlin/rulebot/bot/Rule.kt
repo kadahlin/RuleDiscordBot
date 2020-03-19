@@ -15,7 +15,8 @@
 */
 package com.kyledahlin.rulebot.bot
 
-import com.kyledahlin.rulebot.DiscordWrapper
+import com.kyledahlin.rulebot.EventWrapper
+import com.kyledahlin.rulebot.GuildWrapper
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
@@ -30,7 +31,7 @@ import suspendChannel
 import suspendGetMessageById
 import suspendGuild
 
-typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards DiscordWrapper?
+typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards EventWrapper?
 typealias GetBotIds = () -> @JvmSuppressWildcards Set<Snowflake>
 
 /**
@@ -47,11 +48,16 @@ abstract class Rule(
     }
 
     /**
-     * Process this message and determine if action is necessary.
+     * Process this event from discord and determine if action is necessary.
      *
      * @return true if action on the server was taken, false otherwise
      */
     abstract suspend fun handleEvent(event: RuleBotEvent): Boolean
+
+    /**
+     * Process this event from *anywhere* and determine if action is necessary, or return information based on this request
+     */
+    abstract suspend fun configure(data: Any): Any
 
     /**
      * Get a human readable description of how to use this rule
