@@ -16,56 +16,100 @@
 package com.kyledahlin.myrulebot.bot.reaction
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
+import com.kyledahlin.myrulebot.bot.sf
 import com.kyledahlin.rulebot.DiscordCache
 import com.kyledahlin.rulebot.bot.*
+import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import javax.inject.Inject
 
+/**
+ * Automatically add reactions to users messages, configurable through the rest api
+ */
 @MyRuleBotScope
 class ReactionRule @Inject constructor(
     localStorage: LocalStorage,
     val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     val cache: DiscordCache,
-    reactionStorage: ReactionStorage
+    val reactionStorage: ReactionStorage
 ) :
     Rule("Reactions", localStorage, getDiscordWrapperForEvent) {
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
-        if (event !is MessageCreated) return false
+        val wrapper = getDiscordWrapperForEvent(event)
+        val guildId = wrapper?.getGuildId()
+        if (event !is MessageCreated || guildId == null) return false
 
-        return if (event.content.contains("reactions")) {
-            val wrapper = getDiscordWrapperForEvent(event)
-            wrapper?.getGuildId()?.let { guildId ->
-                val guildWrapper = cache.getGuildWrapper(guildId)
-                logDebug("gWrapper: $guildWrapper")
-                val guildEmojis = guildWrapper?.getEmojiNameSnowflakes() ?: listOf("failed")
-                logDebug("emojis: $guildEmojis")
-                wrapper.sendMessage(guildEmojis.joinToString(separator = ",") + " end")
-            }
-            true
-        } else {
-            false
-        }
+        val guildWrapper = cache.getGuildWrapper(guildId) ?: return false
+
+        val reactions = reactionStorage.getReactionsForMember(guildId, event.author)
+        reactions
+            .mapNotNull { guildWrapper.getGuildEmojiForId(it) }
+            .forEach { wrapper.addEmoji(ReactionEmoji.custom(it)) }
+
+        return false
     }
 
     override suspend fun configure(data: Any): Any {
         logDebug("configure reaction: $data")
         val command = Json(JsonConfiguration.Stable.copy(isLenient = true)).parse(Command.serializer(), data.toString())
-        if(command.action == null) {
-            logDebug("sending emoji data")
+        return when (command.action) {
+            "add"    -> addReaction(command)
+            "list"   -> getEmojiData(command.guildId.sf())
+            "remove" -> removeReaction(command)
+            else     -> JsonObject(emptyMap())
         }
-        val guildWrapper = cache.getGuildWrapper(Snowflake.of(command.guildId))
-        val guildEmojis = guildWrapper
-            ?.getEmojiNameSnowflakes()
-            ?.map { it.first to JsonPrimitive(it.second.asString()) }
-            ?: emptyList()
+    }
 
-        return JsonObject(mapOf(*guildEmojis.toTypedArray()))
+    private suspend fun addReaction(command: Command): Any {
+        val (guildId, _, member, emoji) = command
+        try {
+            reactionStorage.storeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
+        } catch (e: Exception) {
+            logError("unable to perform add command: ${e.message}")
+        }
+
+        return JsonObject(emptyMap())
+    }
+
+    private suspend fun removeReaction(command: Command): Any {
+        val (guildId, _, member, emoji) = command
+        try {
+            reactionStorage.removeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
+        } catch (e: Exception) {
+            logError("unable to perform remove command: ${e.message}")
+        }
+        return JsonObject(emptyMap())
+    }
+
+    private suspend fun getEmojiData(guildId: Snowflake): GuildInfo {
+        logDebug("sending emoji data")
+        val guildWrapper = cache.getGuildWrapper(guildId)
+        val guildEmojis = try {
+            guildWrapper
+                ?.getEmojiNameSnowflakes()
+                ?.map { Emoji(it.first, it.second.asString()) }
+                ?: emptyList()
+        } catch (e: java.lang.Exception) {
+            logError("could not get emoji list")
+            emptyList<Emoji>()
+        }
+
+        val members = try {
+            guildWrapper
+                ?.getMemberNameSnowflakes()
+                ?.map { Member(it.first, it.second.asString()) }
+                ?: emptyList()
+        } catch (e: java.lang.Exception) {
+            logError("could not get member list")
+            emptyList<Member>()
+        }
+
+        return GuildInfo(members, guildEmojis)
     }
 
     override fun getExplanation(): String? {
@@ -83,4 +127,22 @@ data class Command(
     val action: String? = null,
     val member: String? = null,
     val emoji: String? = null
+)
+
+@Serializable
+data class GuildInfo(
+    val members: List<Member>,
+    val emojis: List<Emoji>
+)
+
+@Serializable
+data class Member(
+    val name: String,
+    val snowflake: String
+)
+
+@Serializable
+data class Emoji(
+    val name: String,
+    val snowflake: String
 )

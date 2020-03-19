@@ -36,5 +36,5 @@ dependencies {
 }
 
 application {
-    mainClassName = "com.kyledahlin.myrulebot.MyRulebotKt"
+    mainClassName = "com.kyledahlin.myrulebot.app.MyRuleBotAppKt"
 }

@@ -8,4 +8,6 @@ suspend fun Guild.suspendOwner(): Member? = this.owner.suspend()
 
 suspend fun Guild.suspendEmojis(): List<GuildEmoji> = this.emojis.toList()
 
+suspend fun Guild.suspendMembers(): List<Member> = this.members.toList()
+
 suspend fun Guild.suspendGetGuildEmojiById(id: Snowflake) = this.getGuildEmojiById(id).suspend()

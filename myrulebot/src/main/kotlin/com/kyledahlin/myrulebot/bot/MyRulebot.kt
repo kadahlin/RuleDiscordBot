@@ -18,16 +18,19 @@ package com.kyledahlin.myrulebot.bot
 import com.kyledahlin.rulebot.RuleBot
 import com.kyledahlin.rulebot.bot.DaggerBotComponent
 import com.kyledahlin.rulebot.bot.LogLevel
+import discord4j.core.`object`.util.Snowflake
 
 object MyRulebot {
     fun create(token: String, rulesToLog: Collection<String>, logLevel: LogLevel): RuleBot {
         val coreComponent = DaggerBotComponent.builder().setToken(token).build()
         val myRules = DaggerMyRuleBotComponent.builder().botComponent(coreComponent).build().rules()
         val builder = coreComponent.botBuilder().apply {
-            addRules(myRules).build().start()
+            addRules(myRules)
             logRules(*rulesToLog.toTypedArray())
             this.logLevel = logLevel
         }
         return builder.build()
     }
 }
+
+internal fun String.sf() = Snowflake.of(this)
