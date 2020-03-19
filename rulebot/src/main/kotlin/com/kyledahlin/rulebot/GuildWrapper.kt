@@ -12,6 +12,8 @@ typealias NameSnowflake = Pair<String, Snowflake>
 
 interface GuildWrapper {
 
+    val name: String
+
     val id: Snowflake
 
     suspend fun sendMessage(message: String)
@@ -29,6 +31,9 @@ class GuildWrapperImpl(private val guild: Guild) : GuildWrapper {
 
     override val id: Snowflake
         get() = guild.id
+
+    override val name: String
+        get() = guild.name
 
     override suspend fun sendMessage(message: String) {
 

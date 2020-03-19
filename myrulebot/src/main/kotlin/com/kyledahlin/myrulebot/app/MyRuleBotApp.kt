@@ -26,6 +26,7 @@ import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.routing.get
 import io.ktor.routing.post
+import io.ktor.routing.route
 import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.server.engine.embeddedServer
@@ -73,6 +74,17 @@ fun main(args: Array<String>) {
                 val ruleNames = rulebot.getRuleNames()
                 println("for rule names got: $rulebot")
                 call.respond(JsonArray(ruleNames.map { JsonPrimitive(it) }))
+            }
+
+            route("/guilds") {
+                get {
+                    call.respond(rulebot.getGuildInfo())
+                }
+
+                get("/{guildId}") {
+                    val list = rulebot.getMemberInfo(call.parameters["guildId"]!!) ?: emptyList()
+                    call.respond(list)
+                }
             }
         }
     }.start(wait = true)

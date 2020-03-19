@@ -16,9 +16,9 @@
 package com.kyledahlin.myrulebot.bot.reaction
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
-import com.kyledahlin.myrulebot.bot.sf
 import com.kyledahlin.rulebot.DiscordCache
 import com.kyledahlin.rulebot.bot.*
+import com.kyledahlin.rulebot.sf
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.serialization.Serializable
@@ -87,7 +87,6 @@ class ReactionRule @Inject constructor(
     }
 
     private suspend fun getEmojiData(guildId: Snowflake): GuildInfo {
-        logDebug("sending emoji data")
         val guildWrapper = cache.getGuildWrapper(guildId)
         val guildEmojis = try {
             guildWrapper
@@ -99,17 +98,14 @@ class ReactionRule @Inject constructor(
             emptyList<Emoji>()
         }
 
-        val members = try {
-            guildWrapper
-                ?.getMemberNameSnowflakes()
-                ?.map { Member(it.first, it.second.asString()) }
-                ?: emptyList()
-        } catch (e: java.lang.Exception) {
-            logError("could not get member list")
-            emptyList<Member>()
-        }
+        val addedEmojis = reactionStorage
+            .getStoredReactions(guildId)
+            .mapNotNull { reaction ->
+                val emojiName = guildEmojis.firstOrNull { it.id == reaction.emojiId }?.name
+                if (emojiName == null) null else AddedEmoji(emojiName, reaction.memberId, reaction.emojiId)
+            }
 
-        return GuildInfo(members, guildEmojis)
+        return GuildInfo(guildEmojis, addedEmojis)
     }
 
     override fun getExplanation(): String? {
@@ -131,18 +127,19 @@ data class Command(
 
 @Serializable
 data class GuildInfo(
-    val members: List<Member>,
-    val emojis: List<Emoji>
-)
-
-@Serializable
-data class Member(
-    val name: String,
-    val snowflake: String
+    val emojis: List<Emoji>,
+    val addedEmojis: List<AddedEmoji>
 )
 
 @Serializable
 data class Emoji(
     val name: String,
-    val snowflake: String
+    val id: String
+)
+
+@Serializable
+data class AddedEmoji(
+    val emojiName: String,
+    val memberId: String,
+    val emojiId: String
 )
