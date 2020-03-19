@@ -6,6 +6,9 @@ import discord4j.core.`object`.util.Snowflake
 import discord4j.core.spec.MessageCreateSpec
 import suspendEmojis
 import suspendGetGuildEmojiById
+import suspendMembers
+
+typealias NameSnowflake = Pair<String, Snowflake>
 
 interface GuildWrapper {
 
@@ -15,7 +18,9 @@ interface GuildWrapper {
 
     suspend fun sendMessage(withSpec: MessageCreateSpec.() -> Unit)
 
-    suspend fun getEmojiNameSnowflakes(): List<Pair<String, Snowflake>>
+    suspend fun getMemberNameSnowflakes(): List<NameSnowflake>
+
+    suspend fun getEmojiNameSnowflakes(): List<NameSnowflake>
 
     suspend fun getGuildEmojiForId(id: Snowflake): GuildEmoji?
 }
@@ -33,8 +38,12 @@ class GuildWrapperImpl(private val guild: Guild) : GuildWrapper {
 
     }
 
-    override suspend fun getEmojiNameSnowflakes(): List<Pair<String, Snowflake>> {
+    override suspend fun getEmojiNameSnowflakes(): List<NameSnowflake> {
         return guild.suspendEmojis().map { it.name to it.id }
+    }
+
+    override suspend fun getMemberNameSnowflakes(): List<NameSnowflake> {
+        return guild.suspendMembers().map { it.displayName to it.id }
     }
 
     override suspend fun getGuildEmojiForId(id: Snowflake): GuildEmoji? {

@@ -16,12 +16,12 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.bot.RuleBotEvent
-import discord4j.core.`object`.entity.Guild
-import discord4j.core.`object`.entity.Member
-import discord4j.core.`object`.entity.MessageChannel
+import discord4j.core.`object`.entity.*
+import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.spec.MessageCreateSpec
 import discord4j.core.spec.VoiceChannelJoinSpec
+import suspendAddReaction
 import suspendChannel
 import suspendCreateMessage
 import suspendDelete
@@ -40,6 +40,8 @@ interface EventWrapper {
     suspend fun sendMessage(message: String)
 
     suspend fun sendMessage(withSpec: MessageCreateSpec.() -> Unit)
+
+    suspend fun addEmoji(reactionEmoji: ReactionEmoji)
 
     suspend fun getGuildOwnerId(): Snowflake?
 
@@ -71,6 +73,10 @@ internal class EventWrapperImpl(
 
     override suspend fun sendMessage(withSpec: MessageCreateSpec.() -> Unit) {
         channel.suspendCreateMessage(withSpec)
+    }
+
+    override suspend fun addEmoji(reactionEmoji: ReactionEmoji) {
+        channel.suspendGetMessageById(event.id)?.suspendAddReaction(reactionEmoji)
     }
 
     override suspend fun getGuildOwnerId() = guild?.ownerId

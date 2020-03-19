@@ -30,8 +30,6 @@ import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.collections.set
@@ -54,9 +52,7 @@ fun main(args: Array<String>) {
     val token = getStringFromResourceFile(tokenFile)
 
     val rulebot = MyRulebot.create(token, rulesToLog ?: emptySet(), logLevel)
-    GlobalScope.launch {
-        rulebot.start()
-    }
+    rulebot.start()
 
     embeddedServer(Netty, 8080) {
 

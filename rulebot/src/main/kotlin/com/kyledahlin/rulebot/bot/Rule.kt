@@ -132,10 +132,6 @@ internal suspend fun Message.getSnowflakes(): Set<RoleSnowflake> {
     return users.union(roles)
 }
 
-private suspend fun Message.addReactionToMessage(emoji: ReactionEmoji) {
-    this.suspendChannel()?.suspendGetMessageById(this.id)?.suspendAddReaction(emoji)
-}
-
 private fun Message.sendDistortedCopy() {
     val content = this.content.orElse("")
     if (content.startsWith("<") && content.endsWith(">")) {

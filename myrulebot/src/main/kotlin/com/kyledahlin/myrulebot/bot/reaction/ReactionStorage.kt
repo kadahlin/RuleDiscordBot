@@ -16,27 +16,59 @@
 package com.kyledahlin.myrulebot.bot.reaction
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
-import discord4j.core.`object`.entity.GuildEmoji
+import com.kyledahlin.myrulebot.bot.sf
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import javax.inject.Inject
 import javax.inject.Named
 
 interface ReactionStorage {
-    suspend fun storeReactionForMember(member: Snowflake, guild: Snowflake, reaction: GuildEmoji)
+    suspend fun storeReactionForMember(member: Snowflake, guild: Snowflake, reaction: Snowflake)
 
-    suspend fun removeReactionForMember(member: Snowflake, guild: Snowflake, reaction: GuildEmoji)
+    suspend fun removeReactionForMember(member: Snowflake, guild: Snowflake, reaction: Snowflake)
+
+    suspend fun getReactionsForMember(guild: Snowflake, member: Snowflake): List<Snowflake>
 }
 
 @MyRuleBotScope
-class ReactionStorageImpl @Inject constructor(private val _db: Database, @Named("storage") private val context: CoroutineDispatcher) :
-    ReactionStorage {
-    override suspend fun storeReactionForMember(member: Snowflake, guild: Snowflake, reaction: GuildEmoji) {
-        TODO("Not yet implemented")
+class ReactionStorageImpl @Inject constructor(
+    private val _db: Database,
+    @Named("storage") private val context: CoroutineDispatcher
+) : ReactionStorage {
+
+    override suspend fun storeReactionForMember(member: Snowflake, guild: Snowflake, reaction: Snowflake) {
+        newSuspendedTransaction(context, _db) {
+            ReactionTable.insert {
+                it[ReactionTable.member] = member.asString()
+                it[ReactionTable.guild] = guild.asString()
+                it[ReactionTable.reaction] = reaction.asString()
+            }
+        }
     }
 
-    override suspend fun removeReactionForMember(member: Snowflake, guild: Snowflake, reaction: GuildEmoji) {
-        TODO("Not yet implemented")
+    override suspend fun removeReactionForMember(member: Snowflake, guild: Snowflake, reaction: Snowflake) {
+        newSuspendedTransaction(context, _db) {
+            ReactionTable.deleteWhere {
+                (ReactionTable.member eq member.asString())
+                    .and(ReactionTable.guild eq guild.asString())
+                    .and(ReactionTable.reaction eq reaction.asString())
+            }
+        }
     }
+
+    override suspend fun getReactionsForMember(guild: Snowflake, member: Snowflake): List<Snowflake> =
+        newSuspendedTransaction(context, _db) {
+            ReactionTable
+                .select { ReactionTable.guild eq guild.asString() and (ReactionTable.member eq member.asString()) }
+                .map { it[ReactionTable.reaction].sf() }
+        }
+}
+
+object ReactionTable : IntIdTable() {
+    val member = ReactionTable.varchar("member", 64)
+    val guild = ReactionTable.varchar("guild", 64)
+    val reaction = ReactionTable.varchar("reaction", 64)
 }
