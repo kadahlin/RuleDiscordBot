@@ -63,7 +63,6 @@ class RuleBot private constructor(
     }
 
     fun start() {
-
         Logger.setRulesToLog(rulesToLog)
         Logger.setLogLevel(logLevel)
         val client = DiscordClientBuilder(token).build()
@@ -72,6 +71,11 @@ class RuleBot private constructor(
             .subscribe { ready ->
                 println("RuleBot is logged in as ${ready.self.username} for ${ready.guilds.size} guilds")
                 ruleManager.addBotIds(setOf(ready.self.id))
+
+                //add all the logged in guilds for later use
+                ready.guilds.map { it.id }.forEach { guildSnowflake ->
+                    client.getGuildById(guildSnowflake).subscribe { ruleManager.addGuilds(arrayListOf(it)) }
+                }
             }
 
         client.eventDispatcher.on(MessageCreateEvent::class.java)
@@ -84,6 +88,14 @@ class RuleBot private constructor(
                 throwable.printStackTrace()
             })
 
-        client.login().block()
+        client.login().subscribe()
+    }
+
+    suspend fun configureRule(ruleName: String, data: Any): Any? {
+        return ruleManager.configureRule(ruleName, data)
+    }
+
+    suspend fun getRuleNames(): Set<String> {
+        return ruleManager.getRuleNames()
     }
 }
