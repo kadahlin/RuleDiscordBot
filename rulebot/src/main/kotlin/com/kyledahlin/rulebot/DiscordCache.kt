@@ -43,12 +43,20 @@ class DiscordCache @Inject constructor() {
         _messages.add(EventWrapperImpl(event, channel, guild, member))
     }
 
-    fun createGuildWrapperEntry(guild: Guild) {
+    fun addGuild(guild: Guild) {
         _guilds.add(GuildWrapperImpl(guild))
+    }
+
+    fun addGuilds(guilds: Collection<Guild>) {
+        guilds.forEach(::addGuild)
     }
 
     fun getGuildWrapper(snowflake: Snowflake): GuildWrapper? {
         return _guilds.firstOrNull { it.id == snowflake }
+    }
+
+    fun getGuildWrappers(): Set<GuildWrapper> {
+        return _guilds
     }
 
     fun getWrapperForEvent(event: RuleBotEvent): EventWrapper? {
@@ -57,6 +65,10 @@ class DiscordCache @Inject constructor() {
 
     fun addBotId(snowflake: Snowflake) {
         _botIds.add(snowflake)
+    }
+
+    fun addBotIds(snowflakes: Collection<Snowflake>) {
+        snowflakes.forEach(::addBotId)
     }
 
     fun getBotIds(): Set<Snowflake> = _botIds

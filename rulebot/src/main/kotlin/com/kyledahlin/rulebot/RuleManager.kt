@@ -43,14 +43,6 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
         }
     }
 
-    fun addBotIds(botIds: Collection<Snowflake>) {
-        botIds.forEach(cache::addBotId)
-    }
-
-    fun addGuilds(guilds: Collection<Guild>) {
-        guilds.forEach(cache::createGuildWrapperEntry)
-    }
-
     suspend fun configureRule(ruleName: String, data: Any): Any? {
         return _rules.firstOrNull { it.ruleName.equals(ruleName, ignoreCase = true) }?.configure(data)
     }

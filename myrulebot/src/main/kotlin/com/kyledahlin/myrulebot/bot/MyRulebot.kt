@@ -32,5 +32,3 @@ object MyRulebot {
         return builder.build()
     }
 }
-
-internal fun String.sf() = Snowflake.of(this)

@@ -16,7 +16,7 @@
 package com.kyledahlin.myrulebot.bot.reaction
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
-import com.kyledahlin.myrulebot.bot.sf
+import com.kyledahlin.rulebot.sf
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
 import org.jetbrains.exposed.dao.IntIdTable
@@ -31,6 +31,8 @@ interface ReactionStorage {
     suspend fun removeReactionForMember(member: Snowflake, guild: Snowflake, reaction: Snowflake)
 
     suspend fun getReactionsForMember(guild: Snowflake, member: Snowflake): List<Snowflake>
+
+    suspend fun getStoredReactions(guildId: Snowflake): List<StoredReaction>
 }
 
 @MyRuleBotScope
@@ -65,6 +67,12 @@ class ReactionStorageImpl @Inject constructor(
                 .select { ReactionTable.guild eq guild.asString() and (ReactionTable.member eq member.asString()) }
                 .map { it[ReactionTable.reaction].sf() }
         }
+
+    override suspend fun getStoredReactions(guildId: Snowflake): List<StoredReaction> = newSuspendedTransaction(context, _db) {
+        ReactionTable
+            .select { ReactionTable.guild eq guildId.asString() }
+            .map { StoredReaction(it[ReactionTable.member], it[ReactionTable.guild], it[ReactionTable.reaction]) }
+    }
 }
 
 object ReactionTable : IntIdTable() {
@@ -72,3 +80,9 @@ object ReactionTable : IntIdTable() {
     val guild = ReactionTable.varchar("guild", 64)
     val reaction = ReactionTable.varchar("reaction", 64)
 }
+
+data class StoredReaction(
+    val memberId: String,
+    val guildId: String,
+    val emojiId: String
+)
