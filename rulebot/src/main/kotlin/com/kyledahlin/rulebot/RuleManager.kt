@@ -32,7 +32,7 @@ import javax.inject.Inject
 private const val RULES = "rules please"
 
 @RuleBotScope
-internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<Rule>, val cache: DiscordCache) {
+internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<Rule>, private val cache: DiscordCache) {
 
     private var _rules: List<Rule> = rules.sortedBy { it.priority.ordinal }
 
@@ -43,8 +43,8 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
         }
     }
 
-    fun addBotIds(botIds: Collection<Snowflake>) {
-        botIds.forEach(cache::addBotId)
+    suspend fun configureRule(ruleName: String, data: Any): Any? {
+        return _rules.firstOrNull { it.ruleName.equals(ruleName, ignoreCase = true) }?.configure(data)
     }
 
     fun processMessageCreateEvent(messageEvent: MessageCreateEvent) {
@@ -52,7 +52,7 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
         GlobalScope.launch {
             Logger.logDebug("got message event $messageEvent")
             val (messageCreated, guild, channel, member) = convertMessageCreateEvent(messageEvent)
-            cache.add(messageCreated as RuleBotEvent, channel as MessageChannel, guild as Guild, member as Member)
+            cache.createEventWrapperEntry(messageCreated as RuleBotEvent, channel as MessageChannel, guild as Guild, member as Member)
             _rules.any {
                 Logger.logDebug("handling messaging for ${it.ruleName}")
                 val wasHandled = it.handleEvent(messageCreated)
@@ -83,6 +83,10 @@ internal class RuleManager @Inject constructor(rules: @JvmSuppressWildcards Set<
             .filterNot { it.getExplanation() == null }
             .joinToString(separator = "\n") { "${it.ruleName}:\t${it.getExplanation()}" }
         suspendCreateMessage(ruleMessages)
+    }
+
+    internal suspend fun getRuleNames(): Set<String> {
+        return _rules.map { it.ruleName }.toSet()
     }
 }
 
