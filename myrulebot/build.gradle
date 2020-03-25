@@ -11,12 +11,19 @@ dependencies {
     implementation("it.skrape:skrapeit-core:1.0.0-alpha6")
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0"
 
-    //networking
-    implementation "io.ktor:ktor-client-core:1.3.1"
-    implementation "io.ktor:ktor-client-json:1.3.1"
-    implementation "io.ktor:ktor-client-json-jvm:1.3.1"
-    implementation "io.ktor:ktor-client-apache:1.3.1"
-    implementation "io.ktor:ktor-client-serialization-jvm:1.3.1"
+    def ktorVersion = '1.3.2'
+
+    //networking (client rules)
+    implementation "io.ktor:ktor-client-core:$ktorVersion"
+    implementation "io.ktor:ktor-client-json:$ktorVersion"
+    implementation "io.ktor:ktor-client-json-jvm:$ktorVersion"
+    implementation "io.ktor:ktor-client-apache:$ktorVersion"
+    implementation "io.ktor:ktor-client-serialization-jvm:$ktorVersion"
+
+    //networking (server instance)
+    implementation "io.ktor:ktor-server-core:$ktorVersion"
+    implementation "io.ktor:ktor-server-netty:$ktorVersion"
+    implementation "io.ktor:ktor-serialization:$ktorVersion"
 
     implementation 'com.google.dagger:dagger:2.26'
     kapt 'com.google.dagger:dagger-compiler:2.26'
@@ -29,5 +36,5 @@ dependencies {
 }
 
 application {
-    mainClassName = "com.kyledahlin.myrulebot.MyRulebotKt"
+    mainClassName = "com.kyledahlin.myrulebot.app.MyRuleBotAppKt"
 }
