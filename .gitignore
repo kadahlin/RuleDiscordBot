@@ -1,6 +1,7 @@
 myrulebot/src/main/resources/token.txt
 myrulebot/src/main/resources/betatoken.txt
 myrulebot/src/main/resources/twitchtoken.txt
+myrulebot/src/main/resources/trigger.txt
 .idea/
 .gradle/
 out/

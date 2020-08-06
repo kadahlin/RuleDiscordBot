@@ -17,7 +17,7 @@ package com.kyledahlin.rulebot.bot
 
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -71,16 +71,17 @@ internal class LocalStorageImpl @Inject constructor(@Named("storage") val contex
             }
     }
 
-    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) = newSuspendedTransaction(context, _db) {
-        snowflakes.forEach { roleSnowflake ->
-            Admins.insert {
-                it[snowflake] = roleSnowflake.snowflake.asString()
-                it[isRole] = roleSnowflake.isRole
-                it[guildSnowflake] = roleSnowflake.guildSnowflake?.asString() ?: ""
+    override suspend fun addAdminSnowflakes(snowflakes: Collection<RoleSnowflake>) =
+        newSuspendedTransaction(context, _db) {
+            snowflakes.forEach { roleSnowflake ->
+                Admins.insert {
+                    it[snowflake] = roleSnowflake.snowflake.asString()
+                    it[isRole] = roleSnowflake.isRole
+                    it[guildSnowflake] = roleSnowflake.guildSnowflake?.asString() ?: ""
+                }
+                Unit
             }
-            Unit
         }
-    }
 
     override suspend fun removeAdminSnowflakes(snowflakes: Collection<RoleSnowflake>, guildId: Snowflake) =
         newSuspendedTransaction<Unit>(context, _db) {

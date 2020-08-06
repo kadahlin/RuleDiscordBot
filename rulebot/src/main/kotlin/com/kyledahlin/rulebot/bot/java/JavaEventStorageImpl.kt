@@ -15,7 +15,7 @@
 */
 package com.kyledahlin.rulebot.bot.java
 
-import com.kyledahlin.rulebot.DiscordWrapper
+import com.kyledahlin.rulebot.EventWrapper
 import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
 import com.kyledahlin.rulebot.bot.RuleBotEvent
 import com.kyledahlin.rulebot.bot.RuleBotScope
@@ -30,7 +30,7 @@ class JavaEventStorageImpl @Inject constructor(
     private val wrapperFunction: GetDiscordWrapperForEvent
 ) : JavaEventStorage {
 
-    override fun invoke(event: RuleBotEvent): DiscordWrapper? = wrapperFunction(event)
+    override fun invoke(event: RuleBotEvent): EventWrapper? = wrapperFunction(event)
 
     override fun getDiscordWrapperForEvent(event: RuleBotEvent): JavaDiscordWrapper? {
         val ktWrapper = wrapperFunction(event)

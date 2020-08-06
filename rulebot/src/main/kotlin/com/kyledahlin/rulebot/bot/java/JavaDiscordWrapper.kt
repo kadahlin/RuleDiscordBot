@@ -15,14 +15,14 @@
 */
 package com.kyledahlin.rulebot.bot.java
 
-import com.kyledahlin.rulebot.DiscordWrapper
+import com.kyledahlin.rulebot.EventWrapper
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.spec.MessageCreateSpec
 import discord4j.core.spec.VoiceChannelJoinSpec
 import kotlinx.coroutines.runBlocking
 
 /**
- * Allow java based class to interact with a kotlin [DiscordWrapper]
+ * Allow java based class to interact with a kotlin [EventWrapper]
  */
 interface JavaDiscordWrapper {
     fun deleteMessage()
@@ -42,7 +42,7 @@ interface JavaDiscordWrapper {
     fun joinVoiceChannel(with: VoiceChannelJoinSpec.() -> Unit)
 }
 
-class JavaDiscordWrapperImpl(private val _wrapper: DiscordWrapper) : JavaDiscordWrapper {
+class JavaDiscordWrapperImpl(private val _wrapper: EventWrapper) : JavaDiscordWrapper {
     val event = _wrapper.event
 
     override fun deleteMessage() = runBlocking {
