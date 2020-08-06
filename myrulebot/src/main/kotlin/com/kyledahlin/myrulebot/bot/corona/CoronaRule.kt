@@ -16,6 +16,7 @@
 package com.kyledahlin.myrulebot.bot.corona
 
 import com.kyledahlin.rulebot.EventWrapper
+import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.*
 import io.ktor.client.request.get
 import it.skrape.core.htmlDocument
@@ -29,7 +30,8 @@ private const val CASE_WEBSITE = "https://www.worldometers.info/coronavirus/"
 
 class CoronaRule @Inject constructor(
     localStorage: LocalStorage,
-    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
+    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
+    private val analytics: Analytics
 ) : Rule("Corona", localStorage, getDiscordWrapperForEvent) {
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
@@ -80,6 +82,7 @@ class CoronaRule @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            analytics.logRuleFailed(ruleName, "error while parsing worldinfo: ${e.message}")
             logError("error while parsing worldinfo, ${e.message}")
         }
         return result

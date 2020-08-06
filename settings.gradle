@@ -13,4 +13,5 @@ include ":rulebot"
 
 rootProject.name = 'rulebot'
 include 'myrulebot'
+include 'rulebotanalytics'
 
