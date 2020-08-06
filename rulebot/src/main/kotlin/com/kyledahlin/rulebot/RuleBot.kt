@@ -16,6 +16,7 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.RuleBot.Builder
+import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
 import com.kyledahlin.rulebot.bot.Rule
@@ -25,6 +26,8 @@ import discord4j.core.`object`.util.Snowflake
 import discord4j.core.event.domain.guild.GuildCreateEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 
@@ -38,7 +41,8 @@ class RuleBot private constructor(
     private val ruleManager: RuleManager,
     private val discordCache: DiscordCache,
     private val logLevel: LogLevel,
-    private val rulesToLog: Set<String>
+    private val rulesToLog: Set<String>,
+    private val analytics: Analytics
 ) {
 
     /**
@@ -48,7 +52,8 @@ class RuleBot private constructor(
     class Builder @Inject internal constructor(
         private val token: String,
         private val ruleManager: RuleManager,
-        private val cache: DiscordCache
+        private val cache: DiscordCache,
+        private val analytics: Analytics
     ) {
         var logLevel: LogLevel = LogLevel.DEBUG
         private var rulesToLog = mutableSetOf<String>()
@@ -66,7 +71,7 @@ class RuleBot private constructor(
         }
 
         fun build(): RuleBot {
-            return RuleBot(token, ruleManager, cache, logLevel, rulesToLog)
+            return RuleBot(token, ruleManager, cache, logLevel, rulesToLog, analytics)
         }
     }
 
@@ -77,7 +82,12 @@ class RuleBot private constructor(
 
         client.eventDispatcher.on(ReadyEvent::class.java)
             .subscribe { ready ->
-                println("RuleBot is logged in as ${ready.self.username} for ${ready.guilds.size} guilds")
+                GlobalScope.launch {
+                    analytics.logLifecycle(
+                        "logged_in",
+                        "RuleBot is logged in as ${ready.self.username} for ${ready.guilds.size} guilds"
+                    )
+                }
                 discordCache.addBotIds(setOf(ready.self.id))
             }
 

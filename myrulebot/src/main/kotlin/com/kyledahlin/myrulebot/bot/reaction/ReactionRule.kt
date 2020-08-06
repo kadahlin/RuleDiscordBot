@@ -17,6 +17,7 @@ package com.kyledahlin.myrulebot.bot.reaction
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.DiscordCache
+import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.*
 import com.kyledahlin.rulebot.sf
 import discord4j.core.`object`.reaction.ReactionEmoji
@@ -35,7 +36,8 @@ class ReactionRule @Inject constructor(
     localStorage: LocalStorage,
     val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     val cache: DiscordCache,
-    val reactionStorage: ReactionStorage
+    val reactionStorage: ReactionStorage,
+    private val analytics: Analytics
 ) :
     Rule("Reactions", localStorage, getDiscordWrapperForEvent) {
 
@@ -58,10 +60,10 @@ class ReactionRule @Inject constructor(
         logDebug("configure reaction: $data")
         val command = Json(JsonConfiguration.Stable.copy(isLenient = true)).parse(Command.serializer(), data.toString())
         return when (command.action) {
-            "add"    -> addReaction(command)
-            "list"   -> getEmojiData(command.guildId.sf())
+            "add" -> addReaction(command)
+            "list" -> getEmojiData(command.guildId.sf())
             "remove" -> removeReaction(command)
-            else     -> JsonObject(emptyMap())
+            else -> JsonObject(emptyMap())
         }
     }
 
@@ -70,6 +72,7 @@ class ReactionRule @Inject constructor(
         try {
             reactionStorage.storeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
         } catch (e: Exception) {
+            analytics.logRuleFailed(ruleName, "unable to perform add command: ${e.message}")
             logError("unable to perform add command: ${e.message}")
         }
 
@@ -81,6 +84,7 @@ class ReactionRule @Inject constructor(
         try {
             reactionStorage.removeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
         } catch (e: Exception) {
+            analytics.logRuleFailed(ruleName, "unable to perform remove command: ${e.message}")
             logError("unable to perform remove command: ${e.message}")
         }
         return JsonObject(emptyMap())
@@ -94,6 +98,7 @@ class ReactionRule @Inject constructor(
                 ?.map { Emoji(it.first, it.second.asString()) }
                 ?: emptyList()
         } catch (e: java.lang.Exception) {
+            analytics.logRuleFailed(ruleName, "could not load emoji list for guild: ${guildWrapper?.name}")
             logError("could not get emoji list")
             emptyList<Emoji>()
         }

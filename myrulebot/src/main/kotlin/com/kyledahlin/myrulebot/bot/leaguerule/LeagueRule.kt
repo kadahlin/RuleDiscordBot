@@ -16,6 +16,7 @@
 package com.kyledahlin.myrulebot.bot.leaguerule
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
+import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.*
 import io.ktor.client.request.get
 import kotlinx.serialization.json.JsonObject
@@ -36,7 +37,8 @@ private const val summonerRequest =
 @MyRuleBotScope
 internal class LeagueRule @Inject constructor(
     storage: LocalStorage,
-    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
+    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
+    private val analytics: Analytics
 ) :
     Rule("LeagueRank", storage, getDiscordWrapperForEvent) {
 
@@ -63,7 +65,8 @@ internal class LeagueRule @Inject constructor(
         }.toString()
     }
 
-    private fun MessageCreated.containsLeagueRankRule() = com.kyledahlin.myrulebot.bot.leaguerule.leagueRegex.containsMatchIn(content)
+    private fun MessageCreated.containsLeagueRankRule() =
+        com.kyledahlin.myrulebot.bot.leaguerule.leagueRegex.containsMatchIn(content)
 
     private suspend fun printLeagueRankFrom(event: MessageCreated) {
         val wrapper = getDiscordWrapperForEvent(event) ?: return
@@ -89,6 +92,7 @@ internal class LeagueRule @Inject constructor(
         val summonerResponse = try {
             client.get<Summoner>(newRequest + leagueApiKey)
         } catch (e: Exception) {
+            analytics.logRuleFailed(ruleName, "could not get summonerId for $leagueUsername")
             logError("could not get summonerId for $leagueUsername")
             return null
         }
@@ -103,6 +107,7 @@ internal class LeagueRule @Inject constructor(
         val ranks = try {
             client.get<RankedLeagueList>(newRequest + leagueApiKey).leagues
         } catch (e: Exception) {
+            analytics.logRuleFailed(ruleName, "could not get ranks for $summonerId")
             logError("could not get ranks for $summonerId")
             emptyList<RankedLeague>()
         }

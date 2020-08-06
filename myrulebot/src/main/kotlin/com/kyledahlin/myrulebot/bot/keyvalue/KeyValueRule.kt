@@ -1,6 +1,7 @@
 package com.kyledahlin.myrulebot.bot.keyvalue
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
+import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.*
 import com.kyledahlin.rulebot.sf
 import kotlinx.serialization.Serializable
@@ -13,7 +14,8 @@ import javax.inject.Inject
 internal class KeyValueRule @Inject constructor(
     private val storage: KeyValueRuleStorage,
     localStorage: LocalStorage,
-    private val getDiscordWrapper: GetDiscordWrapperForEvent
+    private val getDiscordWrapper: GetDiscordWrapperForEvent,
+    private val analytics: Analytics
 ) :
     Rule("KeyValue", localStorage, getDiscordWrapper) {
 
@@ -29,7 +31,7 @@ internal class KeyValueRule @Inject constructor(
                     data.toString()
                 )
             } catch (e: Exception) {
-                logError("could not deserialize when configuring keyValue")
+                analytics.logRuleFailed(ruleName, "could not deserialize when configuring keyValue")
                 return JsonObject(emptyMap())
             }
 
