@@ -19,7 +19,7 @@ import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.sf
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import javax.inject.Inject
@@ -68,11 +68,12 @@ class ReactionStorageImpl @Inject constructor(
                 .map { it[ReactionTable.reaction].sf() }
         }
 
-    override suspend fun getStoredReactions(guildId: Snowflake): List<StoredReaction> = newSuspendedTransaction(context, _db) {
-        ReactionTable
-            .select { ReactionTable.guild eq guildId.asString() }
-            .map { StoredReaction(it[ReactionTable.member], it[ReactionTable.guild], it[ReactionTable.reaction]) }
-    }
+    override suspend fun getStoredReactions(guildId: Snowflake): List<StoredReaction> =
+        newSuspendedTransaction(context, _db) {
+            ReactionTable
+                .select { ReactionTable.guild eq guildId.asString() }
+                .map { StoredReaction(it[ReactionTable.member], it[ReactionTable.guild], it[ReactionTable.reaction]) }
+        }
 }
 
 object ReactionTable : IntIdTable() {

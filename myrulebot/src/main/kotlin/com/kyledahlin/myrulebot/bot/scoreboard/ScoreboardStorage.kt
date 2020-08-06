@@ -24,7 +24,10 @@ import javax.inject.Inject
 import javax.inject.Named
 
 @MyRuleBotScope
-class ScoreboardStorage @Inject constructor(private val _db: Database, @Named("storage") val context: CoroutineDispatcher) {
+class ScoreboardStorage @Inject constructor(
+    private val _db: Database,
+    @Named("storage") val context: CoroutineDispatcher
+) {
     suspend fun getScoreboardIdForName(name: String): Int? = newSuspendedTransaction(context, _db) {
         val query = Scoreboards
             .slice(Scoreboards.id)
@@ -41,26 +44,29 @@ class ScoreboardStorage @Inject constructor(private val _db: Database, @Named("s
         }
     }
 
-    suspend fun getPlayersForScoreboard(scoreboardId: Int): Collection<Pair<String, Int>> = newSuspendedTransaction(context, _db) {
-        val query = ScoreboardPlayers.select {
-            ScoreboardPlayers.scoreboardId eq scoreboardId
+    suspend fun getPlayersForScoreboard(scoreboardId: Int): Collection<Pair<String, Int>> =
+        newSuspendedTransaction(context, _db) {
+            val query = ScoreboardPlayers.select {
+                ScoreboardPlayers.scoreboardId eq scoreboardId
+            }
+            query.map { Pair(it[ScoreboardPlayers.name], it[ScoreboardPlayers.wins]) }
         }
-        query.map { Pair(it[ScoreboardPlayers.name], it[ScoreboardPlayers.wins]) }
-    }
 
-    suspend fun doesScoreboardHavePlayer(scoreboardId: Int, playerName: String): Boolean = newSuspendedTransaction(context, _db) {
-        ScoreboardPlayers.select {
-            ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName)
-        }.count() != 0
-    }
-
-    suspend fun addPlayer(scoreboardId: Int, playerName: String, wins: Int = 0) = newSuspendedTransaction(context, _db) {
-        ScoreboardPlayers.insert {
-            it[ScoreboardPlayers.name] = playerName
-            it[ScoreboardPlayers.wins] = wins
-            it[ScoreboardPlayers.scoreboardId] = scoreboardId
+    suspend fun doesScoreboardHavePlayer(scoreboardId: Int, playerName: String): Boolean =
+        newSuspendedTransaction(context, _db) {
+            ScoreboardPlayers.select {
+                ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName)
+            }.count() != 0L
         }
-    }
+
+    suspend fun addPlayer(scoreboardId: Int, playerName: String, wins: Int = 0) =
+        newSuspendedTransaction(context, _db) {
+            ScoreboardPlayers.insert {
+                it[ScoreboardPlayers.name] = playerName
+                it[ScoreboardPlayers.wins] = wins
+                it[ScoreboardPlayers.scoreboardId] = scoreboardId
+            }
+        }
 
     suspend fun giveWinToPlayer(scoreboardId: Int, playerName: String) = newSuspendedTransaction(context, _db) {
         ScoreboardPlayers.update({ ScoreboardPlayers.scoreboardId eq scoreboardId and (ScoreboardPlayers.name eq playerName) }) {

@@ -15,6 +15,7 @@
 */
 package com.kyledahlin.myrulebot.bot
 
+import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleTable
 import com.kyledahlin.myrulebot.bot.reaction.ReactionTable
 import com.kyledahlin.myrulebot.bot.rockpaperscissorsrule.RockPaperScissorGames
 import com.kyledahlin.myrulebot.bot.scoreboard.ScoreboardPlayers
@@ -39,6 +40,7 @@ internal object MyRuleBotStorage {
             SchemaUtils.create(ScoreboardPlayers)
             SchemaUtils.create(RockPaperScissorGames)
             SchemaUtils.create(ReactionTable)
+            SchemaUtils.create(KeyValueRuleTable)
         }
         return db
     }

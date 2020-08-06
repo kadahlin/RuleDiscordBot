@@ -18,7 +18,7 @@ package com.kyledahlin.myrulebot.bot.timeoutrule
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
@@ -56,7 +56,10 @@ internal data class Timeout(
 }
 
 @MyRuleBotScope
-internal class TimeoutStorage @Inject constructor(private val _db: Database, @Named("storage") val context: CoroutineDispatcher) {
+internal class TimeoutStorage @Inject constructor(
+    private val _db: Database,
+    @Named("storage") val context: CoroutineDispatcher
+) {
     suspend fun insertTimeouts(timeouts: Collection<Timeout>) = newSuspendedTransaction(context, _db) {
         for (timeout in timeouts) {
             Timeouts.insert {

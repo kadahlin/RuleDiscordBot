@@ -17,6 +17,9 @@ package com.kyledahlin.myrulebot.bot
 
 import com.kyledahlin.myrulebot.bot.corona.CoronaRule
 import com.kyledahlin.myrulebot.bot.jojorule.JojoMemeRule
+import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRule
+import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorage
+import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorageImpl
 import com.kyledahlin.myrulebot.bot.leaguerule.LeagueRule
 import com.kyledahlin.myrulebot.bot.marxrule.MarxPassageRule
 import com.kyledahlin.myrulebot.bot.reaction.ReactionRule
@@ -62,11 +65,12 @@ internal class MyRuleBotModule {
             soundboardRule: SoundboardRule,
             timeoutRule: TimeoutRule,
             coronaRule: CoronaRule,
-            reactionRule: ReactionRule
+            reactionRule: ReactionRule,
+            keyValueRule: KeyValueRule
         ): Set<Rule> {
             return setOf(
                 jojoMemeRule, leagueRule, marxPassageRule, rockPaperScissorsRule, scoreboardRule, soundboardRule,
-                timeoutRule, coronaRule, reactionRule
+                timeoutRule, coronaRule, reactionRule, keyValueRule
             )
         }
 
@@ -78,8 +82,12 @@ internal class MyRuleBotModule {
 }
 
 @Module
-abstract class StorageModule {
+internal abstract class StorageModule {
     @MyRuleBotScope
     @Binds
     abstract fun bindsReactionStorage(reactionStorageImpl: ReactionStorageImpl): ReactionStorage
+
+    @MyRuleBotScope
+    @Binds
+    abstract fun bindsKeyValueStorage(keyValueRuleStorageImpl: KeyValueRuleStorageImpl): KeyValueRuleStorage
 }

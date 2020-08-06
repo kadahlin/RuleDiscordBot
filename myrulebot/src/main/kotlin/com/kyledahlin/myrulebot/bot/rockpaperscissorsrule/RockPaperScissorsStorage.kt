@@ -18,7 +18,7 @@ package com.kyledahlin.myrulebot.bot.rockpaperscissorsrule
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.exposed.dao.IntIdTable
+import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
@@ -28,7 +28,10 @@ import javax.inject.Inject
 import javax.inject.Named
 
 @MyRuleBotScope
-class RockPaperScissorsStorage @Inject constructor(private val _db: Database, @Named("storage") val context: CoroutineDispatcher) {
+class RockPaperScissorsStorage @Inject constructor(
+    private val _db: Database,
+    @Named("storage") val context: CoroutineDispatcher
+) {
     suspend fun insertRpsGame(rpsGame: RockPaperScissorGame) = newSuspendedTransaction(context, _db) {
         println("inserting $rpsGame")
         RockPaperScissorGames.insert {
