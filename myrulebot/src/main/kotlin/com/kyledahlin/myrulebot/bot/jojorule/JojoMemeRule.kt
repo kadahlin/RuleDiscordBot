@@ -16,6 +16,7 @@
 package com.kyledahlin.myrulebot.bot.jojorule
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
+import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.*
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -34,7 +35,8 @@ private const val JOJO_FILE_NAME = "jojo_id_file"
 @MyRuleBotScope
 internal class JojoMemeRule @Inject constructor(
     storage: LocalStorage,
-    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
+    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
+    private val analytics: Analytics
 ) :
     Rule("JoJoMeme", storage, getDiscordWrapperForEvent) {
 
