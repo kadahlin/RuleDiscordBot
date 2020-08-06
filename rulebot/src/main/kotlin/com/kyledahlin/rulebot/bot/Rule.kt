@@ -38,7 +38,7 @@ typealias GetBotIds = () -> @JvmSuppressWildcards Set<Snowflake>
  * A self contained piece of logic that operates on the messages given to it.
  */
 abstract class Rule(
-    internal val ruleName: String,
+    val ruleName: String,
     private val storage: LocalStorage,
     private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
 ) {

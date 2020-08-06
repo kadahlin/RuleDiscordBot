@@ -16,6 +16,9 @@
 package com.kyledahlin.myrulebot.app
 
 import com.kyledahlin.myrulebot.bot.MyRulebot
+import com.kyledahlin.rulebot.analytics.Analytics
+import com.kyledahlin.rulebot.analytics.RULE_CONFIGURATION
+import com.kyledahlin.rulebot.analytics.createAnalytics
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
 import com.kyledahlin.rulebot.bot.getStringFromResourceFile
@@ -38,6 +41,7 @@ import kotlin.collections.set
 private const val LOG_LEVEL = "--log-level"
 private const val IS_BETA = "--beta"
 private const val LOG_RULES = "--log-rules"
+private const val ANALYTICS_DATA = "--analytics"
 
 fun main(args: Array<String>) {
 
@@ -52,7 +56,13 @@ fun main(args: Array<String>) {
     val tokenFile = if (isBeta == true) "betatoken.txt" else "token.txt"
     val token = getStringFromResourceFile(tokenFile)
 
-    val rulebot = MyRulebot.create(token, rulesToLog ?: emptySet(), logLevel)
+    val analytics = if (metaArgs[ANALYTICS_DATA] != null) {
+        val pieces = metaArgs[ANALYTICS_DATA] as List<String>
+        createAnalytics(pieces[0], pieces[1])
+    } else {
+        LocalAnalytics()
+    }
+    val rulebot = MyRulebot.create(token, rulesToLog ?: emptySet(), logLevel, analytics)
     rulebot.start()
 
     embeddedServer(Netty, 8080) {
@@ -66,6 +76,7 @@ fun main(args: Array<String>) {
                 val ruleName = call.parameters["ruleName"]!!
                 val data = call.receive<String>()
                 Logger.logDebug("got ruleName [$ruleName] with body: [$data]")
+                analytics.logLifecycle(RULE_CONFIGURATION, "configuring $ruleName")
                 val result = rulebot.configureRule(ruleName, data) ?: JsonPrimitive("an error has occurred")
                 call.respond(result)
             }
@@ -108,5 +119,21 @@ private fun parseArgs(args: Array<String>): Map<String, Any> {
         val rulesToLog = args[logRules + 1].toUpperCase()
         result[LOG_RULES] = rulesToLog.split(",")
     }
+
+    val analytics = args.indexOf(ANALYTICS_DATA)
+    if (analytics != -1) {
+        val analyticsPieces = args[analytics + 1]
+        result[ANALYTICS_DATA] = analyticsPieces.split(",")
+    }
     return result
+}
+
+private class LocalAnalytics : Analytics {
+    override suspend fun logLifecycle(name: String, data: String) {
+        println("lifecycle [$name] $data")
+    }
+
+    override suspend fun logRuleFailed(ruleName: String, reason: String) {
+        println("rule failed [$ruleName] $reason")
+    }
 }

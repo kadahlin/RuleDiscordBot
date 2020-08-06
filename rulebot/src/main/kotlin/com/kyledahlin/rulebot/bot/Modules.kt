@@ -17,6 +17,7 @@ package com.kyledahlin.rulebot.bot
 
 import com.kyledahlin.rulebot.DiscordCache
 import com.kyledahlin.rulebot.RuleBot
+import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.java.JavaEventStorage
 import com.kyledahlin.rulebot.bot.java.JavaEventStorageImpl
 import com.kyledahlin.rulebot.bot.java.JavaLocalStorage
@@ -94,6 +95,7 @@ interface BotComponent {
     fun cache(): DiscordCache
     fun discordWrapper(): GetDiscordWrapperForEvent
     fun botIds(): GetBotIds
+    fun analytics(): Analytics
 
     @Component.Builder
     interface Builder {
@@ -101,6 +103,9 @@ interface BotComponent {
 
         @BindsInstance
         fun setToken(token: String): Builder
+
+        @BindsInstance
+        fun setAnalytics(analytics: Analytics): Builder
     }
 }
 

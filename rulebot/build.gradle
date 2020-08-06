@@ -3,6 +3,7 @@ apply from: getScriptPath('module.gradle')
 dependencies {
 
     implementation(project(":discord4k"))
+    api project(":rulebotanalytics")
 
     api("com.discord4j:discord4j-core:3.0.10")
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0"
