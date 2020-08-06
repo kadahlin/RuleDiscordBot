@@ -11,7 +11,13 @@ abstract class JavaRule(protected val localStorage: JavaLocalStorage, protected 
 
     abstract fun blockHandleEvent(event: RuleBotEvent): Boolean
 
+    abstract fun blockConfigure(data: Any): Any
+
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
         return blockHandleEvent(event)
+    }
+
+    override suspend fun configure(data: Any): Any {
+        return blockConfigure(data)
     }
 }

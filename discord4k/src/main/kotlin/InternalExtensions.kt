@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono
 
 internal suspend inline fun <T> Mono<T>.suspend(): T? = awaitFirstOrNull()
 
-internal suspend inline fun <T> Flux<T>.toList(): List<T>? = this.collectList().awaitFirst()
+internal suspend inline fun <T> Flux<T>.toList(): List<T> = this.collectList().awaitFirst()
 
 @ExperimentalCoroutinesApi
 fun <T> Flux<T>.fluxToChannel(channel: SendChannel<T>) {

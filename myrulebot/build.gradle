@@ -11,23 +11,33 @@ dependencies {
     implementation("it.skrape:skrapeit-core:1.0.0-alpha6")
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0"
 
-    //networking
-    implementation "io.ktor:ktor-client-core:1.3.1"
-    implementation "io.ktor:ktor-client-json:1.3.1"
-    implementation "io.ktor:ktor-client-json-jvm:1.3.1"
-    implementation "io.ktor:ktor-client-apache:1.3.1"
-    implementation "io.ktor:ktor-client-serialization-jvm:1.3.1"
+    def ktorVersion = '1.3.2'
+
+    //networking (client rules)
+    implementation "io.ktor:ktor-client-core:$ktorVersion"
+    implementation "io.ktor:ktor-client-json:$ktorVersion"
+    implementation "io.ktor:ktor-client-json-jvm:$ktorVersion"
+    implementation "io.ktor:ktor-client-apache:$ktorVersion"
+    implementation "io.ktor:ktor-client-serialization-jvm:$ktorVersion"
+
+    //networking (server instance)
+    implementation "io.ktor:ktor-server-core:$ktorVersion"
+    implementation "io.ktor:ktor-server-netty:$ktorVersion"
+    implementation "io.ktor:ktor-serialization:$ktorVersion"
 
     implementation 'com.google.dagger:dagger:2.26'
     kapt 'com.google.dagger:dagger-compiler:2.26'
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.1"
-    implementation 'org.jetbrains.exposed:exposed:0.17.3'
+    implementation 'org.jetbrains.exposed:exposed-core:0.26.2'
+    implementation 'org.jetbrains.exposed:exposed-dao:0.26.2'
+    implementation 'org.jetbrains.exposed:exposed-jdbc:0.26.2'
+
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.5.2')
     testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0"
 }
 
 application {
-    mainClassName = "com.kyledahlin.myrulebot.MyRulebotKt"
+    mainClassName = "com.kyledahlin.myrulebot.app.MyRuleBotAppKt"
 }

@@ -21,8 +21,11 @@ import com.kyledahlin.rulebot.bot.Logger
 import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.rulebot.bot.RuleBotScope
 import discord4j.core.DiscordClientBuilder
+import discord4j.core.`object`.util.Snowflake
+import discord4j.core.event.domain.guild.GuildCreateEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 
 /**
@@ -33,6 +36,7 @@ import javax.inject.Inject
 class RuleBot private constructor(
     private val token: String,
     private val ruleManager: RuleManager,
+    private val discordCache: DiscordCache,
     private val logLevel: LogLevel,
     private val rulesToLog: Set<String>
 ) {
@@ -41,7 +45,11 @@ class RuleBot private constructor(
      * Builder for making a new [RuleBot]
      */
     @RuleBotScope
-    class Builder @Inject internal constructor(private val token: String, private val ruleManager: RuleManager) {
+    class Builder @Inject internal constructor(
+        private val token: String,
+        private val ruleManager: RuleManager,
+        private val cache: DiscordCache
+    ) {
         var logLevel: LogLevel = LogLevel.DEBUG
         private var rulesToLog = mutableSetOf<String>()
 
@@ -58,12 +66,11 @@ class RuleBot private constructor(
         }
 
         fun build(): RuleBot {
-            return RuleBot(token, ruleManager, logLevel, rulesToLog)
+            return RuleBot(token, ruleManager, cache, logLevel, rulesToLog)
         }
     }
 
     fun start() {
-
         Logger.setRulesToLog(rulesToLog)
         Logger.setLogLevel(logLevel)
         val client = DiscordClientBuilder(token).build()
@@ -71,7 +78,7 @@ class RuleBot private constructor(
         client.eventDispatcher.on(ReadyEvent::class.java)
             .subscribe { ready ->
                 println("RuleBot is logged in as ${ready.self.username} for ${ready.guilds.size} guilds")
-                ruleManager.addBotIds(setOf(ready.self.id))
+                discordCache.addBotIds(setOf(ready.self.id))
             }
 
         client.eventDispatcher.on(MessageCreateEvent::class.java)
@@ -80,10 +87,50 @@ class RuleBot private constructor(
             .subscribe({ messageEvent ->
                 ruleManager.processMessageCreateEvent(messageEvent)
             }, { throwable ->
-                Logger.logError("throwable in subscription, $throwable")
+                Logger.logError("throwable in message create subscription, $throwable")
                 throwable.printStackTrace()
             })
 
-        client.login().block()
+        client.eventDispatcher.on(GuildCreateEvent::class.java)
+            .subscribe({
+                discordCache.addGuild(it.guild)
+            }, { throwable ->
+                Logger.logError("throwable in guild create subscription, $throwable")
+            })
+
+        client.login().subscribe()
+    }
+
+    suspend fun configureRule(ruleName: String, data: Any): Any? {
+        return ruleManager.configureRule(ruleName, data)
+    }
+
+    suspend fun getRuleNames(): Set<String> {
+        return ruleManager.getRuleNames()
+    }
+
+    suspend fun getGuildInfo(): Collection<GuildNameAndId> {
+        return discordCache.getGuildWrappers().map { GuildNameAndId(it.name, it.id.asString()) }
+    }
+
+    suspend fun getMemberInfo(guildId: String): Collection<MemberNameAndId>? {
+        val wrapper = discordCache.getGuildWrapper(guildId.sf())
+        return wrapper
+            ?.getMemberNameSnowflakes()
+            ?.map { MemberNameAndId(it.first, it.second.asString()) }
     }
 }
+
+fun String.sf() = Snowflake.of(this)
+
+@Serializable
+data class GuildNameAndId(
+    val name: String,
+    val id: String
+)
+
+@Serializable
+data class MemberNameAndId(
+    val name: String,
+    val id: String
+)
