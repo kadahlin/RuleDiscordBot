@@ -17,7 +17,6 @@ package com.kyledahlin.myrulebot.bot.marxrule
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.bot.*
-import kotlinx.serialization.json.JsonObject
 import java.util.*
 import javax.inject.Inject
 
@@ -30,9 +29,8 @@ private const val TRIGGER = "bluepill me"
  */
 @MyRuleBotScope
 internal class MarxPassageRule @Inject constructor(
-    storage: LocalStorage,
     private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
-) : Rule("MarxPassages", storage, getDiscordWrapperForEvent) {
+) : Rule("MarxPassages", getDiscordWrapperForEvent) {
 
     private val random = Random()
 
@@ -58,10 +56,6 @@ internal class MarxPassageRule @Inject constructor(
 
     override fun getExplanation(): String? {
         return "Post a random passage from Karl Marx's 'Capital Volume One'\nSimply post a message with the phrase $TRIGGER to receive a selection\n"
-    }
-
-    override suspend fun configure(data: Any): Any {
-        return JsonObject(mapOf())
     }
 
     companion object {

@@ -18,10 +18,9 @@ package com.kyledahlin.myrulebot.bot.corona
 import com.kyledahlin.rulebot.EventWrapper
 import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.*
-import io.ktor.client.request.get
+import io.ktor.client.request.*
 import it.skrape.core.htmlDocument
 import it.skrape.selects.html5.div
-import kotlinx.serialization.json.JsonObject
 import java.text.DecimalFormat
 import javax.inject.Inject
 
@@ -29,10 +28,10 @@ private const val TRIGGER = "!corona"
 private const val CASE_WEBSITE = "https://www.worldometers.info/coronavirus/"
 
 class CoronaRule @Inject constructor(
-    localStorage: LocalStorage,
+
     val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     private val analytics: Analytics
-) : Rule("Corona", localStorage, getDiscordWrapperForEvent) {
+) : Rule("Corona", getDiscordWrapperForEvent) {
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
         if (event !is MessageCreated) return false
@@ -94,10 +93,6 @@ class CoronaRule @Inject constructor(
 
     override val priority: Priority
         get() = Priority.NORMAL
-
-    override suspend fun configure(data: Any): Any {
-        return JsonObject(mapOf())
-    }
 
     companion object {
         fun getValidTestEvent(): RuleBotEvent {

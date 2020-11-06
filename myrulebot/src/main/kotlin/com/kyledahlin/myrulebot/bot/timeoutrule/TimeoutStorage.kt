@@ -18,22 +18,13 @@ package com.kyledahlin.myrulebot.bot.timeoutrule
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.litote.kmongo.`in`
+import org.litote.kmongo.coroutine.CoroutineDatabase
+import org.litote.kmongo.eq
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Named
-
-internal object Timeouts : IntIdTable() {
-    val snowflake = varchar("snowflake", 64)
-    val startTime = long("startTime")
-    val duration = long("duration")
-}
 
 internal data class Timeout(
     val snowflake: Snowflake,
@@ -57,34 +48,21 @@ internal data class Timeout(
 
 @MyRuleBotScope
 internal class TimeoutStorage @Inject constructor(
-    private val _db: Database,
+    database: CoroutineDatabase,
     @Named("storage") val context: CoroutineDispatcher
 ) {
-    suspend fun insertTimeouts(timeouts: Collection<Timeout>) = newSuspendedTransaction(context, _db) {
-        for (timeout in timeouts) {
-            Timeouts.insert {
-                it[Timeouts.snowflake] = timeout.snowflake.asString()
-                it[Timeouts.duration] = timeout.minutes
-                it[Timeouts.startTime] = timeout.startTime
-            }
-        }
+
+    private val collection = database.getCollection<Timeout>()
+
+    suspend fun insertTimeouts(timeouts: Collection<Timeout>) {
+        collection.insertMany(timeouts.toList())
     }
 
-    suspend fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? = newSuspendedTransaction(context, _db) {
-        val existing = Timeouts
-            .select { Timeouts.snowflake eq snowflake.asString() }
-            .firstOrNull() ?: return@newSuspendedTransaction null
-
-        Timeout(
-            snowflake,
-            existing[Timeouts.startTime],
-            existing[Timeouts.duration]
-        )
+    suspend fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? {
+        return collection.findOne(Timeout::snowflake eq snowflake)
     }
 
-    suspend fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) = newSuspendedTransaction(context, _db) {
-        Timeouts.deleteWhere {
-            Timeouts.snowflake inList snowflakes.map { it.asString() }
-        }
+    suspend fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) {
+        collection.deleteMany(Timeout::snowflake `in` snowflakes)
     }
 }

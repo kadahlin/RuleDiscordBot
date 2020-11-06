@@ -18,37 +18,16 @@ package com.kyledahlin.rulebot.bot
 import com.kyledahlin.rulebot.DiscordCache
 import com.kyledahlin.rulebot.RuleBot
 import com.kyledahlin.rulebot.analytics.Analytics
-import com.kyledahlin.rulebot.bot.java.JavaEventStorage
-import com.kyledahlin.rulebot.bot.java.JavaEventStorageImpl
-import com.kyledahlin.rulebot.bot.java.JavaLocalStorage
-import com.kyledahlin.rulebot.bot.java.JavaLocalStorageImpl
-import dagger.*
-import dagger.multibindings.IntoSet
+import dagger.BindsInstance
+import dagger.Component
+import dagger.Module
+import dagger.Provides
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.newSingleThreadContext
+import org.litote.kmongo.coroutine.CoroutineDatabase
 import javax.inject.Named
-import javax.inject.Qualifier
 import javax.inject.Scope
-
-@Module
-internal abstract class StorageModule {
-    @Binds
-    @RuleBotScope
-    abstract fun bindsLocalStorage(localStorageImpl: LocalStorageImpl): LocalStorage
-
-    @Binds
-    @RuleBotScope
-    abstract fun bindsJavaLocalStorage(localStorageImpl: JavaLocalStorageImpl): JavaLocalStorage
-
-    @Binds
-    @RuleBotScope
-    abstract fun bindsJavaEventStorage(localStorageImpl: JavaEventStorageImpl): JavaEventStorage
-}
-
-@Qualifier
-@Retention
-internal annotation class CoreRules
 
 @Module
 internal class FunctionModule {
@@ -68,34 +47,21 @@ internal class FunctionModule {
     fun providesStorageDispatcher(): CoroutineDispatcher {
         return newSingleThreadContext("storage")
     }
-
-    @Provides
-    @IntoSet
-    @RuleBotScope
-    fun providesConfigureBotRule(
-        cache: DiscordCache,
-        storage: LocalStorage,
-        getDiscordWrapperForEvent: GetDiscordWrapperForEvent
-    ): Rule {
-        return ConfigureBotRule(cache, storage, getDiscordWrapperForEvent)
-    }
 }
 
 @RuleBotScope
-@Component(modules = [StorageModule::class, FunctionModule::class])
+@Component(modules = [FunctionModule::class])
 interface BotComponent {
 
     fun botBuilder(): RuleBot.Builder
 
     @Named("storage")
     fun storageDispatcher(): CoroutineDispatcher
-    fun localStorage(): LocalStorage
-    fun javaLocalStorage(): JavaLocalStorage
-    fun javaEventStorage(): JavaEventStorage
     fun cache(): DiscordCache
     fun discordWrapper(): GetDiscordWrapperForEvent
     fun botIds(): GetBotIds
     fun analytics(): Analytics
+    fun database(): CoroutineDatabase
 
     @Component.Builder
     interface Builder {
@@ -103,6 +69,9 @@ interface BotComponent {
 
         @BindsInstance
         fun setToken(token: String): Builder
+
+        @BindsInstance
+        fun setDatabase(database: CoroutineDatabase): Builder
 
         @BindsInstance
         fun setAnalytics(analytics: Analytics): Builder
