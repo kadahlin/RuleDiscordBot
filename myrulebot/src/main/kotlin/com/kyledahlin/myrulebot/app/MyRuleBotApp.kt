@@ -25,6 +25,7 @@ import com.kyledahlin.rulebot.analytics.createAnalytics
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
 import com.kyledahlin.rulebot.bot.getStringFromResourceFile
+import com.xenomachina.argparser.ArgParser
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.request.*
@@ -37,34 +38,23 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
-import kotlin.collections.set
-
-private const val LOG_LEVEL = "--log-level"
-private const val IS_BETA = "--beta"
-private const val LOG_RULES = "--log-rules"
-private const val DATABASE_ARGS = "--database"
-private const val LOCAL_ANALYTICS = "--local"
 
 fun main(args: Array<String>) {
 
-    val metaArgs = parseArgs(args)
+    val args = ArgParser(args).parseInto(::AppArgs)
 
-    val rulesToLog = metaArgs[LOG_RULES] as? List<String>
-    val logLevel = metaArgs[LOG_LEVEL] as? LogLevel ?: LogLevel.INFO
+    println("is Beta? ${args.isBeta}")
 
-    val isBeta = metaArgs[IS_BETA] as? Boolean
-    println("is Beta? $isBeta")
-
-    val tokenFile = if (isBeta == true) "betatoken.txt" else "token.txt"
+    val tokenFile = if (args.isBeta) "betatoken.txt" else "token.txt"
     val token = getStringFromResourceFile(tokenFile)
 
-    val databaseArgs = metaArgs[DATABASE_ARGS]
-    checkNotNull(databaseArgs) { "No database values were given" }
-    val (connectingString, databaseName) = metaArgs[DATABASE_ARGS] as List<String>
-
     val analytics =
-        if (metaArgs[LOCAL_ANALYTICS] == true) LocalAnalytics() else createAnalytics(connectingString, databaseName)
-    val rulebot = MyRulebot.create(token, rulesToLog ?: emptySet(), logLevel, analytics, connectingString, databaseName)
+        if (args.localAnalytics) LocalAnalytics() else createAnalytics(
+            args.database.first,
+            args.database.second
+        )
+    val rulebot =
+        MyRulebot.create(token, emptySet(), args.logLevel, analytics, args.database.first, args.database.second)
     rulebot.start()
 
     embeddedServer(Netty, 8080) {
@@ -108,37 +98,36 @@ fun main(args: Array<String>) {
     }.start(wait = true)
 }
 
-//TODO: need a cleaner way to get the command line args
-private fun parseArgs(args: Array<String>): Map<String, Any> {
-    val result = mutableMapOf<String, Any>()
-    val logIndex = args.indexOf(LOG_LEVEL)
-    if (logIndex != -1) {
-        val logLevel = args[logIndex + 1].toUpperCase()
-        result[LOG_LEVEL] = LogLevel.valueOf(logLevel)
+class AppArgs(parser: ArgParser) {
+    val isBeta by parser.flagging(
+        "-b", "--beta",
+        help = "sign in with a beta token"
+    )
+
+    val database by parser.storing(
+        "-d", "--database",
+        help = "comma separated connection string and database name"
+    ) {
+
+        val pieces = this.split(",")
+        Pair(pieces[0], pieces[1])
     }
 
-    val betaIndex = args.indexOf(IS_BETA)
-    if (betaIndex != -1) {
-        result[IS_BETA] = true
+    val logLevel by parser.storing(
+        "--log-level",
+        help = "how many logs to spit out"
+    ) {
+        when (this) {
+            "DEBUG" -> LogLevel.DEBUG
+            "INFO" -> LogLevel.INFO
+            else -> LogLevel.ERROR
+        }
     }
 
-    val localArgs = args.indexOf(LOCAL_ANALYTICS)
-    if (localArgs != -1) {
-        result[LOCAL_ANALYTICS] = true
-    }
-
-    val logRules = args.indexOf(LOG_RULES)
-    if (logRules != -1) {
-        val rulesToLog = args[logRules + 1].toUpperCase()
-        result[LOG_RULES] = rulesToLog.split(",")
-    }
-
-    val analytics = args.indexOf(DATABASE_ARGS)
-    if (analytics != -1) {
-        val analyticsPieces = args[analytics + 1]
-        result[DATABASE_ARGS] = analyticsPieces.split(",")
-    }
-    return result
+    val localAnalytics by parser.flagging(
+        "--local",
+        help = "print analytics locally instead of using the database"
+    )
 }
 
 private class LocalAnalytics : Analytics {
