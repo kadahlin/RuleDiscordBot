@@ -54,7 +54,7 @@ object MyRulebot {
         val mongoUsername = System.getenv(MONGO_USERNAME)
         if (!mongoUsername.isNullOrEmpty()) {
             dbBuilder.credential(
-                MongoCredential.createScramSha1Credential(
+                MongoCredential.createCredential(
                     System.getenv(MONGO_USERNAME),
                     "admin",
                     System.getenv(MONGO_PASSWORD).toCharArray()
