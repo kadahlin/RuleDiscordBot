@@ -2,7 +2,6 @@ package com.kyledahlin.myrulebot.bot.corona
 
 import com.kyledahlin.rulebot.EventWrapper
 import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
-import com.kyledahlin.rulebot.bot.LocalStorage
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
@@ -30,14 +29,12 @@ import org.junit.jupiter.api.Test
 class CoronaRuleTest {
 
     private lateinit var _corona: CoronaRule
-    private lateinit var _mockStorage: LocalStorage
     private lateinit var _mockCache: GetDiscordWrapperForEvent
 
     @BeforeEach
     fun setup() {
         _mockCache = mock()
-        _mockStorage = mock()
-        _corona = CoronaRule(_mockStorage, _mockCache)
+        _corona = CoronaRule(_mockCache, mock())
     }
 
     @Test

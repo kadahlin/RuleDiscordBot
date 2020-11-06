@@ -1,8 +1,6 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.bot.MessageCreated
-import com.nhaarman.mockitokotlin2.mock
-import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.util.Snowflake
 import org.junit.jupiter.api.Test
 

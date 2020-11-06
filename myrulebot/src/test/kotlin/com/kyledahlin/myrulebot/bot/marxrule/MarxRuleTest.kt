@@ -35,14 +35,14 @@ class MarxRuleTest {
 
     @Test
     fun `marx rule should respond to the trigger`() = runBlocking {
-        val rule = MarxPassageRule(mock()) { _wrapper }
+        val rule = MarxPassageRule { _wrapper }
         assert(rule.handleEvent(MarxPassageRule.getTestValidEvent()))
         verify(_wrapper).sendMessage(any<String>())
     }
 
     @Test
     fun `mark rule should not respond to an invalid message`() = runBlocking {
-        val rule = MarxPassageRule(mock()) { _wrapper }
+        val rule = MarxPassageRule { _wrapper }
         assert(!rule.handleEvent(MarxPassageRule.getTestInvalidEvent()))
         verify(_wrapper, never()).sendMessage(any<String>())
     }

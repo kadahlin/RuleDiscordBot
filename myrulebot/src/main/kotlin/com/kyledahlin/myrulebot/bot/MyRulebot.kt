@@ -15,15 +15,38 @@
 */
 package com.kyledahlin.myrulebot.bot
 
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.*
+import com.fasterxml.jackson.databind.module.SimpleModule
 import com.kyledahlin.rulebot.RuleBot
 import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.DaggerBotComponent
 import com.kyledahlin.rulebot.bot.LogLevel
 import discord4j.core.`object`.util.Snowflake
+import org.litote.kmongo.coroutine.coroutine
+import org.litote.kmongo.reactivestreams.KMongo
+import org.litote.kmongo.util.KMongoConfiguration
+import java.io.IOException
+
 
 object MyRulebot {
-    fun create(token: String, rulesToLog: Collection<String>, logLevel: LogLevel, analytics: Analytics): RuleBot {
-        val coreComponent = DaggerBotComponent.builder().setToken(token).setAnalytics(analytics).build()
+    fun create(
+        token: String,
+        rulesToLog: Collection<String>,
+        logLevel: LogLevel,
+        analytics: Analytics,
+        databaseString: String,
+        databaseName: String
+    ): RuleBot {
+        KMongoConfiguration.registerBsonModule(SimpleModule().apply {
+            addSerializer(Snowflake::class.java, SnowflakeSerializer())
+            addDeserializer(Snowflake::class.java, SnowflakeDeserializer())
+        })
+        val coreComponent = DaggerBotComponent.builder().setToken(token).setAnalytics(analytics)
+            .setDatabase(KMongo.createClient(connectionString = databaseString).getDatabase(databaseName).coroutine)
+            .build()
         val myRules = DaggerMyRuleBotComponent.builder().botComponent(coreComponent).build().rules()
         val builder = coreComponent.botBuilder().apply {
             addRules(myRules)
@@ -31,5 +54,24 @@ object MyRulebot {
             this.logLevel = logLevel
         }
         return builder.build()
+    }
+}
+
+class SnowflakeSerializer : JsonSerializer<Snowflake>() {
+    @Throws(IOException::class, JsonProcessingException::class)
+    override fun serialize(
+        value: Snowflake, jgen: JsonGenerator, provider: SerializerProvider?
+    ) {
+        jgen.writeStartObject()
+        jgen.writeStringField("snowflake", value.asString())
+        jgen.writeEndObject()
+    }
+}
+
+class SnowflakeDeserializer : JsonDeserializer<Snowflake>() {
+    @Throws(IOException::class, JsonProcessingException::class)
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Snowflake {
+        val node: JsonNode = p.codec.readTree(p)
+        return Snowflake.of(node.get("snowflake").asText())
     }
 }

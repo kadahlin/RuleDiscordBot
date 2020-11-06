@@ -16,32 +16,35 @@
 package com.kyledahlin.myrulebot.app
 
 import com.kyledahlin.myrulebot.bot.MyRulebot
+import com.kyledahlin.myrulebot.bot.reaction.GuildInfo
+import com.kyledahlin.myrulebot.bot.reaction.ReactionRule
+import com.kyledahlin.rulebot.Response
 import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.analytics.RULE_CONFIGURATION
 import com.kyledahlin.rulebot.analytics.createAnalytics
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
 import com.kyledahlin.rulebot.bot.getStringFromResourceFile
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.ContentNegotiation
-import io.ktor.request.receive
-import io.ktor.response.respond
-import io.ktor.routing.get
-import io.ktor.routing.post
-import io.ktor.routing.route
-import io.ktor.routing.routing
-import io.ktor.serialization.json
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import kotlinx.serialization.json.JsonArray
+import io.ktor.application.*
+import io.ktor.features.*
+import io.ktor.request.*
+import io.ktor.response.*
+import io.ktor.routing.*
+import io.ktor.serialization.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.modules.subclass
 import kotlin.collections.set
 
 private const val LOG_LEVEL = "--log-level"
 private const val IS_BETA = "--beta"
 private const val LOG_RULES = "--log-rules"
-private const val ANALYTICS_DATA = "--analytics"
+private const val DATABASE_ARGS = "--database"
+private const val LOCAL_ANALYTICS = "--local"
 
 fun main(args: Array<String>) {
 
@@ -56,19 +59,19 @@ fun main(args: Array<String>) {
     val tokenFile = if (isBeta == true) "betatoken.txt" else "token.txt"
     val token = getStringFromResourceFile(tokenFile)
 
-    val analytics = if (metaArgs[ANALYTICS_DATA] != null) {
-        val pieces = metaArgs[ANALYTICS_DATA] as List<String>
-        createAnalytics(pieces[0], pieces[1])
-    } else {
-        LocalAnalytics()
-    }
-    val rulebot = MyRulebot.create(token, rulesToLog ?: emptySet(), logLevel, analytics)
+    val databaseArgs = metaArgs[DATABASE_ARGS]
+    checkNotNull(databaseArgs) { "No database values were given" }
+    val (connectingString, databaseName) = metaArgs[DATABASE_ARGS] as List<String>
+
+    val analytics =
+        if (metaArgs[LOCAL_ANALYTICS] == true) LocalAnalytics() else createAnalytics(connectingString, databaseName)
+    val rulebot = MyRulebot.create(token, rulesToLog ?: emptySet(), logLevel, analytics, connectingString, databaseName)
     rulebot.start()
 
     embeddedServer(Netty, 8080) {
 
         install(ContentNegotiation) {
-            json()
+            json(json = Serializer.format)
         }
 
         routing {
@@ -84,17 +87,17 @@ fun main(args: Array<String>) {
             get("/rules") {
                 val ruleNames = rulebot.getRuleNames()
                 println("for rule names got: $rulebot")
-                call.respond(JsonArray(ruleNames.map { JsonPrimitive(it) }))
+                call.respond(Response(data = ruleNames.toList()))
             }
 
             route("/guilds") {
                 get {
-                    call.respond(rulebot.getGuildInfo())
+                    call.respond(Response(data = rulebot.getGuildInfo()))
                 }
 
                 get("/{guildId}") {
                     val list = rulebot.getMemberInfo(call.parameters["guildId"]!!) ?: emptyList()
-                    call.respond(list)
+                    call.respond(Response(data = list))
                 }
             }
         }
@@ -114,16 +117,22 @@ private fun parseArgs(args: Array<String>): Map<String, Any> {
     if (betaIndex != -1) {
         result[IS_BETA] = true
     }
+
+    val localArgs = args.indexOf(LOCAL_ANALYTICS)
+    if (localArgs != -1) {
+        result[LOCAL_ANALYTICS] = true
+    }
+
     val logRules = args.indexOf(LOG_RULES)
     if (logRules != -1) {
         val rulesToLog = args[logRules + 1].toUpperCase()
         result[LOG_RULES] = rulesToLog.split(",")
     }
 
-    val analytics = args.indexOf(ANALYTICS_DATA)
+    val analytics = args.indexOf(DATABASE_ARGS)
     if (analytics != -1) {
         val analyticsPieces = args[analytics + 1]
-        result[ANALYTICS_DATA] = analyticsPieces.split(",")
+        result[DATABASE_ARGS] = analyticsPieces.split(",")
     }
     return result
 }
@@ -135,5 +144,18 @@ private class LocalAnalytics : Analytics {
 
     override suspend fun logRuleFailed(ruleName: String, reason: String) {
         println("rule failed [$ruleName] $reason")
+    }
+}
+
+object Serializer {
+    val format by lazy {
+        Json {
+            serializersModule = SerializersModule {
+                polymorphic(Any::class) {
+                    subclass(GuildInfo::class)
+                    subclass(ReactionRule.Command::class)
+                }
+            }
+        }
     }
 }

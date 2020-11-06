@@ -16,8 +16,10 @@
 package com.kyledahlin.myrulebot.bot.timeoutrule
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
-import com.kyledahlin.rulebot.bot.*
-import kotlinx.serialization.json.JsonObject
+import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
+import com.kyledahlin.rulebot.bot.MessageCreated
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.RuleBotEvent
 import javax.inject.Inject
 
 private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
@@ -29,11 +31,10 @@ private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
  */
 @MyRuleBotScope
 internal class TimeoutRule @Inject constructor(
-    storage: LocalStorage,
     val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     val timeoutStorage: TimeoutStorage
 ) :
-    Rule("Timeout", storage, getDiscordWrapperForEvent) {
+    Rule("Timeout", getDiscordWrapperForEvent) {
 
     override val priority: Priority
         get() = Priority.HIGH
@@ -65,14 +66,14 @@ internal class TimeoutRule @Inject constructor(
 
     override fun getExplanation(): String? {
         return StringBuilder().apply {
-            append("Set timeouts for people with a duration in minutes\n")
-            append("To use: post a message that contains:\n")
-            append("\t1. one or more @user to timeout\n")
-            append("\t2. the phrase 'XX minute timeout' where XX is the duration of the timeout in minutes\n")
-            append("To remove an existing timeout post a message that contains:\n")
-            append("\t1. the word remove\n")
-            append("\t2. the word timeout\n")
-            append("\t3. the @user(s) to remove a timeout for\n")
+            appendLine("Set timeouts for people with a duration in minutes")
+            appendLine("To use: post a message that contains:")
+            appendLine("\t1. one or more @user to timeout")
+            appendLine("\t2. the phrase 'XX minute timeout' where XX is the duration of the timeout in minutes")
+            appendLine("To remove an existing timeout post a message that contains:")
+            appendLine("\t1. the word remove")
+            appendLine("\t2. the word timeout")
+            appendLine("\t3. the @user(s) to remove a timeout for")
         }.toString()
     }
 
@@ -119,7 +120,7 @@ internal class TimeoutRule @Inject constructor(
 
     private fun MessageCreated.containsTimeoutCommand(): Boolean {
         logDebug("testing '$content' for timeout command")
-        return (com.kyledahlin.myrulebot.bot.timeoutrule.timeoutRegex.containsMatchIn(content)
+        return (timeoutRegex.containsMatchIn(content)
                 && snowflakes.isNotEmpty())
     }
 
@@ -134,9 +135,5 @@ internal class TimeoutRule @Inject constructor(
         val firstMatch = timeoutRegex.find(event.content)?.value ?: return null
         val minutes = firstMatch.split("\\s+".toRegex())[0]
         return minutes.toLong()
-    }
-
-    override suspend fun configure(data: Any): Any {
-        return JsonObject(mapOf())
     }
 }

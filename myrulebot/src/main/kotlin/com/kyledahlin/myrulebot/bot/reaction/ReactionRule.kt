@@ -17,15 +17,18 @@ package com.kyledahlin.myrulebot.bot.reaction
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.DiscordCache
+import com.kyledahlin.rulebot.Response
 import com.kyledahlin.rulebot.analytics.Analytics
-import com.kyledahlin.rulebot.bot.*
+import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
+import com.kyledahlin.rulebot.bot.MessageCreated
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.RuleBotEvent
 import com.kyledahlin.rulebot.sf
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import kotlinx.serialization.json.JsonObject
 import javax.inject.Inject
 
 /**
@@ -33,13 +36,12 @@ import javax.inject.Inject
  */
 @MyRuleBotScope
 class ReactionRule @Inject constructor(
-    localStorage: LocalStorage,
     val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     val cache: DiscordCache,
     val reactionStorage: ReactionStorage,
     private val analytics: Analytics
 ) :
-    Rule("Reactions", localStorage, getDiscordWrapperForEvent) {
+    Rule("Reactions", getDiscordWrapperForEvent) {
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
         val wrapper = getDiscordWrapperForEvent(event)
@@ -56,18 +58,18 @@ class ReactionRule @Inject constructor(
         return false
     }
 
-    override suspend fun configure(data: Any): Any {
+    override suspend fun configure(data: Any): Response {
         logDebug("configure reaction: $data")
-        val command = Json(JsonConfiguration.Stable.copy(isLenient = true)).parse(Command.serializer(), data.toString())
+        val command = Json { isLenient = true }.decodeFromString(Command.serializer(), data.toString())
         return when (command.action) {
             "add" -> addReaction(command)
             "list" -> getEmojiData(command.guildId.sf())
             "remove" -> removeReaction(command)
-            else -> JsonObject(emptyMap())
+            else -> Response.success
         }
     }
 
-    private suspend fun addReaction(command: Command): Any {
+    private suspend fun addReaction(command: Command): Response {
         val (guildId, _, member, emoji) = command
         try {
             reactionStorage.storeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
@@ -76,10 +78,10 @@ class ReactionRule @Inject constructor(
             logError("unable to perform add command: ${e.message}")
         }
 
-        return JsonObject(emptyMap())
+        return Response.success
     }
 
-    private suspend fun removeReaction(command: Command): Any {
+    private suspend fun removeReaction(command: Command): Response {
         val (guildId, _, member, emoji) = command
         try {
             reactionStorage.removeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
@@ -87,10 +89,10 @@ class ReactionRule @Inject constructor(
             analytics.logRuleFailed(ruleName, "unable to perform remove command: ${e.message}")
             logError("unable to perform remove command: ${e.message}")
         }
-        return JsonObject(emptyMap())
+        return Response.success
     }
 
-    private suspend fun getEmojiData(guildId: Snowflake): GuildInfo {
+    private suspend fun getEmojiData(guildId: Snowflake): Response {
         val guildWrapper = cache.getGuildWrapper(guildId)
         val guildEmojis = try {
             guildWrapper
@@ -100,17 +102,21 @@ class ReactionRule @Inject constructor(
         } catch (e: java.lang.Exception) {
             analytics.logRuleFailed(ruleName, "could not load emoji list for guild: ${guildWrapper?.name}")
             logError("could not get emoji list")
-            emptyList<Emoji>()
+            emptyList()
         }
 
         val addedEmojis = reactionStorage
             .getStoredReactions(guildId)
             .mapNotNull { reaction ->
-                val emojiName = guildEmojis.firstOrNull { it.id == reaction.emojiId }?.name
-                if (emojiName == null) null else AddedEmoji(emojiName, reaction.memberId, reaction.emojiId)
+                val emojiName = guildEmojis.firstOrNull { it.id == reaction.emoji.asString() }?.name
+                if (emojiName == null) null else AddedEmoji(
+                    emojiName,
+                    reaction.member.asString(),
+                    reaction.emoji.asString()
+                )
             }
 
-        return GuildInfo(guildEmojis, addedEmojis)
+        return Response(data = GuildInfo(guildEmojis, addedEmojis))
     }
 
     override fun getExplanation(): String? {
@@ -120,17 +126,18 @@ class ReactionRule @Inject constructor(
     override val priority: Priority
         get() = Priority.LOW
 
+    @Serializable
+    data class Command(
+        val guildId: String,
+        val action: String? = null,
+        val member: String? = null,
+        val emoji: String? = null
+    )
+
 }
 
 @Serializable
-data class Command(
-    val guildId: String,
-    val action: String? = null,
-    val member: String? = null,
-    val emoji: String? = null
-)
-
-@Serializable
+@SerialName("guild_info")
 data class GuildInfo(
     val emojis: List<Emoji>,
     val addedEmojis: List<AddedEmoji>

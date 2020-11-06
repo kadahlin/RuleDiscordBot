@@ -19,7 +19,6 @@ import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.EventWrapper
 import com.kyledahlin.rulebot.bot.*
 import discord4j.core.`object`.util.Snowflake
-import kotlinx.serialization.json.JsonObject
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -27,19 +26,19 @@ private enum class RpsChoice {
     ROCK, PAPER, SCISSORS;
 
     infix fun winsAgainst(otherChoice: RpsChoice): Boolean? = when {
-        this == ROCK  -> when (otherChoice) {
-            ROCK     -> null
-            PAPER    -> false
+        this == ROCK -> when (otherChoice) {
+            ROCK -> null
+            PAPER -> false
             SCISSORS -> true
         }
         this == PAPER -> when (otherChoice) {
-            ROCK     -> true
-            PAPER    -> null
+            ROCK -> true
+            PAPER -> null
             SCISSORS -> false
         }
-        else          -> when (otherChoice) {
-            ROCK     -> false
-            PAPER    -> true
+        else -> when (otherChoice) {
+            ROCK -> false
+            PAPER -> true
             SCISSORS -> null
         }
     }
@@ -52,12 +51,11 @@ private enum class RpsChoice {
  */
 @MyRuleBotScope
 internal class RockPaperScissorsRule @Inject constructor(
-    storage: LocalStorage,
     private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     private val getBotIds: GetBotIds,
     private val rockPaperScissorsStorage: RockPaperScissorsStorage
 ) :
-    Rule("RockPaperScissors", storage, getDiscordWrapperForEvent) {
+    Rule("RockPaperScissors", getDiscordWrapperForEvent) {
 
     override val priority: Priority
         get() = Priority.LOW
@@ -123,38 +121,38 @@ internal class RockPaperScissorsRule @Inject constructor(
         val wonGames = games.count { it.winner == snowflake && !it.draw }
         val totalDraws = games.count { it.draw }
         val resultMessage = when (didPlayerWin) {
-            true  -> "You Won"
+            true -> "You Won"
             false -> "You Lose"
-            null  -> "Draw"
+            null -> "Draw"
         }
         val stringMessage =
-            "${botChoice.name.toLowerCase()
-                .capitalize()}! $resultMessage! You have won $wonGames out of $totalNonDrawGames and have had $totalDraws game(s) end in a draw"
+            "${
+                botChoice.name.toLowerCase()
+                    .capitalize()
+            }! $resultMessage! You have won $wonGames out of $totalNonDrawGames and have had $totalDraws game(s) end in a draw"
         wrapper.sendMessage(stringMessage)
     }
 
     private fun getChoiceFromString(content: String): RpsChoice? = when (content) {
-        "r", "rock"     -> RpsChoice.ROCK
-        "p", "paper"    -> RpsChoice.PAPER
+        "r", "rock" -> RpsChoice.ROCK
+        "p", "paper" -> RpsChoice.PAPER
         "s", "scissors" -> RpsChoice.SCISSORS
-        else            -> null
+        else -> null
     }
 
     private fun getRandomChoice() = when (Random.nextInt(3)) {
-        0    -> RpsChoice.ROCK
-        1    -> RpsChoice.PAPER
-        2    -> RpsChoice.SCISSORS
+        0 -> RpsChoice.ROCK
+        1 -> RpsChoice.PAPER
+        2 -> RpsChoice.SCISSORS
         else -> RpsChoice.ROCK
     }
 
     override fun getExplanation() = StringBuilder().apply {
-        appendln("Start a message with 'rps'")
-        appendln("the next word needs to be either rock, paper, scissors or r,p,s")
+        appendLine("Start a message with 'rps'")
+        appendLine("the next word needs to be either rock, paper, scissors or r,p,s")
     }.toString()
 
-    override suspend fun configure(data: Any): Any {
-        return JsonObject(mapOf())
-    }
+
 }
 
 data class RockPaperScissorGame(

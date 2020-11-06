@@ -18,9 +18,7 @@ package com.kyledahlin.myrulebot.bot.jojorule
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.*
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import kotlinx.serialization.json.JsonObject
+import io.ktor.client.request.*
 import java.io.File
 import javax.inject.Inject
 
@@ -34,11 +32,10 @@ private const val JOJO_FILE_NAME = "jojo_id_file"
  */
 @MyRuleBotScope
 internal class JojoMemeRule @Inject constructor(
-    storage: LocalStorage,
     val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     private val analytics: Analytics
 ) :
-    Rule("JoJoMeme", storage, getDiscordWrapperForEvent) {
+    Rule("JoJoMeme", getDiscordWrapperForEvent) {
 
     override val priority: Priority
         get() = Priority.LOW
@@ -63,12 +60,12 @@ internal class JojoMemeRule @Inject constructor(
 
     override fun getExplanation(): String? {
         return StringBuilder().apply {
-            appendln("Post a message with the phrase '$RULE_PHRASE'")
+            appendLine("Post a message with the phrase '$RULE_PHRASE'")
         }.toString()
     }
 
     private fun MessageCreated.containsJojoRule() = content.toLowerCase().contains(
-        com.kyledahlin.myrulebot.bot.jojorule.RULE_PHRASE
+        RULE_PHRASE
     )
 
     private suspend fun postJojoMemeFrom(event: MessageCreated) {
@@ -82,20 +79,16 @@ internal class JojoMemeRule @Inject constructor(
             )    //see https://www.reddit.com/r/redditdev/comments/5w60r1/error_429_too_many_requests_i_havent_made_many/
         }
         val childList =
-            redditResponse.data.children.children   //TODO: figure out kotlinx list deserialization a bit better
+            redditResponse.data.children   //TODO: figure out kotlinx list deserialization a bit better
 
         val dataToPost = childList.firstOrNull {
-            !mPostedIds.contains(it.data.id) && !it.data.is_video
+            !mPostedIds.contains(it.data.id) && !it.data.isVideo
         }?.data ?: return
 
         saveIdToFile(dataToPost.id)
 
         mPostedIds.add(dataToPost.id)
         wrapper.sendMessage("${dataToPost.title}\n${dataToPost.url}")
-    }
-
-    override suspend fun configure(data: Any): Any {
-        return JsonObject(mapOf())
     }
 
     @Synchronized
@@ -109,6 +102,6 @@ internal class JojoMemeRule @Inject constructor(
             .filterNot { it.isEmpty() }
     } catch (e: Exception) {
         logError("error in loading IDS, ${e.stackTrace}")
-        emptySet<String>()
+        emptySet()
     }
 }
