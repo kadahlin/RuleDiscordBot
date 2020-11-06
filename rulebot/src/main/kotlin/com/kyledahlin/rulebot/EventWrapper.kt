@@ -16,7 +16,10 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.bot.RuleBotEvent
-import discord4j.core.`object`.entity.*
+import discord4j.core.`object`.entity.Guild
+import discord4j.core.`object`.entity.Member
+import discord4j.core.`object`.entity.MessageChannel
+import discord4j.core.`object`.entity.Role
 import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
 import discord4j.core.spec.MessageCreateSpec
@@ -26,6 +29,7 @@ import suspendChannel
 import suspendCreateMessage
 import suspendDelete
 import suspendGetMessageById
+import suspendRoles
 import suspendVoiceState
 
 /**
@@ -49,7 +53,7 @@ interface EventWrapper {
 
     val isDm: Boolean
 
-    fun getRoleIds(): Set<Snowflake>
+    suspend fun getRoles(): List<Role>
 
     suspend fun joinVoiceChannel(with: VoiceChannelJoinSpec.() -> Unit)
 }
@@ -83,12 +87,11 @@ internal class EventWrapperImpl(
 
     override suspend fun getGuildId() = guild?.id
 
-    override fun getRoleIds() = member.roleIds
+    override suspend fun getRoles() = member.suspendRoles()
 
     override val isDm = guild == null
 
     override suspend fun joinVoiceChannel(with: VoiceChannelJoinSpec.() -> Unit) {
         member.suspendVoiceState()?.suspendChannel()?.join(with)?.subscribe()
     }
-
 }

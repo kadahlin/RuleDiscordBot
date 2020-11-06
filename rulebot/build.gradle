@@ -6,26 +6,20 @@ dependencies {
     api project(":rulebotanalytics")
 
     api("com.discord4j:discord4j-core:3.0.10")
-    implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0"
-    api "com.discord4j:discord4j-voice:3.0.10"
-    api "com.sedmelluq:lavaplayer:1.3.22"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1"
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.3.1")
 
     //networking
-    implementation "io.ktor:ktor-client-core:1.3.1"
-    implementation "io.ktor:ktor-client-json:1.3.1"
-    implementation "io.ktor:ktor-client-json-jvm:1.3.1"
-    implementation "io.ktor:ktor-client-apache:1.3.1"
-    implementation "io.ktor:ktor-client-serialization-jvm:1.3.1"
+    implementation "io.ktor:ktor-client-core:1.4.0"
+    implementation "io.ktor:ktor-client-json:1.4.0"
+    implementation "io.ktor:ktor-client-json-jvm:1.4.0"
+    implementation "io.ktor:ktor-client-apache:1.4.0"
+    implementation "io.ktor:ktor-client-serialization-jvm:1.4.0"
 
     implementation 'com.google.dagger:dagger:2.26'
     kapt 'com.google.dagger:dagger-compiler:2.26'
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.1"
-    implementation 'org.jetbrains.exposed:exposed-core:0.26.2'
-    implementation 'org.jetbrains.exposed:exposed-dao:0.26.2'
-    implementation 'org.jetbrains.exposed:exposed-jdbc:0.26.2'
-    implementation 'com.h2database:h2:1.4.197'
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.5.2')
     testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0"

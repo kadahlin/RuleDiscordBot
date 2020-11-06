@@ -20,14 +20,11 @@ import com.kyledahlin.myrulebot.bot.jojorule.JojoMemeRule
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRule
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorage
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorageImpl
-import com.kyledahlin.myrulebot.bot.leaguerule.LeagueRule
 import com.kyledahlin.myrulebot.bot.marxrule.MarxPassageRule
 import com.kyledahlin.myrulebot.bot.reaction.ReactionRule
 import com.kyledahlin.myrulebot.bot.reaction.ReactionStorage
 import com.kyledahlin.myrulebot.bot.reaction.ReactionStorageImpl
 import com.kyledahlin.myrulebot.bot.rockpaperscissorsrule.RockPaperScissorsRule
-import com.kyledahlin.myrulebot.bot.scoreboard.ScoreboardRule
-import com.kyledahlin.myrulebot.bot.soundboard.SoundboardRule
 import com.kyledahlin.myrulebot.bot.timeoutrule.TimeoutRule
 import com.kyledahlin.rulebot.bot.BotComponent
 import com.kyledahlin.rulebot.bot.Rule
@@ -36,7 +33,6 @@ import dagger.Component
 import dagger.Module
 import dagger.Provides
 import dagger.multibindings.ElementsIntoSet
-import org.jetbrains.exposed.sql.Database
 import javax.inject.Scope
 
 @Scope
@@ -58,26 +54,18 @@ internal class MyRuleBotModule {
         @ElementsIntoSet
         fun providesRules(
             jojoMemeRule: JojoMemeRule,
-            leagueRule: LeagueRule,
             marxPassageRule: MarxPassageRule,
             rockPaperScissorsRule: RockPaperScissorsRule,
-            scoreboardRule: ScoreboardRule,
-            soundboardRule: SoundboardRule,
             timeoutRule: TimeoutRule,
             coronaRule: CoronaRule,
             reactionRule: ReactionRule,
             keyValueRule: KeyValueRule
         ): Set<Rule> {
             return setOf(
-                jojoMemeRule, leagueRule, marxPassageRule, rockPaperScissorsRule, scoreboardRule, soundboardRule,
+                jojoMemeRule, marxPassageRule, rockPaperScissorsRule,
                 timeoutRule, coronaRule, reactionRule, keyValueRule
             )
         }
-
-        @JvmStatic
-        @Provides
-        @MyRuleBotScope
-        fun providesDatabase(): Database = MyRuleBotStorage.getDatabase()
     }
 }
 

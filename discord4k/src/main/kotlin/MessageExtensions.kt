@@ -1,4 +1,3 @@
-import discord4j.core.`object`.entity.Channel
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Message
 import discord4j.core.`object`.entity.MessageChannel

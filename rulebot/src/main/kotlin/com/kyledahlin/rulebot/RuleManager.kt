@@ -32,16 +32,15 @@ private const val RULES = "rules please"
 
 @RuleBotScope
 internal class RuleManager @Inject constructor(
-    rules: @JvmSuppressWildcards Set<Rule>,
     private val cache: DiscordCache
 ) {
 
-    private var _rules: List<Rule> = rules.sortedBy { it.priority.ordinal }
+    private var _rules = mutableSetOf<Rule>()
 
     fun addRules(rules: Collection<Rule>) {
-        _rules = _rules.toMutableList().apply {
+        _rules.apply {
             addAll(rules)
-            sortBy { it.priority.ordinal }
+            sortedBy { it.priority.ordinal }
         }
     }
 

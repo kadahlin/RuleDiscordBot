@@ -18,51 +18,31 @@ package com.kyledahlin.myrulebot.bot.rockpaperscissorsrule
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import discord4j.core.`object`.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
-import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.litote.kmongo.coroutine.CoroutineDatabase
+import org.litote.kmongo.eq
+import org.litote.kmongo.or
 import javax.inject.Inject
 import javax.inject.Named
 
 @MyRuleBotScope
 class RockPaperScissorsStorage @Inject constructor(
-    private val _db: Database,
+    database: CoroutineDatabase,
     @Named("storage") val context: CoroutineDispatcher
 ) {
-    suspend fun insertRpsGame(rpsGame: RockPaperScissorGame) = newSuspendedTransaction(context, _db) {
-        println("inserting $rpsGame")
-        RockPaperScissorGames.insert {
-            it[RockPaperScissorGames.participant1] = rpsGame.participant1.asString()
-            it[RockPaperScissorGames.participant2] = rpsGame.participant2.asString()
-            it[RockPaperScissorGames.winner] = rpsGame.winner.asString()
-            it[RockPaperScissorGames.draw] = rpsGame.draw
-        }
+
+    private val _collection = database.getCollection<RockPaperScissorGame>()
+
+    suspend fun insertRpsGame(rpsGame: RockPaperScissorGame) {
+        _collection.insertOne(rpsGame)
     }
 
-    suspend fun getAllRpsGamesForPlayer(snowflake: Snowflake): Collection<RockPaperScissorGame> =
-        newSuspendedTransaction(context, _db) {
-            RockPaperScissorGames
-                .select { RockPaperScissorGames.participant1 eq snowflake.asString() or (RockPaperScissorGames.participant2 eq snowflake.asString()) }
-                .map {
-                    val participant1 = it[RockPaperScissorGames.participant1]
-                    val participant2 = it[RockPaperScissorGames.participant2]
-                    val winner = it[RockPaperScissorGames.winner]
-                    val draw = it[RockPaperScissorGames.draw]
-                    RockPaperScissorGame(
-                        Snowflake.of(
-                            participant1
-                        ), Snowflake.of(participant2), Snowflake.of(winner), draw
-                    )
-                }.toList()
-        }
-}
-
-object RockPaperScissorGames : IntIdTable() {
-    val participant1 = varchar("participant1", 64)
-    val participant2 = varchar("participant2", 64)
-    val winner = varchar("winner", 64)
-    val draw = bool("draw")
+    suspend fun getAllRpsGamesForPlayer(snowflake: Snowflake): Collection<RockPaperScissorGame> {
+        return _collection.find(
+            or(
+                RockPaperScissorGame::participant1 eq snowflake,
+                RockPaperScissorGame::participant2 eq snowflake
+            )
+        )
+            .toList()
+    }
 }

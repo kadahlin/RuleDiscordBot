@@ -1,47 +1,49 @@
 package com.kyledahlin.myrulebot.bot.keyvalue
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
+import com.kyledahlin.rulebot.Response
 import com.kyledahlin.rulebot.analytics.Analytics
-import com.kyledahlin.rulebot.bot.*
+import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
+import com.kyledahlin.rulebot.bot.MessageCreated
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.RuleBotEvent
 import com.kyledahlin.rulebot.sf
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import kotlinx.serialization.json.JsonObject
 import javax.inject.Inject
 
 @MyRuleBotScope
 internal class KeyValueRule @Inject constructor(
     private val storage: KeyValueRuleStorage,
-    localStorage: LocalStorage,
+
     private val getDiscordWrapper: GetDiscordWrapperForEvent,
     private val analytics: Analytics
 ) :
-    Rule("KeyValue", localStorage, getDiscordWrapper) {
+    Rule("KeyValue", getDiscordWrapper) {
 
     override val priority: Priority
         get() = Priority.LOW
 
-    override suspend fun configure(data: Any): Any {
-        logDebug("configure reaction: $data")
+    override suspend fun configure(data: Any): Response {
+        logDebug("configuring reaction rule: $data")
         val command =
             try {
-                Json(JsonConfiguration.Stable.copy(isLenient = true)).parse(
-                    TodaysGuyCommand.serializer(),
+                Json { isLenient = true }.decodeFromString(
+                    KeyValueCommand.serializer(),
                     data.toString()
                 )
             } catch (e: Exception) {
                 analytics.logRuleFailed(ruleName, "could not deserialize when configuring keyValue")
-                return JsonObject(emptyMap())
+                return Response.success
             }
 
         storage.addTriggerForGuild(command.guildId.sf(), command.trigger, command.response)
-        return JsonObject(emptyMap())
+        return Response.success
     }
 
     override fun getExplanation(): String? {
         return StringBuilder()
-            .appendln("See who is currently receiving the spotlight for your server")
+            .appendLine("Pinned messages basically")
             .toString()
     }
 
@@ -49,10 +51,10 @@ internal class KeyValueRule @Inject constructor(
         if (event !is MessageCreated) return false
 
         val guildId = getDiscordWrapper(event)?.getGuildId() ?: return false
-        val data = storage.getDataForGuildId(guildId) ?: return false
+        val data = storage.getDataForGuildId(guildId)
 
-        if (event.content.startsWith(data.trigger)) {
-            getDiscordWrapper(event)?.sendMessage(data.repsonse)
+        data.firstOrNull { it.trigger == event.content }?.let {
+            getDiscordWrapper(event)?.sendMessage(it.response)
             return true
         }
         return false
@@ -60,8 +62,8 @@ internal class KeyValueRule @Inject constructor(
 }
 
 @Serializable
-private data class TodaysGuyCommand(
+private data class KeyValueCommand(
     val guildId: String,
+    val trigger: String,
     val response: String,
-    val trigger: String
 )
