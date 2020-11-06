@@ -15,8 +15,8 @@
 */
 package com.kyledahlin.myrulebot.bot.jojorule
 
-import kotlinx.serialization.*
-import kotlinx.serialization.builtins.list
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 internal const val JOJO_REDDIT = "https://www.reddit.com/r/ShitPostcrusaders/top.json?sort=top&t=week"
 
@@ -27,39 +27,19 @@ internal data class RedditResponse(
 
 @Serializable
 internal data class RedditData(
-    val children: ChildList
+    val children: List<RedditChild>
 )
 
 @Serializable
-internal data class ChildList(
-    val children: List<RedditChild>
-) {
-    @Serializer(ChildList::class)
-    companion object : KSerializer<ChildList> {
-
-        override val descriptor: SerialDescriptor = PrimitiveDescriptor("ChildList", PrimitiveKind.STRING)
-
-        override fun serialize(encoder: Encoder, obj: ChildList) {
-            RedditChild.serializer().list.serialize(encoder, obj.children)
-        }
-
-        override fun deserialize(decoder: Decoder): ChildList {
-            return ChildList(
-                RedditChild.serializer().list.deserialize(decoder)
-            )
-        }
-    }
-}
-
-@Serializable
 internal data class RedditChild(
+    val kind: String,
     val data: RedditChildData
 )
 
 @Serializable
 internal data class RedditChildData(
     val title: String,
-    val is_video: Boolean,
+    @SerialName("is_video") val isVideo: Boolean,
     val url: String,
     val id: String
 )

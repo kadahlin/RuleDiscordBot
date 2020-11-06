@@ -16,19 +16,13 @@
 package com.kyledahlin.rulebot.bot
 
 import com.kyledahlin.rulebot.EventWrapper
-import com.kyledahlin.rulebot.GuildWrapper
+import com.kyledahlin.rulebot.Response
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.reaction.ReactionEmoji
 import discord4j.core.`object`.util.Snowflake
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.apache.Apache
-import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.json.serializer.KotlinxSerializer
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import suspendAddReaction
-import suspendChannel
-import suspendGetMessageById
+import io.ktor.client.*
+import io.ktor.client.engine.apache.*
+import io.ktor.client.features.json.*
+import io.ktor.client.features.json.serializer.*
 import suspendGuild
 
 typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards EventWrapper?
@@ -39,7 +33,6 @@ typealias GetBotIds = () -> @JvmSuppressWildcards Set<Snowflake>
  */
 abstract class Rule(
     val ruleName: String,
-    private val storage: LocalStorage,
     private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
 ) {
 
@@ -57,7 +50,7 @@ abstract class Rule(
     /**
      * Process this event from *anywhere* and determine if action is necessary, or return information based on this request
      */
-    abstract suspend fun configure(data: Any): Any
+    open suspend fun configure(data: Any): Response = Response.success
 
     /**
      * Get a human readable description of how to use this rule
@@ -98,14 +91,10 @@ abstract class Rule(
 
     protected suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
         val wrapper = getDiscordWrapperForEvent(this) ?: return false
-        val roleIds = wrapper.getRoleIds()
-
-        val admins = storage.getAdminSnowflakes().map { it.snowflake }
-        val isUsersRoleAdmin = roleIds.any { admins.contains(it) }
-        val isUserIdAdmin = admins.contains(author)
-        val isAdmin = isUsersRoleAdmin || isUserIdAdmin
-
+        val roles = wrapper.getRoles()
+        val isAdmin = roles.any { it.name == "Clown" }
         val isOwner = wrapper.getGuildOwnerId() == author
+
         logDebug("checking if user is admin [$isAdmin] or isOwner [$isOwner]")
         return isAdmin || isOwner
     }
@@ -165,9 +154,8 @@ fun getStringFromResourceFile(filename: String): String {
 
 val client by lazy {
     HttpClient(Apache) {
-        expectSuccess = false
         install(JsonFeature) {
-            serializer = KotlinxSerializer(Json(JsonConfiguration.Stable.copy(ignoreUnknownKeys = true)))
+            serializer = KotlinxSerializer(kotlinx.serialization.json.Json { ignoreUnknownKeys = true })
         }
     }
 }
