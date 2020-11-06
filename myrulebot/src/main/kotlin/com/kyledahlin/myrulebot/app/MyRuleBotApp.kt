@@ -34,7 +34,6 @@ import io.ktor.serialization.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
@@ -79,8 +78,13 @@ fun main(args: Array<String>) {
                 val ruleName = call.parameters["ruleName"]!!
                 val data = call.receive<String>()
                 Logger.logDebug("got ruleName [$ruleName] with body: [$data]")
-                analytics.logLifecycle(RULE_CONFIGURATION, "configuring $ruleName")
-                val result = rulebot.configureRule(ruleName, data) ?: JsonPrimitive("an error has occurred")
+                val result = try {
+                    analytics.logLifecycle(RULE_CONFIGURATION, "configuring $ruleName")
+                    rulebot.configureRule(ruleName, data) ?: Response(Response.Error(reason = "unknown failure"))
+                } catch (e: Exception) {
+                    Response(Response.Error(reason = "unknown failure"))
+                }
+
                 call.respond(result)
             }
 
