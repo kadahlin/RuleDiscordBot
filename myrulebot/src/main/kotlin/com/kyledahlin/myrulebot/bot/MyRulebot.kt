@@ -24,12 +24,17 @@ import com.kyledahlin.rulebot.RuleBot
 import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.DaggerBotComponent
 import com.kyledahlin.rulebot.bot.LogLevel
+import com.mongodb.ConnectionString
+import com.mongodb.MongoClientSettings
+import com.mongodb.MongoCredential
 import discord4j.core.`object`.util.Snowflake
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
 import org.litote.kmongo.util.KMongoConfiguration
 import java.io.IOException
 
+const val MONGO_USERNAME = "MONGO_USERNAME"
+const val MONGO_PASSWORD = "MONGO_PASSWORD"
 
 object MyRulebot {
     fun create(
@@ -37,15 +42,29 @@ object MyRulebot {
         rulesToLog: Collection<String>,
         logLevel: LogLevel,
         analytics: Analytics,
-        databaseString: String,
+        connectionString: String,
         databaseName: String
     ): RuleBot {
         KMongoConfiguration.registerBsonModule(SimpleModule().apply {
             addSerializer(Snowflake::class.java, SnowflakeSerializer())
             addDeserializer(Snowflake::class.java, SnowflakeDeserializer())
         })
+        val dbBuilder = MongoClientSettings.builder()
+            .applyConnectionString(ConnectionString(connectionString))
+        val mongoUsername = System.getenv(MONGO_USERNAME)
+        if (!mongoUsername.isNullOrEmpty()) {
+            dbBuilder.credential(
+                MongoCredential.createPlainCredential(
+                    System.getenv(MONGO_USERNAME),
+                    "admin",
+                    System.getenv(MONGO_PASSWORD).toCharArray()
+                )
+            )
+        }
         val coreComponent = DaggerBotComponent.builder().setToken(token).setAnalytics(analytics)
-            .setDatabase(KMongo.createClient(connectionString = databaseString).getDatabase(databaseName).coroutine)
+            .setDatabase(
+                KMongo.createClient(dbBuilder.build()).getDatabase(databaseName).coroutine
+            )
             .build()
         val myRules = DaggerMyRuleBotComponent.builder().botComponent(coreComponent).build().rules()
         val builder = coreComponent.botBuilder().apply {
