@@ -108,8 +108,6 @@ class RuleBot private constructor(
             }, { throwable ->
                 Logger.logError("throwable in guild create subscription, $throwable")
             })
-
-        gateway.onDisconnect().block()
     }
 
     suspend fun configureRule(ruleName: String, data: Any): Either<Exception, Any>? {

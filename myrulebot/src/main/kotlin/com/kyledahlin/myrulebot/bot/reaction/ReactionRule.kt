@@ -65,15 +65,17 @@ class ReactionRule @Inject constructor(
     override suspend fun configure(data: Any): Either<Exception, Any> {
         logDebug("configure reaction: $data")
         val command = try {
-            Json { isLenient = true }.decodeFromString(Command.serializer(), data.toString())
+            Json { isLenient = true }.decodeFromString(Command.serializer(), data.toString()).apply {
+                guildId.sf()
+            }
         } catch (e: Exception) {
-            return ReactionException.NotACommand(data).left()
+            return ReactionException.DataFormatException(data).left()
         }
         return when (command.action) {
             "add" -> addReaction(command)
             "list" -> getEmojiData(command.guildId.sf())
             "remove" -> removeReaction(command)
-            else -> ReactionException.UnknownConfigCommand(command.action).left()
+            else -> ReactionException.UnknownConfigAction(command.action).left()
         }
     }
 
@@ -169,12 +171,12 @@ data class AddedEmoji(
 )
 
 internal sealed class ReactionException(message: String) : MyRuleBotException(REACTIONS, message) {
-    data class UnknownConfigCommand(val command: String?) : ReactionException("unknown config command $command")
+    data class UnknownConfigAction(val action: String?) : ReactionException("unknown config command $action")
     data class StorageException(override val message: String) : ReactionException(message)
     data class DiscordException(override val message: String) : ReactionException(message)
     data class CommandMissingData(val command: ReactionRule.Command) :
         ReactionException("invalid command format: $command")
 
-    data class NotACommand(val value: Any) :
+    data class DataFormatException(val value: Any) :
         ReactionException("invalid command: $value")
 }

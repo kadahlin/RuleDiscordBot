@@ -54,7 +54,7 @@ class ReactionRuleTest : RuleBaseTest() {
 
     @Test
     fun `Correct error on something that is not a valid command`() = runBlocking {
-        _rule.configure("wrong").assertLeft(ReactionException.NotACommand("wrong"))
+        _rule.configure("wrong").assertLeft(ReactionException.DataFormatException("wrong"))
     }
 
     @Test
@@ -76,7 +76,7 @@ class ReactionRuleTest : RuleBaseTest() {
     fun `Correct exception is returned if an unknown command is passed`() = runBlocking {
         val command = ReactionRule.Command(guildId.asString(), action = "wrong")
         val result = _rule.configure(Json.encodeToJsonElement(command))
-        result.assertLeft(ReactionException.UnknownConfigCommand("wrong"))
+        result.assertLeft(ReactionException.UnknownConfigAction("wrong"))
     }
 
     @Test

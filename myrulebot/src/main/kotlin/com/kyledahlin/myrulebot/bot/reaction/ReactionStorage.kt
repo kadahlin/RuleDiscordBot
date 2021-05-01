@@ -111,9 +111,9 @@ data class StoredReaction(
 
     fun toMap(): Map<String, Any> {
         return mapOf(
-            USER_ID to member,
-            GUILD_ID to guild,
-            REACTION to emoji
+            USER_ID to member.asString(),
+            GUILD_ID to guild.asString(),
+            REACTION to emoji.asString()
         )
     }
 }

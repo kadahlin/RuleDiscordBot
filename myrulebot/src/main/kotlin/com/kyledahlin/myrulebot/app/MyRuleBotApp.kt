@@ -21,6 +21,7 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.kyledahlin.myrulebot.bot.MyRulebot
+import com.kyledahlin.myrulebot.bot.reaction.GuildInfo
 import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.GuildNameAndId
 import com.kyledahlin.rulebot.MemberNameAndId
@@ -53,6 +54,9 @@ fun main() {
         else -> LogLevel.ERROR
     }
 
+    val port = System.getenv("PORT").toInt()
+    println("running on $port")
+
     val token = getStringFromPath(tokenPath)
     val serviceAccount = FileInputStream(firebasePath)
 
@@ -68,7 +72,7 @@ fun main() {
         MyRulebot.create(token, emptySet(), logLevel, analytics)
     rulebot.start()
 
-    embeddedServer(Netty, host = System.getenv("RULEBOT_HOST") ?: "127.0.0.1", port = System.getenv("PORT").toInt()) {
+    embeddedServer(Netty, host = System.getenv("RULEBOT_HOST") ?: "127.0.0.1", port = port) {
 
         install(ContentNegotiation) {
             json(Serializer.format)
@@ -85,7 +89,7 @@ fun main() {
                 Logger.logDebug("got ruleName [$ruleName] with body: [$data]")
                 analytics.logLifecycle("Rule config", "call to configure $ruleName")
                 val response = rulebot.configureRule(ruleName, data)
-                    ?.flatMap { if (it is Unit) emptyMap<String, String>().right() else it.right() }
+                    ?.flatMap { if (it is Unit) EmptyResponse.right() else it.right() }
                     ?.fold({ exception ->
                         Response.error(exception.message ?: "no exception message")
                     }, { value ->
@@ -104,12 +108,12 @@ fun main() {
 
             route("/guilds") {
                 get {
-                    call.jsonResponse(Response(GetGuildsResponse(rulebot.getGuildInfo())))
+                    call.jsonResponse(Response.success(GetGuildsResponse(rulebot.getGuildInfo())))
                 }
 
                 get("/{guildId}") {
                     val list = rulebot.getMemberInfo(call.parameters["guildId"]!!)?.toList() ?: emptyList()
-                    call.jsonResponse(Response(MemberNameAndIds(list)))
+                    call.jsonResponse(Response.success(MemberNameAndIds(list)))
                 }
             }
         }
@@ -146,8 +150,13 @@ val module = SerializersModule {
         subclass(GetRulesResponse::class)
         subclass(GetGuildsResponse::class)
         subclass(MemberNameAndIds::class)
+        subclass(GuildInfo::class)
+        subclass(EmptyResponse::class)
     }
 }
+
+@Serializable
+object EmptyResponse
 
 object Serializer {
     val format by lazy {
