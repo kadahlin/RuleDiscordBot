@@ -16,7 +16,7 @@
 package com.kyledahlin.myrulebot.bot.corona
 
 import com.kyledahlin.rulebot.EventWrapper
-import com.kyledahlin.rulebot.analytics.Analytics
+import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.bot.*
 import io.ktor.client.request.*
 import it.skrape.core.htmlDocument

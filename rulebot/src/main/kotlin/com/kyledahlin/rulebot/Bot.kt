@@ -16,13 +16,12 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.RuleBot.Builder
-import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
 import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.rulebot.bot.RuleBotScope
-import discord4j.core.DiscordClientBuilder
-import discord4j.core.`object`.util.Snowflake
+import discord4j.common.util.Snowflake
+import discord4j.core.DiscordClient
 import discord4j.core.event.domain.guild.GuildCreateEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
@@ -78,9 +77,10 @@ class RuleBot private constructor(
     fun start() {
         Logger.setRulesToLog(rulesToLog)
         Logger.setLogLevel(logLevel)
-        val client = DiscordClientBuilder(token).build()
+        val client = DiscordClient.create(token)
+        val gateway = client.login().block()!!
 
-        client.eventDispatcher.on(ReadyEvent::class.java)
+        gateway.on(ReadyEvent::class.java)
             .subscribe { ready ->
                 GlobalScope.launch {
                     analytics.logLifecycle(
@@ -91,9 +91,9 @@ class RuleBot private constructor(
                 discordCache.addBotIds(setOf(ready.self.id))
             }
 
-        client.eventDispatcher.on(MessageCreateEvent::class.java)
+        gateway.on(MessageCreateEvent::class.java)
             .filter { it.message.author.map { user -> !user.isBot }.orElse(false) }
-            .filter { event -> event.message.content.isPresent }
+            .filter { event -> event.message.content.isNotEmpty() }
             .subscribe({ messageEvent ->
                 ruleManager.processMessageCreateEvent(messageEvent)
             }, { throwable ->
@@ -101,25 +101,29 @@ class RuleBot private constructor(
                 throwable.printStackTrace()
             })
 
-        client.eventDispatcher.on(GuildCreateEvent::class.java)
+        gateway.on(GuildCreateEvent::class.java)
             .subscribe({
                 discordCache.addGuild(it.guild)
             }, { throwable ->
                 Logger.logError("throwable in guild create subscription, $throwable")
             })
 
-        client.login().subscribe()
+        gateway.onDisconnect().block()
     }
 
-    suspend fun configureRule(ruleName: String, data: Any): Any? {
-        return ruleManager.configureRule(ruleName, data)
+    suspend fun configureRule(ruleName: String, data: Any): Response {
+        return ruleManager.configureRule(ruleName, data)?.fold({ exception ->
+            Response.error(code = 0, reason = exception.message ?: "")
+        }, { success ->
+            Response.success(success)
+        }) ?: Response.error(code = 1, reason = "no rule found for this request")
     }
 
     suspend fun getRuleNames(): Set<String> {
         return ruleManager.getRuleNames()
     }
 
-    suspend fun getGuildInfo(): Collection<GuildNameAndId> {
+    suspend fun getGuildInfo(): List<GuildNameAndId> {
         return discordCache.getGuildWrappers().map { GuildNameAndId(it.name, it.id.asString()) }
     }
 

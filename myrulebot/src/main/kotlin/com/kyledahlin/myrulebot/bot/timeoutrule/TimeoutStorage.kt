@@ -16,25 +16,21 @@
 package com.kyledahlin.myrulebot.bot.timeoutrule
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
-import discord4j.core.`object`.util.Snowflake
-import kotlinx.coroutines.CoroutineDispatcher
-import org.litote.kmongo.`in`
-import org.litote.kmongo.coroutine.CoroutineDatabase
-import org.litote.kmongo.eq
+import discord4j.common.util.Snowflake
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
-import javax.inject.Named
 
 internal data class Timeout(
-    val snowflake: Snowflake,
+    val userId: Snowflake,
+    val guildId: Snowflake,
     val startTime: Long,
     val minutes: Long
 ) {
 
     override fun equals(other: Any?): Boolean {
         if (other is Timeout) {
-            return other.snowflake == this.snowflake
+            return other.userId == this.userId && other.guildId == this.guildId
         }
         return false
     }
@@ -47,22 +43,18 @@ internal data class Timeout(
 }
 
 @MyRuleBotScope
-internal class TimeoutStorage @Inject constructor(
-    database: CoroutineDatabase,
-    @Named("storage") val context: CoroutineDispatcher
-) {
-
-    private val collection = database.getCollection<Timeout>()
+internal class TimeoutStorage @Inject constructor() {
+    private val collection = mutableSetOf<Timeout>()
 
     suspend fun insertTimeouts(timeouts: Collection<Timeout>) {
-        collection.insertMany(timeouts.toList())
+        collection.addAll(timeouts)
     }
 
-    suspend fun getTimeoutForSnowflake(snowflake: Snowflake): Timeout? {
-        return collection.findOne(Timeout::snowflake eq snowflake)
+    suspend fun getTimeoutForSnowflake(guildId: Snowflake, userId: Snowflake): Timeout? {
+        return collection.firstOrNull { it.guildId == guildId && it.userId == userId }
     }
 
-    suspend fun removeTimeoutForSnowflakes(snowflakes: Collection<Snowflake>) {
-        collection.deleteMany(Timeout::snowflake `in` snowflakes)
+    suspend fun removeTimeoutForSnowflakes(guildId: Snowflake, userId: Snowflake) {
+        collection.removeIf { it.guildId == guildId && it.userId == userId }
     }
 }

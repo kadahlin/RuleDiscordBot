@@ -15,9 +15,9 @@
 */
 package com.kyledahlin.rulebot.bot
 
+import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.DiscordCache
 import com.kyledahlin.rulebot.RuleBot
-import com.kyledahlin.rulebot.analytics.Analytics
 import dagger.BindsInstance
 import dagger.Component
 import dagger.Module
@@ -25,7 +25,6 @@ import dagger.Provides
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.newSingleThreadContext
-import org.litote.kmongo.coroutine.CoroutineDatabase
 import javax.inject.Named
 import javax.inject.Scope
 
@@ -61,7 +60,6 @@ interface BotComponent {
     fun discordWrapper(): GetDiscordWrapperForEvent
     fun botIds(): GetBotIds
     fun analytics(): Analytics
-    fun database(): CoroutineDatabase
 
     @Component.Builder
     interface Builder {
@@ -69,9 +67,6 @@ interface BotComponent {
 
         @BindsInstance
         fun setToken(token: String): Builder
-
-        @BindsInstance
-        fun setDatabase(database: CoroutineDatabase): Builder
 
         @BindsInstance
         fun setAnalytics(analytics: Analytics): Builder

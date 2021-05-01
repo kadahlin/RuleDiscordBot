@@ -18,7 +18,7 @@ package com.kyledahlin.myrulebot.bot.rockpaperscissorsrule
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.EventWrapper
 import com.kyledahlin.rulebot.bot.*
-import discord4j.core.`object`.util.Snowflake
+import discord4j.common.util.Snowflake
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -74,6 +74,8 @@ internal class RockPaperScissorsRule @Inject constructor(
     private suspend fun handleRpsCommand(event: MessageCreated) {
         val contentPieces = event.content.split(" ")
         val wrapper = getDiscordWrapperForEvent(event) ?: return
+        val guildId = wrapper.getGuildId() ?: return
+
         if (contentPieces.size != 2) {
             wrapper.sendMessage("missing a choice")
             return
@@ -103,7 +105,7 @@ internal class RockPaperScissorsRule @Inject constructor(
             winner = winner,
             draw = draw
         )
-        rockPaperScissorsStorage.insertRpsGame(game)
+        rockPaperScissorsStorage.insertRpsGame(guildId, game)
         printAllGamesForPlayer(wrapper, playerSnowflake, botChoice, didPlayerWin)
     }
 
@@ -154,10 +156,3 @@ internal class RockPaperScissorsRule @Inject constructor(
 
 
 }
-
-data class RockPaperScissorGame(
-    val participant1: Snowflake,
-    val participant2: Snowflake,
-    val winner: Snowflake,
-    val draw: Boolean
-)

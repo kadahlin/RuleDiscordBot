@@ -15,15 +15,18 @@
 */
 package com.kyledahlin.rulebot.bot
 
+import arrow.core.Either
+import arrow.core.right
 import com.kyledahlin.rulebot.EventWrapper
 import com.kyledahlin.rulebot.Response
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Message
-import discord4j.core.`object`.util.Snowflake
 import io.ktor.client.*
 import io.ktor.client.engine.apache.*
 import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
 import suspendGuild
+import java.io.File
 
 typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards EventWrapper?
 typealias GetBotIds = () -> @JvmSuppressWildcards Set<Snowflake>
@@ -50,7 +53,7 @@ abstract class Rule(
     /**
      * Process this event from *anywhere* and determine if action is necessary, or return information based on this request
      */
-    open suspend fun configure(data: Any): Response = Response.success
+    open suspend fun configure(data: Any): Either<Exception, Any> = emptyMap<String, String>().right()
 
     /**
      * Get a human readable description of how to use this rule
@@ -122,7 +125,7 @@ internal suspend fun Message.getSnowflakes(): Set<RoleSnowflake> {
 }
 
 private fun Message.sendDistortedCopy() {
-    val content = this.content.orElse("")
+    val content = this.content
     if (content.startsWith("<") && content.endsWith(">")) {
         return
     }
@@ -148,8 +151,12 @@ private fun distortText(text: String): String {
 //Load the string content of a file from the resources
 fun getStringFromResourceFile(filename: String): String {
     val classloader = Thread.currentThread().contextClassLoader
-    val inputStream = classloader.getResourceAsStream(filename)
+    val inputStream = classloader.getResourceAsStream(filename)!!
     return String(inputStream.readBytes()).trim()
+}
+
+fun getStringFromPath(filename: String): String {
+    return File(filename).readText()
 }
 
 val client by lazy {

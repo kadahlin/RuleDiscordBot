@@ -31,8 +31,8 @@ private val timeoutRegex = """[0-9]+ minute timeout""".toRegex()
  */
 @MyRuleBotScope
 internal class TimeoutRule @Inject constructor(
-    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
-    val timeoutStorage: TimeoutStorage
+    private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
+    private val timeoutStorage: TimeoutStorage
 ) :
     Rule("Timeout", getDiscordWrapperForEvent) {
 
@@ -41,12 +41,13 @@ internal class TimeoutRule @Inject constructor(
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
         if (event !is MessageCreated) return false
+        val guildId = getDiscordWrapperForEvent(event)?.getGuildId() ?: return false
         val author = event.author
         if (processRemovalCommand(event)) {
             return true
         }
         val wrapper = getDiscordWrapperForEvent(event) ?: return true
-        val existingTimeout = timeoutStorage.getTimeoutForSnowflake(author)
+        val existingTimeout = timeoutStorage.getTimeoutForSnowflake(guildId, author)
         if (existingTimeout != null) {
             if (existingTimeout.startTime + (existingTimeout.minutes * 60L * 1000L) > System.currentTimeMillis()) {
                 //should delete message
@@ -54,7 +55,7 @@ internal class TimeoutRule @Inject constructor(
                 logDebug("user $author is still on timeout, deleting")
                 return true
             } else {
-                timeoutStorage.removeTimeoutForSnowflakes(setOf(author))
+                timeoutStorage.removeTimeoutForSnowflakes(guildId, author)
                 logDebug("removing timeout for user: $author")
             }
         }
@@ -80,19 +81,20 @@ internal class TimeoutRule @Inject constructor(
     //true if their was a valid command to process
     private suspend fun processTimeoutCommand(event: MessageCreated): Boolean {
         if (!event.containsTimeoutCommand()) return false
+        val guildId = getDiscordWrapperForEvent(event)?.getGuildId() ?: return false
         val duration = getDurationFromMessage(event) ?: return false
 
         val mentionedSnowflakes = event.snowflakes.filter { !it.isRole }.map { it.snowflake }
 
-        timeoutStorage.removeTimeoutForSnowflakes(mentionedSnowflakes)
-        val newTimeouts = mentionedSnowflakes.map { snowflake ->
+        val newTimeouts = mentionedSnowflakes.map { userId ->
             val timeout = Timeout(
-                snowflake,
+                userId,
+                guildId,
                 System.currentTimeMillis(),
                 duration
             )
             timeoutStorage.insertTimeouts(setOf(timeout))
-            logInfo("adding timeout for user $snowflake at ${timeout.startTime} for ${timeout.minutes} minutes")
+            logInfo("adding timeout for user $userId at ${timeout.startTime} for ${timeout.minutes} minutes")
             timeout
         }
         if (newTimeouts.isNotEmpty()) {
@@ -106,9 +108,13 @@ internal class TimeoutRule @Inject constructor(
 
     private suspend fun processRemovalCommand(event: MessageCreated): Boolean {
         val wrapper = getDiscordWrapperForEvent(event) ?: return false
+        val guildId = wrapper.getGuildId() ?: return false
+
         return if (event.containsRemovalCommand() && event.canAuthorIssueRules()) {
             val snowflakes = event.snowflakes.map { it.snowflake }
-            timeoutStorage.removeTimeoutForSnowflakes(snowflakes)
+            snowflakes.forEach { userId ->
+                timeoutStorage.removeTimeoutForSnowflakes(guildId, userId)
+            }
 
             logInfo("removing the timeout for ${snowflakes.joinToString { it.asString() }}")
             val adminSnowflake = event.author.asLong()

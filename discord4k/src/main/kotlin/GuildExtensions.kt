@@ -1,7 +1,7 @@
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.GuildEmoji
 import discord4j.core.`object`.entity.Member
-import discord4j.core.`object`.util.Snowflake
 
 suspend fun Guild.suspendOwner(): Member? = this.owner.suspend()
 

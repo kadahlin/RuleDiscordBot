@@ -16,12 +16,12 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.bot.RuleBotEvent
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
-import discord4j.core.`object`.entity.MessageChannel
 import discord4j.core.`object`.entity.Role
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.`object`.reaction.ReactionEmoji
-import discord4j.core.`object`.util.Snowflake
 import discord4j.core.spec.MessageCreateSpec
 import discord4j.core.spec.VoiceChannelJoinSpec
 import suspendAddReaction

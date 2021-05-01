@@ -1,10 +1,12 @@
 package com.kyledahlin.myrulebot.bot.keyvalue
 
+import com.google.cloud.firestore.Firestore
+import com.google.cloud.firestore.SetOptions
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
-import discord4j.core.`object`.util.Snowflake
+import com.kyledahlin.myrulebot.bot.suspend
+import discord4j.common.util.Snowflake
 import kotlinx.coroutines.CoroutineDispatcher
-import org.litote.kmongo.coroutine.CoroutineDatabase
-import org.litote.kmongo.eq
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -20,22 +22,32 @@ internal data class Trigger(
 
 @MyRuleBotScope
 internal class KeyValueRuleStorageImpl @Inject constructor(
-    val database: CoroutineDatabase,
+    firestore: Firestore,
     @Named("storage") val context: CoroutineDispatcher
 ) : KeyValueRuleStorage {
 
-    private val _collection = database.getCollection<Trigger>()
+    private val _collection = firestore.collection("keyvalue")
 
-    override suspend fun getDataForGuildId(snowflake: Snowflake): List<Trigger> {
-        return _collection.find(Trigger::snowflake eq snowflake).toList()
+    override suspend fun getDataForGuildId(snowflake: Snowflake): List<Trigger> = withContext(context) {
+        val document = _collection
+            .document(snowflake.asString())
+            .get()
+            .suspend()
+        val map = if (document.exists()) {
+            document.data ?: emptyMap()
+        } else {
+            emptyMap()
+        }
+        map.entries.map { entry -> Trigger(snowflake, entry.key, entry.value as String) }
     }
 
     override suspend fun addTriggerForGuild(snowflake: Snowflake, trigger: String, response: String) {
-
-        _collection.deleteOne(
-            Trigger::snowflake eq snowflake, Trigger::trigger eq trigger
-        )
-
-        _collection.insertOne(Trigger(snowflake, trigger, response))
+        withContext(context) {
+            val update = mapOf(trigger to response)
+            _collection
+                .document(snowflake.asString())
+                .set(update, SetOptions.merge())
+                .suspend()
+        }
     }
 }

@@ -15,17 +15,18 @@
 */
 package com.kyledahlin.rulebot
 
+import arrow.core.Either
 import com.kyledahlin.rulebot.bot.*
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
-import discord4j.core.`object`.entity.MessageChannel
+import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.reactive.awaitFirstOrNull
 import suspendChannel
 import suspendCreateMessage
 import suspendGuild
+import java.lang.Exception
 import javax.inject.Inject
 
 private const val RULES = "rules please"
@@ -44,7 +45,7 @@ internal class RuleManager @Inject constructor(
         }
     }
 
-    suspend fun configureRule(ruleName: String, data: Any): Any? {
+    suspend fun configureRule(ruleName: String, data: Any): Either<Exception, Any>? {
         return _rules.firstOrNull { it.ruleName.equals(ruleName, ignoreCase = true) }?.configure(data)
     }
 
@@ -65,20 +66,20 @@ internal class RuleManager @Inject constructor(
                 Logger.logDebug("message was ${if (wasHandled) "" else "not "}handled by ${it.ruleName}")
                 wasHandled
             }
-            val content = messageEvent.message.content.get()
+            val content = messageEvent.message.content
             if (content.startsWith(RULES)) {
-                val contentPieces = messageEvent.message.content.get().split(" ")
+                val contentPieces = messageEvent.message.content.split(" ")
                 if (contentPieces.size > 2) {
-                    messageEvent.message.channel.awaitFirstOrNull()?.printExplanationOfRule(contentPieces[2])
+                    messageEvent.message.suspendChannel()?.printExplanationOfRule(contentPieces[2])
                 } else {
-                    messageEvent.message.channel.awaitFirstOrNull()?.printRules()
+                    messageEvent.message.suspendChannel()?.printRules()
                 }
             }
         }
     }
 
     private suspend fun convertMessageCreateEvent(event: MessageCreateEvent): List<Any?> {
-        val content = event.message.content.get()
+        val content = event.message.content
         val guild = event.suspendGuild()
         val author = event.message.author.get().id
         val snowflakes = event.message.getSnowflakes()

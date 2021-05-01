@@ -16,10 +16,10 @@
 package com.kyledahlin.myrulebot.bot.jojorule
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
-import com.kyledahlin.rulebot.analytics.Analytics
+import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.bot.*
+import discord4j.common.util.Snowflake
 import io.ktor.client.request.*
-import java.io.File
 import javax.inject.Inject
 
 private const val RULE_PHRASE = "spicy jojo meme"
@@ -33,6 +33,7 @@ private const val JOJO_FILE_NAME = "jojo_id_file"
 @MyRuleBotScope
 internal class JojoMemeRule @Inject constructor(
     val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
+    val storage: JojoMemeStorage,
     private val analytics: Analytics
 ) :
     Rule("JoJoMeme", getDiscordWrapperForEvent) {
@@ -41,13 +42,7 @@ internal class JojoMemeRule @Inject constructor(
         get() = Priority.LOW
 
     //the fetched posts that have already posted while this rule has been active
-    private val mPostedIds = mutableSetOf<String>()
-
-    init {
-        val fileIds = getPostedIdsFromFile()
-        logDebug("loading ${fileIds.size} items from the saved jojo file")
-        mPostedIds.addAll(fileIds)
-    }
+    private val mPostedIds = mutableMapOf<Snowflake, MutableSet<String>>()
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
         if (event !is MessageCreated) return false
@@ -70,6 +65,12 @@ internal class JojoMemeRule @Inject constructor(
 
     private suspend fun postJojoMemeFrom(event: MessageCreated) {
         val wrapper = getDiscordWrapperForEvent(event) ?: return
+        val guildId = wrapper.getGuildId() ?: return
+
+        if (mPostedIds[guildId] == null) {
+            mPostedIds[guildId] = storage.getIdsForServer(guildId).toMutableSet()
+        }
+
         val redditResponse = client.get<RedditResponse>(
             JOJO_REDDIT
         ) {
@@ -82,26 +83,12 @@ internal class JojoMemeRule @Inject constructor(
             redditResponse.data.children   //TODO: figure out kotlinx list deserialization a bit better
 
         val dataToPost = childList.firstOrNull {
-            !mPostedIds.contains(it.data.id) && !it.data.isVideo
+            !mPostedIds.getOrDefault(guildId, emptySet()).contains(it.data.id) && !it.data.isVideo
         }?.data ?: return
 
-        saveIdToFile(dataToPost.id)
+        storage.saveIdToGuild(dataToPost.id, guildId)
 
-        mPostedIds.add(dataToPost.id)
+        mPostedIds[guildId]?.add(dataToPost.id)
         wrapper.sendMessage("${dataToPost.title}\n${dataToPost.url}")
-    }
-
-    @Synchronized
-    private fun saveIdToFile(id: String) = File(JOJO_FILE_NAME).appendText("$id\n")
-
-    @Synchronized
-    private fun getPostedIdsFromFile() = try {
-        File(JOJO_FILE_NAME)
-            .readLines()
-            .map { it.trim() }
-            .filterNot { it.isEmpty() }
-    } catch (e: Exception) {
-        logError("error in loading IDS, ${e.stackTrace}")
-        emptySet()
     }
 }

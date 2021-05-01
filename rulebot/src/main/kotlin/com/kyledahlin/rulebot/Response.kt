@@ -8,27 +8,20 @@ import kotlinx.serialization.Serializable
  * or the error object, but never both
  */
 @Serializable
-class Response {
-
-    @Polymorphic
-    val data: Any?
-    val error: Error?
-
-    constructor(data: Any) {
-        this.data = data
-        this.error = null
-    }
-
-    constructor(error: Error) {
-        this.error = error
-        this.data = null
-    }
+class Response(@Polymorphic val data: Any? = null, val error: Error = Error()) {
 
     @Serializable
-    class Error(val code: Int = 0, val reason: String? = null)
+    class Error(val code: Int = 0, val reason: String = "")
 
     companion object {
-        val success: Response
-            get() = Response(data = "success")
+        fun error(code: Int = 0, reason: String = ""): Response {
+            return Response(error = Error(code, reason))
+        }
+
+        fun success(data: Any): Response {
+            return Response(data = data)
+        }
+
+        fun success(): Response = Response(data = emptyMap<String, String>())
     }
 }

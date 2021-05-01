@@ -15,17 +15,18 @@
 */
 package com.kyledahlin.myrulebot.bot.reaction
 
+import arrow.core.Either
+import arrow.core.right
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
+import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.DiscordCache
-import com.kyledahlin.rulebot.Response
-import com.kyledahlin.rulebot.analytics.Analytics
 import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
 import com.kyledahlin.rulebot.bot.MessageCreated
 import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.rulebot.bot.RuleBotEvent
 import com.kyledahlin.rulebot.sf
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.reaction.ReactionEmoji
-import discord4j.core.`object`.util.Snowflake
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -58,18 +59,18 @@ class ReactionRule @Inject constructor(
         return false
     }
 
-    override suspend fun configure(data: Any): Response {
+    override suspend fun configure(data: Any): Either<Exception, Any> {
         logDebug("configure reaction: $data")
         val command = Json { isLenient = true }.decodeFromString(Command.serializer(), data.toString())
         return when (command.action) {
             "add" -> addReaction(command)
             "list" -> getEmojiData(command.guildId.sf())
             "remove" -> removeReaction(command)
-            else -> Response.success
-        }
+            else -> emptyMap<String, String>()
+        }.right()
     }
 
-    private suspend fun addReaction(command: Command): Response {
+    private suspend fun addReaction(command: Command) {
         val (guildId, _, member, emoji) = command
         try {
             reactionStorage.storeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
@@ -77,11 +78,9 @@ class ReactionRule @Inject constructor(
             analytics.logRuleFailed(ruleName, "unable to perform add command: ${e.message}")
             logError("unable to perform add command: ${e.message}")
         }
-
-        return Response.success
     }
 
-    private suspend fun removeReaction(command: Command): Response {
+    private suspend fun removeReaction(command: Command) {
         val (guildId, _, member, emoji) = command
         try {
             reactionStorage.removeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
@@ -89,10 +88,9 @@ class ReactionRule @Inject constructor(
             analytics.logRuleFailed(ruleName, "unable to perform remove command: ${e.message}")
             logError("unable to perform remove command: ${e.message}")
         }
-        return Response.success
     }
 
-    private suspend fun getEmojiData(guildId: Snowflake): Response {
+    private suspend fun getEmojiData(guildId: Snowflake): GuildInfo {
         val guildWrapper = cache.getGuildWrapper(guildId)
         val guildEmojis = try {
             guildWrapper
@@ -116,10 +114,10 @@ class ReactionRule @Inject constructor(
                 )
             }
 
-        return Response(data = GuildInfo(guildEmojis, addedEmojis))
+        return GuildInfo(guildEmojis, addedEmojis)
     }
 
-    override fun getExplanation(): String? {
+    override fun getExplanation(): String {
         return "Automatically add certain reactions to certain members messages, must be configured through the web portal"
     }
 

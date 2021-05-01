@@ -1,8 +1,8 @@
 package com.kyledahlin.rulebot
 
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.GuildEmoji
-import discord4j.core.`object`.util.Snowflake
 import discord4j.core.spec.MessageCreateSpec
 import suspendEmojis
 import suspendGetGuildEmojiById

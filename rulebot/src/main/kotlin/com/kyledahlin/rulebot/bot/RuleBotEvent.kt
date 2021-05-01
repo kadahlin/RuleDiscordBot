@@ -16,7 +16,7 @@
 package com.kyledahlin.rulebot.bot
 
 import com.kyledahlin.rulebot.AttachmentUrl
-import discord4j.core.`object`.util.Snowflake
+import discord4j.common.util.Snowflake
 
 sealed class RuleBotEvent(val id: Snowflake)
 class MessageCreated(

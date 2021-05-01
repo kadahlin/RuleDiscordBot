@@ -17,10 +17,10 @@ package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.bot.RuleBotEvent
 import com.kyledahlin.rulebot.bot.RuleBotScope
+import discord4j.common.util.Snowflake
 import discord4j.core.`object`.entity.Guild
 import discord4j.core.`object`.entity.Member
-import discord4j.core.`object`.entity.MessageChannel
-import discord4j.core.`object`.util.Snowflake
+import discord4j.core.`object`.entity.channel.MessageChannel
 import java.util.*
 import javax.inject.Inject
 

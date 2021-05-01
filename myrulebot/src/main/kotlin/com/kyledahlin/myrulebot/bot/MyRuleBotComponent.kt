@@ -15,12 +15,15 @@
 */
 package com.kyledahlin.myrulebot.bot
 
+import com.google.cloud.firestore.Firestore
+import com.google.cloud.firestore.FirestoreFactory
+import com.google.cloud.firestore.FirestoreOptions
+import com.google.firebase.cloud.FirestoreClient
 import com.kyledahlin.myrulebot.bot.corona.CoronaRule
 import com.kyledahlin.myrulebot.bot.jojorule.JojoMemeRule
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRule
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorage
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorageImpl
-import com.kyledahlin.myrulebot.bot.marxrule.MarxPassageRule
 import com.kyledahlin.myrulebot.bot.reaction.ReactionRule
 import com.kyledahlin.myrulebot.bot.reaction.ReactionStorage
 import com.kyledahlin.myrulebot.bot.reaction.ReactionStorageImpl
@@ -54,7 +57,6 @@ internal class MyRuleBotModule {
         @ElementsIntoSet
         fun providesRules(
             jojoMemeRule: JojoMemeRule,
-            marxPassageRule: MarxPassageRule,
             rockPaperScissorsRule: RockPaperScissorsRule,
             timeoutRule: TimeoutRule,
             coronaRule: CoronaRule,
@@ -62,10 +64,15 @@ internal class MyRuleBotModule {
             keyValueRule: KeyValueRule
         ): Set<Rule> {
             return setOf(
-                jojoMemeRule, marxPassageRule, rockPaperScissorsRule,
+                jojoMemeRule, rockPaperScissorsRule,
                 timeoutRule, coronaRule, reactionRule, keyValueRule
             )
         }
+
+        @JvmStatic
+        @Provides
+        @MyRuleBotScope
+        fun bindsFirestore(): Firestore = FirestoreClient.getFirestore()
     }
 }
 

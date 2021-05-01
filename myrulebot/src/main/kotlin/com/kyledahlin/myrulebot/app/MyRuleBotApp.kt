@@ -15,17 +15,17 @@
 */
 package com.kyledahlin.myrulebot.app
 
+import com.google.auth.oauth2.GoogleCredentials
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
 import com.kyledahlin.myrulebot.bot.MyRulebot
-import com.kyledahlin.myrulebot.bot.reaction.GuildInfo
-import com.kyledahlin.myrulebot.bot.reaction.ReactionRule
+import com.kyledahlin.rulebot.Analytics
+import com.kyledahlin.rulebot.GuildNameAndId
+import com.kyledahlin.rulebot.MemberNameAndId
 import com.kyledahlin.rulebot.Response
-import com.kyledahlin.rulebot.analytics.Analytics
-import com.kyledahlin.rulebot.analytics.RULE_CONFIGURATION
-import com.kyledahlin.rulebot.analytics.createAnalytics
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
-import com.kyledahlin.rulebot.bot.getStringFromResourceFile
-import com.xenomachina.argparser.ArgParser
+import com.kyledahlin.rulebot.bot.getStringFromPath
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.request.*
@@ -34,33 +34,46 @@ import io.ktor.routing.*
 import io.ktor.serialization.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
+import org.slf4j.event.Level
+import java.io.FileInputStream
 
-fun main(args: Array<String>) {
+fun main() {
+    val firebasePath = System.getenv("HONKBOT_CREDENTIALS")
+    val tokenPath = System.getenv("HONKBOT_TOKEN")
+    val logLevel = when (System.getenv("HONKBOT_LOG")) {
+        "DEBUG" -> LogLevel.DEBUG
+        "INFO" -> LogLevel.INFO
+        else -> LogLevel.ERROR
+    }
 
-    val args = ArgParser(args).parseInto(::AppArgs)
+    val token = getStringFromPath(tokenPath)
+    val serviceAccount = FileInputStream(firebasePath)
 
-    println("is Beta? ${args.isBeta}")
+    val options: FirebaseOptions = FirebaseOptions.builder()
+        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+        .build()
 
-    val tokenFile = if (args.isBeta) "betatoken.txt" else "token.txt"
-    val token = getStringFromResourceFile(tokenFile)
+    FirebaseApp.initializeApp(options)
 
     val analytics =
-        if (args.localAnalytics) LocalAnalytics() else createAnalytics(
-            args.database.first,
-            args.database.second
-        )
+        LocalAnalytics()
     val rulebot =
-        MyRulebot.create(token, emptySet(), args.logLevel, analytics, args.database.first, args.database.second)
+        MyRulebot.create(token, emptySet(), logLevel, analytics)
     rulebot.start()
 
-    embeddedServer(Netty, 8080) {
+    embeddedServer(Netty, host = System.getenv("RULEBOT_HOST") ?: "127.0.0.1", port = System.getenv("PORT").toInt()) {
 
         install(ContentNegotiation) {
-            json(json = Serializer.format)
+            json(Serializer.format)
+        }
+
+        install(CallLogging) {
+            level = Level.INFO
         }
 
         routing {
@@ -68,67 +81,41 @@ fun main(args: Array<String>) {
                 val ruleName = call.parameters["ruleName"]!!
                 val data = call.receive<String>()
                 Logger.logDebug("got ruleName [$ruleName] with body: [$data]")
-                val result = try {
-                    analytics.logLifecycle(RULE_CONFIGURATION, "configuring $ruleName")
-                    rulebot.configureRule(ruleName, data) ?: Response(Response.Error(reason = "unknown failure"))
-                } catch (e: Exception) {
-                    Response(Response.Error(reason = "unknown failure"))
-                }
-
-                call.respond(result)
+                analytics.logLifecycle("Rule config", "call to configure $ruleName")
+                val response = rulebot.configureRule(ruleName, data)
+                    ?: Response(error = Response.Error(reason = "No rule found for this name"))
+                call.jsonResponse(response)
             }
 
             get("/rules") {
                 val ruleNames = rulebot.getRuleNames()
-                println("for rule names got: $rulebot")
-                call.respond(Response(data = ruleNames.toList()))
+                println("for rule names got: $ruleNames")
+                val data = Response(GetRulesResponse(ruleNames.toList()))
+                call.jsonResponse(data)
             }
 
             route("/guilds") {
                 get {
-                    call.respond(Response(data = rulebot.getGuildInfo()))
+                    call.jsonResponse(Response(GetGuildsResponse(rulebot.getGuildInfo())))
                 }
 
                 get("/{guildId}") {
-                    val list = rulebot.getMemberInfo(call.parameters["guildId"]!!) ?: emptyList()
-                    call.respond(Response(data = list))
+                    val list = rulebot.getMemberInfo(call.parameters["guildId"]!!)?.toList() ?: emptyList()
+                    call.jsonResponse(Response(MemberNameAndIds(list)))
                 }
             }
         }
     }.start(wait = true)
 }
 
-class AppArgs(parser: ArgParser) {
-    val isBeta by parser.flagging(
-        "-b", "--beta",
-        help = "sign in with a beta token"
-    )
+@Serializable
+class GetRulesResponse(val rules: List<String>)
 
-    val database by parser.storing(
-        "-d", "--database",
-        help = "comma separated connection string and database name"
-    ) {
+@Serializable
+class GetGuildsResponse(val guilds: List<GuildNameAndId>)
 
-        val pieces = this.split(",")
-        Pair(pieces[0], pieces[1])
-    }
-
-    val logLevel by parser.storing(
-        "--log-level",
-        help = "how many logs to spit out"
-    ) {
-        when (this) {
-            "DEBUG" -> LogLevel.DEBUG
-            "INFO" -> LogLevel.INFO
-            else -> LogLevel.ERROR
-        }
-    }
-
-    val localAnalytics by parser.flagging(
-        "--local",
-        help = "print analytics locally instead of using the database"
-    )
-}
+@Serializable
+class MemberNameAndIds(val members: List<MemberNameAndId>)
 
 private class LocalAnalytics : Analytics {
     override suspend fun logLifecycle(name: String, data: String) {
@@ -140,15 +127,24 @@ private class LocalAnalytics : Analytics {
     }
 }
 
+//workaround until ktor has better generic message wrapping support
+suspend inline fun ApplicationCall.jsonResponse(res: Response) {
+//    response.pipeline.execute(this, Json.encodeToString(Response.s, res))
+    respond(res)
+}
+
+val module = SerializersModule {
+    polymorphic(Any::class) {
+        subclass(GetRulesResponse::class)
+        subclass(GetGuildsResponse::class)
+        subclass(MemberNameAndIds::class)
+    }
+}
+
 object Serializer {
     val format by lazy {
         Json {
-            serializersModule = SerializersModule {
-                polymorphic(Any::class) {
-                    subclass(GuildInfo::class)
-                    subclass(ReactionRule.Command::class)
-                }
-            }
+            serializersModule = module
         }
     }
 }
