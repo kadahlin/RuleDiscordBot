@@ -24,8 +24,14 @@ interface GuildWrapper {
 
     suspend fun getEmojiNameSnowflakes(): List<NameSnowflake>
 
-    suspend fun getGuildEmojiForId(id: Snowflake): GuildEmoji?
+    suspend fun getGuildEmojiForId(id: Snowflake): GuildEmojiWrapper?
 }
+
+data class GuildEmojiWrapper(
+    val id: Snowflake,
+    val name: String,
+    val isAnimated: Boolean
+)
 
 class GuildWrapperImpl(private val guild: Guild) : GuildWrapper {
 
@@ -51,7 +57,9 @@ class GuildWrapperImpl(private val guild: Guild) : GuildWrapper {
         return guild.suspendMembers().map { it.displayName to it.id }
     }
 
-    override suspend fun getGuildEmojiForId(id: Snowflake): GuildEmoji? {
-        return guild.suspendGetGuildEmojiById(id)
+    override suspend fun getGuildEmojiForId(id: Snowflake): GuildEmojiWrapper? {
+        return guild.suspendGetGuildEmojiById(id)?.let {
+            GuildEmojiWrapper(it.id, it.name, it.isAnimated)
+        }
     }
 }

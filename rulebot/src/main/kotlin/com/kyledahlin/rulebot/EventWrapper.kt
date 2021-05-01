@@ -45,7 +45,7 @@ interface EventWrapper {
 
     suspend fun sendMessage(withSpec: MessageCreateSpec.() -> Unit)
 
-    suspend fun addEmoji(reactionEmoji: ReactionEmoji)
+    suspend fun addEmoji(guildEmojiWrapper: GuildEmojiWrapper)
 
     suspend fun getGuildOwnerId(): Snowflake?
 
@@ -79,8 +79,9 @@ internal class EventWrapperImpl(
         channel.suspendCreateMessage(withSpec)
     }
 
-    override suspend fun addEmoji(reactionEmoji: ReactionEmoji) {
-        channel.suspendGetMessageById(event.id)?.suspendAddReaction(reactionEmoji)
+    override suspend fun addEmoji(wrapper: GuildEmojiWrapper) {
+        channel.suspendGetMessageById(event.id)
+            ?.suspendAddReaction(ReactionEmoji.custom(wrapper.id, wrapper.name, wrapper.isAnimated))
     }
 
     override suspend fun getGuildOwnerId() = guild?.ownerId

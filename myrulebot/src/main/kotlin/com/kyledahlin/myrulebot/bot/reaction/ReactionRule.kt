@@ -16,7 +16,9 @@
 package com.kyledahlin.myrulebot.bot.reaction
 
 import arrow.core.Either
+import arrow.core.left
 import arrow.core.right
+import com.kyledahlin.myrulebot.bot.MyRuleBotException
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.DiscordCache
@@ -26,11 +28,12 @@ import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.rulebot.bot.RuleBotEvent
 import com.kyledahlin.rulebot.sf
 import discord4j.common.util.Snowflake
-import discord4j.core.`object`.reaction.ReactionEmoji
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
+
+private const val REACTIONS = "Reactions"
 
 /**
  * Automatically add reactions to users messages, configurable through the rest api
@@ -42,7 +45,7 @@ class ReactionRule @Inject constructor(
     val reactionStorage: ReactionStorage,
     private val analytics: Analytics
 ) :
-    Rule("Reactions", getDiscordWrapperForEvent) {
+    Rule(REACTIONS, getDiscordWrapperForEvent) {
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
         val wrapper = getDiscordWrapperForEvent(event)
@@ -51,46 +54,58 @@ class ReactionRule @Inject constructor(
 
         val guildWrapper = cache.getGuildWrapper(guildId) ?: return false
 
-        val reactions = reactionStorage.getReactionsForMember(guildId, event.author)
+        val reactions = reactionStorage.getReactionsForMember(event.author, guildId)
         reactions
             .mapNotNull { guildWrapper.getGuildEmojiForId(it) }
-            .forEach { wrapper.addEmoji(ReactionEmoji.custom(it)) }
+            .forEach { wrapper.addEmoji(it) }
 
         return false
     }
 
     override suspend fun configure(data: Any): Either<Exception, Any> {
         logDebug("configure reaction: $data")
-        val command = Json { isLenient = true }.decodeFromString(Command.serializer(), data.toString())
+        val command = try {
+            Json { isLenient = true }.decodeFromString(Command.serializer(), data.toString())
+        } catch (e: Exception) {
+            return ReactionException.NotACommand(data).left()
+        }
         return when (command.action) {
             "add" -> addReaction(command)
             "list" -> getEmojiData(command.guildId.sf())
             "remove" -> removeReaction(command)
-            else -> emptyMap<String, String>()
-        }.right()
+            else -> ReactionException.UnknownConfigCommand(command.action).left()
+        }
     }
 
-    private suspend fun addReaction(command: Command) {
+    private suspend fun addReaction(command: Command): Either<ReactionException, Unit> {
         val (guildId, _, member, emoji) = command
-        try {
+        return try {
             reactionStorage.storeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
+            Unit.right()
         } catch (e: Exception) {
             analytics.logRuleFailed(ruleName, "unable to perform add command: ${e.message}")
             logError("unable to perform add command: ${e.message}")
+            ReactionException.StorageException(e.message ?: "unknown storage exception").left()
         }
     }
 
-    private suspend fun removeReaction(command: Command) {
+    private suspend fun removeReaction(command: Command): Either<ReactionException, Unit> {
         val (guildId, _, member, emoji) = command
-        try {
+        return try {
             reactionStorage.removeReactionForMember(member!!.sf(), guildId.sf(), emoji!!.sf())
+            Unit.right()
         } catch (e: Exception) {
             analytics.logRuleFailed(ruleName, "unable to perform remove command: ${e.message}")
             logError("unable to perform remove command: ${e.message}")
+            return if (e is NullPointerException) {
+                ReactionException.CommandMissingData(command).left()
+            } else {
+                ReactionException.StorageException(e.message ?: "unknown storage exception").left()
+            }
         }
     }
 
-    private suspend fun getEmojiData(guildId: Snowflake): GuildInfo {
+    private suspend fun getEmojiData(guildId: Snowflake): Either<ReactionException, GuildInfo> {
         val guildWrapper = cache.getGuildWrapper(guildId)
         val guildEmojis = try {
             guildWrapper
@@ -100,7 +115,7 @@ class ReactionRule @Inject constructor(
         } catch (e: java.lang.Exception) {
             analytics.logRuleFailed(ruleName, "could not load emoji list for guild: ${guildWrapper?.name}")
             logError("could not get emoji list")
-            emptyList()
+            return ReactionException.DiscordException(e.message ?: "unknown discord exception").left()
         }
 
         val addedEmojis = reactionStorage
@@ -114,7 +129,7 @@ class ReactionRule @Inject constructor(
                 )
             }
 
-        return GuildInfo(guildEmojis, addedEmojis)
+        return GuildInfo(guildEmojis, addedEmojis).right()
     }
 
     override fun getExplanation(): String {
@@ -131,7 +146,6 @@ class ReactionRule @Inject constructor(
         val member: String? = null,
         val emoji: String? = null
     )
-
 }
 
 @Serializable
@@ -153,3 +167,14 @@ data class AddedEmoji(
     val memberId: String,
     val emojiId: String
 )
+
+internal sealed class ReactionException(message: String) : MyRuleBotException(REACTIONS, message) {
+    data class UnknownConfigCommand(val command: String?) : ReactionException("unknown config command $command")
+    data class StorageException(override val message: String) : ReactionException(message)
+    data class DiscordException(override val message: String) : ReactionException(message)
+    data class CommandMissingData(val command: ReactionRule.Command) :
+        ReactionException("invalid command format: $command")
+
+    data class NotACommand(val value: Any) :
+        ReactionException("invalid command: $value")
+}

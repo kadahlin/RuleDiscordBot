@@ -30,48 +30,48 @@ private const val CACHE_SIZE = 20
  * Hold information about things that do not persist between RuleBot runs (wrappers, members, guilds)
  */
 @RuleBotScope
-class DiscordCache @Inject constructor() {
+open class DiscordCache @Inject constructor() {
 
     private val _messages: Deque<EventWrapper> = ArrayDeque()
     private val _botIds = mutableSetOf<Snowflake>()
     private val _guilds = mutableSetOf<GuildWrapper>()
 
-    fun createEventWrapperEntry(event: RuleBotEvent, channel: MessageChannel, guild: Guild, member: Member) {
+    open fun createEventWrapperEntry(event: RuleBotEvent, channel: MessageChannel, guild: Guild, member: Member) {
         if (_messages.size > CACHE_SIZE) {
             _messages.pollFirst()
         }
         _messages.add(EventWrapperImpl(event, channel, guild, member))
     }
 
-    fun addGuild(guild: Guild) {
+    open fun addGuild(guild: Guild) {
         _guilds.add(GuildWrapperImpl(guild))
     }
 
-    fun addGuilds(guilds: Collection<Guild>) {
+    open fun addGuilds(guilds: Collection<Guild>) {
         guilds.forEach(::addGuild)
     }
 
-    fun getGuildWrapper(snowflake: Snowflake): GuildWrapper? {
+    open fun getGuildWrapper(snowflake: Snowflake): GuildWrapper? {
         return _guilds.firstOrNull { it.id == snowflake }
     }
 
-    fun getGuildWrappers(): Set<GuildWrapper> {
+    open fun getGuildWrappers(): Set<GuildWrapper> {
         return _guilds
     }
 
-    fun getWrapperForEvent(event: RuleBotEvent): EventWrapper? {
+    open fun getWrapperForEvent(event: RuleBotEvent): EventWrapper? {
         return _messages.firstOrNull { it.event === event }
     }
 
-    fun addBotId(snowflake: Snowflake) {
+    open fun addBotId(snowflake: Snowflake) {
         _botIds.add(snowflake)
     }
 
-    fun addBotIds(snowflakes: Collection<Snowflake>) {
+    open fun addBotIds(snowflakes: Collection<Snowflake>) {
         snowflakes.forEach(::addBotId)
     }
 
-    fun getBotIds(): Set<Snowflake> = _botIds
+    open fun getBotIds(): Set<Snowflake> = _botIds
 }
 
 inline class AttachmentUrl(val url: String)

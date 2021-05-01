@@ -66,3 +66,5 @@ class SnowflakeDeserializer : JsonDeserializer<Snowflake>() {
         return Snowflake.of(node.get("snowflake").asText())
     }
 }
+
+open class MyRuleBotException(val ruleName: String? = null, override val message: String) : Exception(message)

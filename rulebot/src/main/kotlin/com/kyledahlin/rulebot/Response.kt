@@ -11,11 +11,11 @@ import kotlinx.serialization.Serializable
 class Response(@Polymorphic val data: Any? = null, val error: Error = Error()) {
 
     @Serializable
-    class Error(val code: Int = 0, val reason: String = "")
+    class Error(val reason: String = "")
 
     companion object {
-        fun error(code: Int = 0, reason: String = ""): Response {
-            return Response(error = Error(code, reason))
+        fun error(reason: String = ""): Response {
+            return Response(error = Error(reason))
         }
 
         fun success(data: Any): Response {

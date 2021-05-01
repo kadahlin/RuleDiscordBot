@@ -15,6 +15,7 @@
 */
 package com.kyledahlin.rulebot
 
+import arrow.core.Either
 import com.kyledahlin.rulebot.RuleBot.Builder
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
@@ -111,12 +112,8 @@ class RuleBot private constructor(
         gateway.onDisconnect().block()
     }
 
-    suspend fun configureRule(ruleName: String, data: Any): Response {
-        return ruleManager.configureRule(ruleName, data)?.fold({ exception ->
-            Response.error(code = 0, reason = exception.message ?: "")
-        }, { success ->
-            Response.success(success)
-        }) ?: Response.error(code = 1, reason = "no rule found for this request")
+    suspend fun configureRule(ruleName: String, data: Any): Either<Exception, Any>? {
+        return ruleManager.configureRule(ruleName, data)
     }
 
     suspend fun getRuleNames(): Set<String> {

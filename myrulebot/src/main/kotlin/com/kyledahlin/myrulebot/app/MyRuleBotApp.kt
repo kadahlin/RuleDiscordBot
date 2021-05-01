@@ -15,6 +15,8 @@
 */
 package com.kyledahlin.myrulebot.app
 
+import arrow.core.flatMap
+import arrow.core.right
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -83,7 +85,13 @@ fun main() {
                 Logger.logDebug("got ruleName [$ruleName] with body: [$data]")
                 analytics.logLifecycle("Rule config", "call to configure $ruleName")
                 val response = rulebot.configureRule(ruleName, data)
-                    ?: Response(error = Response.Error(reason = "No rule found for this name"))
+                    ?.flatMap { if (it is Unit) emptyMap<String, String>().right() else it.right() }
+                    ?.fold({ exception ->
+                        Response.error(exception.message ?: "no exception message")
+                    }, { value ->
+                        Response.success(value)
+                    })
+                    ?: Response.error("No rule found for this name")
                 call.jsonResponse(response)
             }
 

@@ -26,11 +26,11 @@ import javax.inject.Inject
 import javax.inject.Named
 
 interface ReactionStorage {
-    suspend fun storeReactionForMember(member: Snowflake, guild: Snowflake, reaction: Snowflake)
+    suspend fun storeReactionForMember(userId: Snowflake, guildId: Snowflake, reaction: Snowflake)
 
-    suspend fun removeReactionForMember(member: Snowflake, guild: Snowflake, reaction: Snowflake)
+    suspend fun removeReactionForMember(userId: Snowflake, guildId: Snowflake, reaction: Snowflake)
 
-    suspend fun getReactionsForMember(guild: Snowflake, member: Snowflake): List<Snowflake>
+    suspend fun getReactionsForMember(userId: Snowflake, guildId: Snowflake): List<Snowflake>
 
     suspend fun getStoredReactions(guildId: Snowflake): List<StoredReaction>
 }
