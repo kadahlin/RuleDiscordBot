@@ -1,7 +1,7 @@
 package com.kyledahlin.rulebot
 
 import com.kyledahlin.rulebot.bot.MessageCreated
-import discord4j.core.`object`.util.Snowflake
+import discord4j.common.util.Snowflake
 import org.junit.jupiter.api.Test
 
 class DiscordCacheTest {
