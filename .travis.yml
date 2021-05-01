@@ -12,11 +12,18 @@ services:
   - docker
 
 script:
-  - ./gradlew installDist
+  - ./gradlew build jacocoTestReport installDist
+
+before_install:
+  - pip install --user codecov
 
 install:
   - echo "WzE1Ny4yMzAuMTQ5LjI0XTozNDU3NSBzc2gtcnNhIEFBQUFCM056YUMxeWMyRUFBQUFEQVFBQkFBQUJBUUNQN3dUb2VsNWtaZG03Mm45WUZKUytYZ0d2QnQxTjNRbklBdXFjT053d252SnZJSmh5TGJNN1dyUjN4RlhFbmVaM0pVdTE1eHAvTVFvSHRnQ1NyRkNUdm1WQjl2TUhTUk1CY3FaZ0FNeWlGQzJwZVFkdVIwcWNrbURvdGFrUWs4cnNIR1VjdWhLODNsTmhEanRqL1dnaEVRejhaZ3JHelpweEFyWjAvdlNtT0lzd1JmWXZsWFRDT24rcVQxbmttaFg2VlhVaFY3blVEb2Rmc01BdTFrZGd4cVhyTTVvbDdVZzF5RXpGVFRtNU5PdXFWdjkwcFIyTnlFcVFMellPY0lUTnVLd2pUWVU3MURRUmE4ZWFibkxlM1NyS1ZnbnJtWllNT3VsREl0d0x3NitKWUJsNFFhbkZCYStZOEJWRDV1V0VKVnJsVW9XQW16bXFlSmNyNTBzVAo=" | base64 -d >> $HOME/.ssh/known_hosts
   - echo "MTU3LjIzMC4xNDkuMjQgZWNkc2Etc2hhMi1uaXN0cDI1NiBBQUFBRTJWalpITmhMWE5vWVRJdGJtbHpkSEF5TlRZQUFBQUlibWx6ZEhBeU5UWUFBQUJCQkp0ZUhCMmFYU05PbDhVY1cyRHIyUU5ydXA2RU5rNForVE04dkE3a0srY2s0QzBUaWlDaWcxZUdUS212dUM5bHNXWVlKcktHTU5FZG0ybjFQcmRmNXA4PQo=" | base64 -d >> $HOME/.ssh/known_hosts
+
+after_success:
+  - codecov
+  - bash <(curl -s https://codecov.io/bash)
 
 deploy:
   # Build Docker container and push to Docker Hub
