@@ -21,11 +21,11 @@ import com.kyledahlin.rulebot.EventWrapper
 import com.kyledahlin.rulebot.GuildWrapper
 import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
 import com.kyledahlin.rulebot.bot.RuleBotEvent
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
 import discord4j.common.util.Snowflake
 import org.junit.jupiter.api.BeforeEach
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 
 open class RuleBaseTest {
     protected val cache: DiscordCache = mock()

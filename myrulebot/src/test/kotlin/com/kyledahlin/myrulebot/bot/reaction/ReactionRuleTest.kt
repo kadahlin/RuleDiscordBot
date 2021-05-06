@@ -24,12 +24,12 @@ import com.kyledahlin.rulebot.GuildWrapper
 import com.kyledahlin.rulebot.NameSnowflake
 import com.kyledahlin.rulebot.bot.MessageCreated
 import com.kyledahlin.rulebot.sf
-import com.nhaarman.mockitokotlin2.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.*
 
 class ReactionRuleTest : RuleBaseTest() {
     private val _storage: ReactionStorage = mock {

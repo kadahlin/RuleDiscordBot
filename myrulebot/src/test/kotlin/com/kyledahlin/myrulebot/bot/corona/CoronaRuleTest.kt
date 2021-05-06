@@ -1,15 +1,3 @@
-package com.kyledahlin.myrulebot.bot.corona
-
-import com.kyledahlin.rulebot.EventWrapper
-import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-
 /*
 *Copyright 2020 Kyle Dahlin
 *
@@ -25,16 +13,30 @@ import org.junit.jupiter.api.Test
 *See the License for the specific language governing permissions and
 *limitations under the License.
 */
+package com.kyledahlin.myrulebot.bot.corona
+
+import arrow.core.right
+import com.kyledahlin.rulebot.EventWrapper
+import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 
 class CoronaRuleTest {
 
     private lateinit var _corona: CoronaRule
     private lateinit var _mockCache: GetDiscordWrapperForEvent
+    private lateinit var _api: CoronaApi
 
     @BeforeEach
     fun setup() {
         _mockCache = mock()
-        _corona = CoronaRule(_mockCache, mock())
+        _api = mock()
+        _corona = CoronaRule(_api, _mockCache, mock())
     }
 
     @Test
@@ -42,6 +44,7 @@ class CoronaRuleTest {
         val valid = CoronaRule.getValidTestEvent()
         val mockWrapper: EventWrapper = mock()
         whenever(_mockCache.invoke(any())).thenReturn(mockWrapper)
+        whenever(_api.getCasesAndDeaths()).thenReturn((1L to 1L).right())
 
         val wasHandled = _corona.handleEvent(valid)
         assert(wasHandled)

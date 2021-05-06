@@ -15,21 +15,20 @@
 */
 package com.kyledahlin.myrulebot.bot.corona
 
-import com.kyledahlin.rulebot.EventWrapper
 import com.kyledahlin.rulebot.Analytics
-import com.kyledahlin.rulebot.bot.*
-import io.ktor.client.request.*
-import it.skrape.core.htmlDocument
-import it.skrape.selects.html5.div
+import com.kyledahlin.rulebot.EventWrapper
+import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
+import com.kyledahlin.rulebot.bot.MessageCreated
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.RuleBotEvent
 import java.text.DecimalFormat
 import javax.inject.Inject
 
 private const val TRIGGER = "!corona"
-private const val CASE_WEBSITE = "https://www.worldometers.info/coronavirus/"
 
 class CoronaRule @Inject constructor(
-
-    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
+    private val coronaApi: CoronaApi,
+    private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     private val analytics: Analytics
 ) : Rule("Corona", getDiscordWrapperForEvent) {
 
@@ -48,43 +47,16 @@ class CoronaRule @Inject constructor(
     }
 
     private suspend fun postStats(wrapper: EventWrapper) {
-        val (cases, deaths) = getCasesAndDeaths() ?: 0L to 0L
-        if (cases == 0L && deaths == 0L) {
-            wrapper.sendMessage("unable to get corona data, either the virus is cured or this rule is broke")
-            return
-        }
-
-        val rate: Double = if (cases == 0L) 0.0 else (deaths / cases.toDouble()) * 100
-        wrapper.sendMessage(
-            "At this moment there are ${cases.toFormatString()} cases with ${deaths.toFormatString()} deaths (${rate.toFormatString()}% mortality rate)"
-        )
-    }
-
-    private suspend fun getCasesAndDeaths(): Pair<Long, Long>? {
-        val htmlContent = client.get<String>(CASE_WEBSITE)
-        var result: Pair<Long, Long>? = null
-        try {
-            htmlDocument(htmlContent) {
-                div {
-                    withClass = "maincounter-number"
-                    val mainCounters = findAll {
-                        take(3)
-                            .map { it.html }
-                            .map {
-                                val endFirstSpan = it.indexOf(">")
-                                val startSecondSpan = it.indexOf("<", startIndex = endFirstSpan)
-                                it.substring(endFirstSpan + 1, startSecondSpan).trim().replace(",", "")
-                            }
-                    }.map { it.toLong() }
-                    logDebug("parsed: $mainCounters")
-                    result = mainCounters[0] to mainCounters[1]
-                }
-            }
-        } catch (e: Exception) {
+        coronaApi.getCasesAndDeaths().fold({ e ->
             analytics.logRuleFailed(ruleName, "error while parsing worldinfo: ${e.message}")
             logError("error while parsing worldinfo, ${e.message}")
-        }
-        return result
+            wrapper.sendMessage("unable to get corona data, either the virus is cured or this rule is broke")
+        }, { (cases, deaths) ->
+            val rate: Double = (deaths / cases.toDouble()) * 100
+            wrapper.sendMessage(
+                "At this moment there are ${cases.toFormatString()} cases with ${deaths.toFormatString()} deaths (${rate.toFormatString()}% mortality rate)"
+            )
+        })
     }
 
     override fun getExplanation(): String? {
