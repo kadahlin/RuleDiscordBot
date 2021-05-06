@@ -12,7 +12,7 @@ services:
   - docker
 
 script:
-  - ./gradlew build jacocoTestReport installDist
+  - ./gradlew build installDist
 
 before_install:
   - pip install --user codecov
