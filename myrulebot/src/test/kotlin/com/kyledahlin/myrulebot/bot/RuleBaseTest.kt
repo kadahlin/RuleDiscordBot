@@ -27,13 +27,13 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
-open class RuleBaseTest {
+abstract class RuleBaseTest {
     protected val cache: DiscordCache = mock()
     protected val analytics: Analytics = mock()
     private val _events = mutableMapOf<RuleBotEvent, EventWrapper>()
     private val _guilds = mutableMapOf<Snowflake, GuildWrapper>()
 
-    protected val wrapper: GetDiscordWrapperForEvent = { event ->
+    protected val getWrapper: GetDiscordWrapperForEvent = { event ->
         _events[event]
     }
 
@@ -46,10 +46,13 @@ open class RuleBaseTest {
     }
 
     @BeforeEach
-    open fun setup() {
+    fun setup() {
         whenever(cache.getGuildWrapper(any())).thenAnswer {
             val snowflake = it.arguments[0] as Snowflake
             _guilds[snowflake]
         }
+        init()
     }
+
+    abstract fun init()
 }

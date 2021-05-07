@@ -44,10 +44,8 @@ class ReactionRuleTest : RuleBaseTest() {
     val guildWrapper: GuildWrapper = mock()
     val emoji = guildEmoji()
 
-    @BeforeEach
-    override fun setup() {
-        super.setup()
-        _rule = ReactionRule(wrapper, cache, _storage, analytics)
+    override fun init() {
+        _rule = ReactionRule(getWrapper, cache, _storage, analytics)
         addEvent(event, eventWrapper)
         addGuildWrapper(guildId, guildWrapper)
     }
