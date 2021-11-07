@@ -34,12 +34,11 @@ pipeline {
       }
     }
 
-    state('Create docker image') {
+    stage('Create docker image') {
       steps {
         sh 'docker build -t brinkhorizon/honkbot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN}'
       }
     }
-
 
     stage('Publish to ECR') {
       steps {
