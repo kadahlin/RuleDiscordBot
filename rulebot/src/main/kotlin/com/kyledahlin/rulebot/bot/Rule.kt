@@ -17,9 +17,11 @@ package com.kyledahlin.rulebot.bot
 
 import arrow.core.Either
 import arrow.core.right
-import com.kyledahlin.rulebot.EventWrapper
-import com.kyledahlin.rulebot.Response
+import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper
+import com.kyledahlin.rulebot.*
+import com.kyledahlin.rulebot.bot.Logger.logInfo
 import discord4j.common.util.Snowflake
+import discord4j.core.DiscordClient
 import discord4j.core.`object`.entity.Message
 import io.ktor.client.*
 import io.ktor.client.engine.apache.*
@@ -28,16 +30,18 @@ import io.ktor.client.features.json.serializer.*
 import suspendGuild
 import java.io.File
 
-typealias GetDiscordWrapperForEvent = (@JvmSuppressWildcards RuleBotEvent) -> @JvmSuppressWildcards EventWrapper?
-typealias GetBotIds = () -> @JvmSuppressWildcards Set<Snowflake>
-
 /**
  * A self contained piece of logic that operates on the messages given to it.
  */
 abstract class Rule(
     val ruleName: String,
-    private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent
 ) {
+
+    protected lateinit var context: RulebotContext
+
+    internal fun setContext(client: DiscordClient) {
+        context = RulebotContextImpl(client = client)
+    }
 
     enum class Priority {
         HIGH, NORMAL, LOW
@@ -50,40 +54,27 @@ abstract class Rule(
      */
     abstract suspend fun handleEvent(event: RuleBotEvent): Boolean
 
+    abstract fun handlesCommand(name: String): Boolean
+
     /**
      * Process this event from *anywhere* and determine if action is necessary, or return information based on this request
      */
     open suspend fun configure(data: Any): Either<Exception, Any> = emptyMap<String, String>().right()
 
-    /**
-     * Get a human readable description of how to use this rule
-     */
-    abstract fun getExplanation(): String?
+    @OverridingMethodsMustInvokeSuper
+    open suspend fun onGuildCreate(context: GuildCreateContext) {
+        logInfo { "Attaching commands" }
+    }
+
+    open suspend fun onSlashCommand(context: ChatInputInteractionContext) {}
+
+    open suspend fun onUserCommand(context: UserInteractionContext) {}
+
+    open suspend fun onButtonEvent(context: ButtonInteractionEventContext) {}
 
     abstract val priority: Priority
 
     protected open fun isAdminOnly() = true
-
-    /**
-     * Log information that is only useful when debugging
-     */
-    protected fun logDebug(logMessage: String) {
-        Logger.logRuleDebug(this, "[${ruleName}Rule] $logMessage")
-    }
-
-    /**
-     * Log information that is useful when seeing past actions
-     */
-    protected fun logInfo(logMessage: String) {
-        Logger.logRuleInfo(this, "[${ruleName}Rule] $logMessage")
-    }
-
-    /**
-     * Log information related to a program error
-     */
-    protected fun logError(logMessage: String) {
-        Logger.logRuleError(this, "[${ruleName}Rule] $logMessage")
-    }
 
     override fun equals(other: Any?): Boolean {
         if (other is Rule) {
@@ -92,15 +83,15 @@ abstract class Rule(
         return false
     }
 
-    protected suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
-        val wrapper = getDiscordWrapperForEvent(this) ?: return false
-        val roles = wrapper.getRoles()
-        val isAdmin = roles.any { it.name == "Clown" }
-        val isOwner = wrapper.getGuildOwnerId() == author
-
-        logDebug("checking if user is admin [$isAdmin] or isOwner [$isOwner]")
-        return isAdmin || isOwner
-    }
+//    protected suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
+//        val wrapper = getDiscordWrapperForEvent(this) ?: return false
+//        val roles = wrapper.getRoles()
+//        val isAdmin = roles.any { it.name == "Clown" }
+//        val isOwner = wrapper.getGuildOwnerId() == author
+//
+//        logDebug { "checking if user is admin [$isAdmin] or isOwner [$isOwner]" }
+//        return isAdmin || isOwner
+//    }
 }
 
 data class RoleSnowflake(
@@ -141,9 +132,9 @@ private fun distortText(text: String): String {
     return text.map { char ->
         val random = java.util.Random().nextInt(9)
         if (random <= 3) {
-            char.toUpperCase()
+            char.uppercaseChar()
         } else {
-            char.toLowerCase()
+            char.lowercaseChar()
         }
     }.joinToString(separator = "") { it.toString() }
 }

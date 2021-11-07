@@ -29,22 +29,15 @@ import java.io.IOException
 object MyRulebot {
     fun create(
         token: String,
-        rulesToLog: Collection<String>,
         logLevel: LogLevel,
         analytics: Analytics,
+        rulesToLog: Collection<String> = emptySet()
     ): RuleBot {
-        val coreComponent = DaggerBotComponent
+        val myRules = DaggerMyRuleBotComponent
             .builder()
-            .setToken(token)
-            .setAnalytics(analytics)
             .build()
-        val myRules = DaggerMyRuleBotComponent.builder().botComponent(coreComponent).build().rules()
-        val builder = coreComponent.botBuilder().apply {
-            addRules(myRules)
-            logRules(*rulesToLog.toTypedArray())
-            this.logLevel = logLevel
-        }
-        return builder.build()
+            .rules()
+        return RuleBot.make(token = token, logLevel = logLevel, analytics = analytics, rules = myRules, rulesToLog = rulesToLog)
     }
 }
 

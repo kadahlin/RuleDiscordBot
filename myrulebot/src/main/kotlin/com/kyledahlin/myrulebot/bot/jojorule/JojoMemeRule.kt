@@ -17,13 +17,13 @@ package com.kyledahlin.myrulebot.bot.jojorule
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.rulebot.Analytics
-import com.kyledahlin.rulebot.bot.*
-import discord4j.common.util.Snowflake
-import io.ktor.client.request.*
+import com.kyledahlin.rulebot.ChatInputInteractionContext
+import com.kyledahlin.rulebot.GuildCreateContext
+import com.kyledahlin.rulebot.bot.Logger.logDebug
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.RuleBotEvent
+import discord4j.discordjson.json.ApplicationCommandRequest
 import javax.inject.Inject
-
-private const val RULE_PHRASE = "spicy jojo meme"
-private const val JOJO_FILE_NAME = "jojo_id_file"
 
 /**
  * Post one of the top images for the month from r/ShitPostCrusaders
@@ -32,63 +32,57 @@ private const val JOJO_FILE_NAME = "jojo_id_file"
  */
 @MyRuleBotScope
 internal class JojoMemeRule @Inject constructor(
-    val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     val storage: JojoMemeStorage,
+    val _api: JojoApi,
     private val analytics: Analytics
 ) :
-    Rule("JoJoMeme", getDiscordWrapperForEvent) {
+    Rule("jojo") {
 
     override val priority: Priority
         get() = Priority.LOW
 
     //the fetched posts that have already posted while this rule has been active
-    private val mPostedIds = mutableMapOf<Snowflake, MutableSet<String>>()
+    private val _cachedIds = mutableMapOf<String, MutableSet<String>>()
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
-        if (event !is MessageCreated) return false
-        val doesContain = event.containsJojoRule()
-        if (doesContain) {
-            postJojoMemeFrom(event)
-        }
-        return doesContain
+        return false
     }
 
-    override fun getExplanation(): String? {
-        return StringBuilder().apply {
-            appendLine("Post a message with the phrase '$RULE_PHRASE'")
-        }.toString()
+    override fun handlesCommand(name: String): Boolean {
+        return name == ruleName
     }
 
-    private fun MessageCreated.containsJojoRule() = content.toLowerCase().contains(
-        RULE_PHRASE
-    )
+    override suspend fun onGuildCreate(context: GuildCreateContext) {
+        super.onGuildCreate(context)
+        // Build our command's definition
+        val greetCmdRequest = ApplicationCommandRequest.builder()
+            .name("jojo")
+            .description("Post a spicy jojo meme")
+            .build()
 
-    private suspend fun postJojoMemeFrom(event: MessageCreated) {
-        val wrapper = getDiscordWrapperForEvent(event) ?: return
-        val guildId = wrapper.getGuildId() ?: return
+        context.registerApplicationCommand(greetCmdRequest)
+    }
 
-        if (mPostedIds[guildId] == null) {
-            mPostedIds[guildId] = storage.getIdsForServer(guildId).toMutableSet()
-        }
+    override suspend fun onSlashCommand(context: ChatInputInteractionContext) {
 
-        val redditResponse = client.get<RedditResponse>(
-            JOJO_REDDIT
-        ) {
-            header(
-                "User-Agent",
-                "JoJoMeme"
-            )    //see https://www.reddit.com/r/redditdev/comments/5w60r1/error_429_too_many_requests_i_havent_made_many/
-        }
-        val childList =
-            redditResponse.data.children   //TODO: figure out kotlinx list deserialization a bit better
+        logDebug { "handling slash for jojo" }
+        val posts = _api.getPosts()
 
-        val dataToPost = childList.firstOrNull {
-            !mPostedIds.getOrDefault(guildId, emptySet()).contains(it.data.id) && !it.data.isVideo
+        val guildId = context.channelId
+        val dataToPost = posts.firstOrNull {
+            !_cachedIds.getOrDefault(guildId.asString(), emptySet()).contains(it.data.id) && !it.data.isVideo
         }?.data ?: return
 
         storage.saveIdToGuild(dataToPost.id, guildId)
 
-        mPostedIds[guildId]?.add(dataToPost.id)
-        wrapper.sendMessage("${dataToPost.title}\n${dataToPost.url}")
+        _cachedIds.getOrPut(guildId.asString()) { mutableSetOf() }.add(dataToPost.id)
+        logDebug { "sending $dataToPost" }
+
+        context.reply {
+            content { dataToPost.title }
+            addEmbed {
+                image { dataToPost.url }
+            }
+        }
     }
 }

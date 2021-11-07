@@ -15,10 +15,27 @@
 */
 package com.kyledahlin.myrulebot.bot.jojorule
 
+import com.kyledahlin.rulebot.bot.client
+import io.ktor.client.request.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import javax.inject.Inject
 
 internal const val JOJO_REDDIT = "https://www.reddit.com/r/ShitPostcrusaders/top.json?sort=top&t=week"
+
+open class JojoApi @Inject constructor() {
+    internal open suspend fun getPosts(): List<RedditChild> {
+        val redditResponse = client.get<RedditResponse>(
+            JOJO_REDDIT
+        ) {
+            header(
+                "User-Agent",
+                "JoJoMeme"
+            )    //see https://www.reddit.com/r/redditdev/comments/5w60r1/error_429_too_many_requests_i_havent_made_many/
+        }
+        return redditResponse.data.children   //TODO: figure out kotlinx list deserialization a bit better
+    }
+}
 
 @Serializable
 internal data class RedditResponse(

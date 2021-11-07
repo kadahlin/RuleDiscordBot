@@ -16,35 +16,43 @@
 package com.kyledahlin.myrulebot.bot.corona
 
 import arrow.core.right
+import com.kyledahlin.myrulebot.TestChatInputInteractionContext
 import com.kyledahlin.myrulebot.bot.RuleBaseTest
-import com.kyledahlin.rulebot.EventWrapper
+import com.kyledahlin.myrulebot.builders.hasContent
+import com.kyledahlin.myrulebot.builders.isNamed
+import com.kyledahlin.myrulebot.builders.isSlashCommand
+import com.kyledahlin.myrulebot.testGuildCreation
+import io.mockk.coEvery
+import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.runBlocking
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import strikt.api.expectThat
 
 class CoronaRuleTest : RuleBaseTest() {
 
     private lateinit var _corona: CoronaRule
+
+    @MockK
     private lateinit var _api: CoronaApi
 
     override fun init() {
-        _api = mock()
-        _corona = CoronaRule(_api, getWrapper, analytics)
+        _corona = CoronaRule(_api, analytics)
     }
 
     @Test
-    fun `corona should respond to the trigger`() = runBlocking {
-        val valid = CoronaRule.getValidTestEvent()
-        val mockWrapper: EventWrapper = mock()
-        addEvent(valid, mockWrapper)
-        whenever(_api.getCasesAndDeaths()).thenReturn((1L to 1L).right())
+    fun `corona should respond to the trigger`(): Unit = runBlocking {
+        coEvery { _api.getCasesAndDeaths() } returns ((100L to 50L).right())
+        val context = TestChatInputInteractionContext()
+        _corona.onSlashCommand(context)
+        expectThat(context.replies.first())
+            .hasContent("At this moment there are 100.00 cases with 50.00 deaths (50.00% mortality rate)")
+    }
 
-        val wasHandled = _corona.handleEvent(valid)
-        assertThat(wasHandled).isTrue
-        verify(mockWrapper).sendMessage(any<String>())
+    @Test
+    fun `corona should register its command on guild create`(): Unit = runBlocking {
+        val request = testGuildCreation(_corona).first()
+        expectThat(request)
+            .isNamed("corona")
+            .isSlashCommand()
     }
 }

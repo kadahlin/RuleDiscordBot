@@ -16,14 +16,12 @@
 package com.kyledahlin.rulebot.bot
 
 import com.kyledahlin.rulebot.Analytics
-import com.kyledahlin.rulebot.DiscordCache
 import com.kyledahlin.rulebot.RuleBot
 import dagger.BindsInstance
 import dagger.Component
 import dagger.Module
 import dagger.Provides
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.newSingleThreadContext
 import javax.inject.Named
 import javax.inject.Scope
@@ -31,15 +29,6 @@ import javax.inject.Scope
 @Module
 internal class FunctionModule {
 
-    @Provides
-    @RuleBotScope
-    fun providesGetDiscordWrapper(cache: DiscordCache): GetDiscordWrapperForEvent = cache::getWrapperForEvent
-
-    @Provides
-    @RuleBotScope
-    fun providesGetBotIds(cache: DiscordCache): GetBotIds = cache::getBotIds
-
-    @ObsoleteCoroutinesApi
     @Provides
     @RuleBotScope
     @Named("storage")
@@ -50,15 +39,12 @@ internal class FunctionModule {
 
 @RuleBotScope
 @Component(modules = [FunctionModule::class])
-interface BotComponent {
+internal interface BotComponent {
 
     fun botBuilder(): RuleBot.Builder
 
     @Named("storage")
     fun storageDispatcher(): CoroutineDispatcher
-    fun cache(): DiscordCache
-    fun discordWrapper(): GetDiscordWrapperForEvent
-    fun botIds(): GetBotIds
     fun analytics(): Analytics
 
     @Component.Builder

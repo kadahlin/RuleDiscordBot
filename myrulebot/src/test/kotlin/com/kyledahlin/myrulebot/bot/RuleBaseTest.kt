@@ -16,41 +16,16 @@
 package com.kyledahlin.myrulebot.bot
 
 import com.kyledahlin.rulebot.Analytics
-import com.kyledahlin.rulebot.DiscordCache
-import com.kyledahlin.rulebot.EventWrapper
-import com.kyledahlin.rulebot.GuildWrapper
-import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
-import com.kyledahlin.rulebot.bot.RuleBotEvent
-import discord4j.common.util.Snowflake
+import io.mockk.MockKAnnotations
+import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
 
 abstract class RuleBaseTest {
-    protected val cache: DiscordCache = mock()
-    protected val analytics: Analytics = mock()
-    private val _events = mutableMapOf<RuleBotEvent, EventWrapper>()
-    private val _guilds = mutableMapOf<Snowflake, GuildWrapper>()
-
-    protected val getWrapper: GetDiscordWrapperForEvent = { event ->
-        _events[event]
-    }
-
-    protected fun addEvent(event: RuleBotEvent, wrapper: EventWrapper) {
-        _events[event] = wrapper
-    }
-
-    protected fun addGuildWrapper(id: Snowflake, wrapper: GuildWrapper) {
-        _guilds[id] = wrapper
-    }
+    protected val analytics: Analytics = mockk()
 
     @BeforeEach
     fun setup() {
-        whenever(cache.getGuildWrapper(any())).thenAnswer {
-            val snowflake = it.arguments[0] as Snowflake
-            _guilds[snowflake]
-        }
+        MockKAnnotations.init(this)
         init()
     }
 

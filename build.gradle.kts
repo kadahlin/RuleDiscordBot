@@ -2,7 +2,6 @@ buildscript {
     repositories {
         mavenCentral()
         maven (url = "https://kotlin.bintray.com/kotlinx")
-        jcenter()
     }
 
     dependencies {
@@ -15,6 +14,5 @@ allprojects {
     repositories {
         mavenCentral()
         maven(url = "https://kotlin.bintray.com/kotlinx")
-        jcenter()
     }
 }

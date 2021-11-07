@@ -16,8 +16,10 @@
 
 package com.kyledahlin.rulebot.bot
 
+import java.util.*
+
 enum class LogLevel(val value: Int) {
-    DEBUG(1), INFO(2), ERROR(2)
+    DEBUG(1), INFO(2), ERROR(3)
 }
 
 /**
@@ -34,32 +36,32 @@ object Logger {
     }
 
     fun setRulesToLog(names: Collection<String>) {
-        rulesToLog = names.map { it.toLowerCase() }.toSet()
+        rulesToLog = names.map { it.lowercase(Locale.getDefault()) }.toSet()
         println("Logging specific rules: [$rulesToLog]")
     }
 
-    internal fun logRuleError(rule: Rule, message: String) = logIfSpecified(rule, message, LogLevel.ERROR)
+    internal fun Rule.logError(message: () -> String) = logIfSpecified(this, message, LogLevel.ERROR)
 
-    internal fun logRuleDebug(rule: Rule, message: String) = logIfSpecified(rule, message, LogLevel.DEBUG)
+    internal fun Rule.logDebug(message: () -> String) = logIfSpecified(this, message, LogLevel.DEBUG)
 
-    internal fun logRuleInfo(rule: Rule, message: String) = logIfSpecified(rule, message, LogLevel.INFO)
+    internal fun Rule.logInfo(message: () -> String) = logIfSpecified(this, message, LogLevel.INFO)
 
-    private fun logIfSpecified(rule: Rule, message: String, logLevel: LogLevel) {
-        val isRuleToLog = rulesToLog.isEmpty() || rulesToLog.contains(rule.ruleName.toLowerCase())
+    private fun logIfSpecified(rule: Rule, message: () -> String, logLevel: LogLevel) {
+        val isRuleToLog = rulesToLog.isEmpty() || rulesToLog.contains(rule.ruleName.lowercase(Locale.getDefault()))
         if (isRuleToLog) {
-            log(message, logLevel)
+            log({ "[${rule.ruleName}]: ${message()} " }, logLevel)
         }
     }
 
-    fun logDebug(message: String) = log(message, LogLevel.DEBUG)
+    fun logDebug(message: () -> String) = log(message, LogLevel.DEBUG)
 
-    fun logInfo(message: String) = log(message, LogLevel.INFO)
+    fun logInfo(message: () -> String) = log(message, LogLevel.INFO)
 
-    fun logError(message: String) = log(message, LogLevel.ERROR)
+    fun logError(message: () -> String) = log(message, LogLevel.ERROR)
 
-    private fun log(message: String, level: LogLevel) {
+    private fun log(message: () -> String, level: LogLevel) {
         if (level >= logLevel) {
-            println(message)
+            println("[${level.name}]: ${message()}")
         }
     }
 }

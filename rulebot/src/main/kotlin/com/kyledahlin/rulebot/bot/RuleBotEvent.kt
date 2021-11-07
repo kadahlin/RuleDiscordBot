@@ -15,7 +15,6 @@
 */
 package com.kyledahlin.rulebot.bot
 
-import com.kyledahlin.rulebot.AttachmentUrl
 import discord4j.common.util.Snowflake
 
 sealed class RuleBotEvent(val id: Snowflake)
@@ -24,5 +23,4 @@ class MessageCreated(
     val content: String = "",
     val author: Snowflake = Snowflake.of(1L),
     val snowflakes: Set<RoleSnowflake> = emptySet(),
-    val attachments: Collection<AttachmentUrl> = emptySet()
 ) : RuleBotEvent(id)

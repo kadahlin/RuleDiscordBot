@@ -17,17 +17,18 @@ package com.kyledahlin.rulebot
 
 import arrow.core.Either
 import com.kyledahlin.rulebot.RuleBot.Builder
-import com.kyledahlin.rulebot.bot.LogLevel
-import com.kyledahlin.rulebot.bot.Logger
-import com.kyledahlin.rulebot.bot.Rule
-import com.kyledahlin.rulebot.bot.RuleBotScope
+import com.kyledahlin.rulebot.bot.*
 import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
 import discord4j.core.event.domain.guild.GuildCreateEvent
+import discord4j.core.event.domain.interaction.ButtonInteractionEvent
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
+import discord4j.core.event.domain.interaction.UserInteractionEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 
@@ -39,11 +40,12 @@ import javax.inject.Inject
 class RuleBot private constructor(
     private val token: String,
     private val ruleManager: RuleManager,
-    private val discordCache: DiscordCache,
     private val logLevel: LogLevel,
     private val rulesToLog: Set<String>,
     private val analytics: Analytics
 ) {
+
+    private lateinit var client: DiscordClient
 
     /**
      * Builder for making a new [RuleBot]
@@ -52,7 +54,6 @@ class RuleBot private constructor(
     class Builder @Inject internal constructor(
         private val token: String,
         private val ruleManager: RuleManager,
-        private val cache: DiscordCache,
         private val analytics: Analytics
     ) {
         var logLevel: LogLevel = LogLevel.DEBUG
@@ -71,15 +72,17 @@ class RuleBot private constructor(
         }
 
         fun build(): RuleBot {
-            return RuleBot(token, ruleManager, cache, logLevel, rulesToLog, analytics)
+            return RuleBot(token, ruleManager, logLevel, rulesToLog, analytics)
         }
     }
 
     fun start() {
         Logger.setRulesToLog(rulesToLog)
         Logger.setLogLevel(logLevel)
-        val client = DiscordClient.create(token)
+        client = DiscordClient.create(token)
         val gateway = client.login().block()!!
+
+        ruleManager.setContext(client)
 
         gateway.on(ReadyEvent::class.java)
             .subscribe { ready ->
@@ -89,25 +92,37 @@ class RuleBot private constructor(
                         "RuleBot is logged in as ${ready.self.username} for ${ready.guilds.size} guilds"
                     )
                 }
-                discordCache.addBotIds(setOf(ready.self.id))
             }
 
         gateway.on(MessageCreateEvent::class.java)
             .filter { it.message.author.map { user -> !user.isBot }.orElse(false) }
             .filter { event -> event.message.content.isNotEmpty() }
             .subscribe({ messageEvent ->
-                ruleManager.processMessageCreateEvent(messageEvent)
+                runBlocking { ruleManager.processMessageCreateEvent(messageEvent) }
             }, { throwable ->
-                Logger.logError("throwable in message create subscription, $throwable")
+                Logger.logError { "throwable in message create subscription, $throwable" }
                 throwable.printStackTrace()
             })
 
         gateway.on(GuildCreateEvent::class.java)
             .subscribe({
-                discordCache.addGuild(it.guild)
+                //discordCache.addGuild(it.guild)
+                runBlocking { ruleManager.processGuildCreateEvent(it) }
             }, { throwable ->
-                Logger.logError("throwable in guild create subscription, $throwable")
+                Logger.logError { "throwable in guild create subscription, $throwable" }
             })
+
+        gateway.on(ChatInputInteractionEvent::class.java).subscribe { command ->
+            runBlocking { ruleManager.processSlashCommand(command) }
+        }
+
+        gateway.on(UserInteractionEvent::class.java).subscribe { command ->
+            runBlocking { ruleManager.processUserInteraction(command) }
+        }
+
+        gateway.on(ButtonInteractionEvent::class.java).subscribe { command ->
+            runBlocking { ruleManager.processButtonEvent(command) }
+        }
     }
 
     suspend fun configureRule(ruleName: String, data: Any): Either<Exception, Any>? {
@@ -119,14 +134,33 @@ class RuleBot private constructor(
     }
 
     suspend fun getGuildInfo(): List<GuildNameAndId> {
-        return discordCache.getGuildWrappers().map { GuildNameAndId(it.name, it.id.asString()) }
+        return emptyList()
     }
 
     suspend fun getMemberInfo(guildId: String): Collection<MemberNameAndId>? {
-        val wrapper = discordCache.getGuildWrapper(guildId.sf())
-        return wrapper
-            ?.getMemberNameSnowflakes()
-            ?.map { MemberNameAndId(it.first, it.second.asString()) }
+        return null
+    }
+
+    companion object {
+        fun make(
+            token: String,
+            logLevel: LogLevel,
+            analytics: Analytics,
+            rules: Collection<Rule>,
+            rulesToLog: Collection<String>
+        ): RuleBot {
+            val coreComponent = DaggerBotComponent
+                .builder()
+                .setToken(token)
+                .setAnalytics(analytics)
+                .build()
+            val builder = coreComponent.botBuilder().apply {
+                addRules(rules)
+                logRules(*rulesToLog.toTypedArray())
+                this.logLevel = logLevel
+            }
+            return builder.build()
+        }
     }
 }
 

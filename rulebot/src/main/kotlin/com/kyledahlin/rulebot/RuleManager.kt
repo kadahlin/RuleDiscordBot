@@ -17,26 +17,22 @@ package com.kyledahlin.rulebot
 
 import arrow.core.Either
 import com.kyledahlin.rulebot.bot.*
-import discord4j.core.`object`.entity.Guild
-import discord4j.core.`object`.entity.Member
-import discord4j.core.`object`.entity.channel.MessageChannel
+import com.kyledahlin.rulebot.bot.Logger.logDebug
+import discord4j.core.DiscordClient
+import discord4j.core.event.domain.guild.GuildCreateEvent
+import discord4j.core.event.domain.interaction.ButtonInteractionEvent
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
+import discord4j.core.event.domain.interaction.UserInteractionEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import suspendChannel
-import suspendCreateMessage
 import suspendGuild
-import java.lang.Exception
 import javax.inject.Inject
 
-private const val RULES = "rules please"
-
 @RuleBotScope
-internal class RuleManager @Inject constructor(
-    private val cache: DiscordCache
-) {
+internal class RuleManager @Inject constructor() {
 
     private var _rules = mutableSetOf<Rule>()
+    private lateinit var client: DiscordClient
 
     fun addRules(rules: Collection<Rule>) {
         _rules.apply {
@@ -45,37 +41,55 @@ internal class RuleManager @Inject constructor(
         }
     }
 
+    fun setContext(client: DiscordClient) {
+        this.client = client
+        _rules.forEach { it.setContext(client) }
+    }
+
     suspend fun configureRule(ruleName: String, data: Any): Either<Exception, Any>? {
         return _rules.firstOrNull { it.ruleName.equals(ruleName, ignoreCase = true) }?.configure(data)
     }
 
-    fun processMessageCreateEvent(messageEvent: MessageCreateEvent) {
-        Logger.logDebug("processing event for ${_rules.size} rules")
-        GlobalScope.launch {
-            Logger.logDebug("got message event $messageEvent")
-            val (messageCreated, guild, channel, member) = convertMessageCreateEvent(messageEvent)
-            cache.createEventWrapperEntry(
-                messageCreated as RuleBotEvent,
-                channel as MessageChannel,
-                guild as Guild,
-                member as Member
-            )
-            _rules.any {
-                Logger.logDebug("handling messaging for ${it.ruleName}")
-                val wasHandled = it.handleEvent(messageCreated)
-                Logger.logDebug("message was ${if (wasHandled) "" else "not "}handled by ${it.ruleName}")
-                wasHandled
-            }
-            val content = messageEvent.message.content
-            if (content.startsWith(RULES)) {
-                val contentPieces = messageEvent.message.content.split(" ")
-                if (contentPieces.size > 2) {
-                    messageEvent.message.suspendChannel()?.printExplanationOfRule(contentPieces[2])
-                } else {
-                    messageEvent.message.suspendChannel()?.printRules()
-                }
-            }
+    suspend fun processMessageCreateEvent(messageEvent: MessageCreateEvent) {
+        logDebug { "processing event for ${_rules.size} rules" }
+        logDebug { "got message event $messageEvent" }
+//        val (messageCreated, guild, channel, member) = convertMessageCreateEvent(messageEvent)
+//        _rules.any {
+//            logDebug { "handling messaging for ${it.ruleName}" }
+//            val wasHandled = it.handleEvent(messageCreated)
+//            logDebug { "message was ${if (wasHandled) "" else "not "}handled by ${it.ruleName}" }
+//            wasHandled
+//        }
+    }
+
+    suspend fun processGuildCreateEvent(event: GuildCreateEvent) {
+        Logger.logInfo { "processing join for guild ${event.guild.name}" }
+        _rules.forEach { it.onGuildCreate(GuildCreateContextImpl(client, event)) }
+    }
+
+    suspend fun processSlashCommand(event: ChatInputInteractionEvent) {
+        logDebug { "checking for chat event ${event.commandName}" }
+        val rule = _rules
+            .firstOrNull { it.handlesCommand(event.commandName) }
+        if (rule == null) {
+            logDebug { "got slash command for ${event.commandName} but no matching rule was found" }
         }
+        rule?.onSlashCommand(ChatInputInteractionContextImpl(event))
+    }
+
+    suspend fun processUserInteraction(event: UserInteractionEvent) {
+        logDebug { "checking for user event ${event.commandName}" }
+        val rule = _rules
+            .firstOrNull { it.handlesCommand(event.commandName) }
+        if (rule == null) {
+            logDebug { "got user event for ${event.commandName} but no matching rule was found" }
+        }
+        rule?.onUserCommand(UserInteractionContextImpl(event))
+    }
+
+    suspend fun processButtonEvent(event: ButtonInteractionEvent) {
+        logDebug { "checking for button event ${event.customId}" }
+        _rules.forEach { it.onButtonEvent(ButtonInteractionEventContextImpl(event)) }
     }
 
     private suspend fun convertMessageCreateEvent(event: MessageCreateEvent): List<Any?> {
@@ -85,33 +99,15 @@ internal class RuleManager @Inject constructor(
         val snowflakes = event.message.getSnowflakes()
         val channel = event.message.suspendChannel()
         val member = if (event.member.isPresent) event.member.get() else null
-        val attachments = event.message.attachments.map { AttachmentUrl(it.url) }
+//        val attachments = event.message.attachments.map { AttachmentUrl(it.url) }
 
-        val messageCreated = MessageCreated(event.message.id, content, author, snowflakes, attachments)
+        val messageCreated = MessageCreated(event.message.id, content, author, snowflakes)
         return listOf(messageCreated, guild, channel, member)
-    }
-
-    private suspend fun MessageChannel.printRules() {
-        val ruleMessages = _rules
-            .filterNot { it.getExplanation() == null }
-            .sortedBy { it.ruleName }
-            .mapIndexed { index, rule -> "${index}. ${rule.ruleName}" }
-            .joinToString(separator = "\n")
-
-        suspendCreateMessage(ruleMessages)
-    }
-
-    private suspend fun MessageChannel.printExplanationOfRule(name: String) {
-        val ruleMessage = _rules.firstOrNull { it.ruleName == name }?.getExplanation()
-        if (ruleMessage == null) {
-            suspendCreateMessage("No rule with that name")
-        } else {
-            suspendCreateMessage(ruleMessage)
-        }
     }
 
     internal suspend fun getRuleNames(): Set<String> {
         return _rules.map { it.ruleName }.toSet()
     }
+
 }
 

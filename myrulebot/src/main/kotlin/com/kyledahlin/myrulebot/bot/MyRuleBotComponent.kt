@@ -16,40 +16,42 @@
 package com.kyledahlin.myrulebot.bot
 
 import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.FirestoreFactory
-import com.google.cloud.firestore.FirestoreOptions
 import com.google.firebase.cloud.FirestoreClient
+import com.kyledahlin.myrulebot.app.LocalAnalytics
 import com.kyledahlin.myrulebot.bot.corona.CoronaRule
 import com.kyledahlin.myrulebot.bot.jojorule.JojoMemeRule
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRule
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorage
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorageImpl
-import com.kyledahlin.myrulebot.bot.reaction.ReactionRule
-import com.kyledahlin.myrulebot.bot.reaction.ReactionStorage
-import com.kyledahlin.myrulebot.bot.reaction.ReactionStorageImpl
 import com.kyledahlin.myrulebot.bot.rockpaperscissorsrule.RockPaperScissorsRule
-import com.kyledahlin.myrulebot.bot.timeoutrule.TimeoutRule
-import com.kyledahlin.rulebot.bot.BotComponent
+import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.bot.Rule
 import dagger.Binds
 import dagger.Component
 import dagger.Module
 import dagger.Provides
 import dagger.multibindings.ElementsIntoSet
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.newSingleThreadContext
+import javax.inject.Named
 import javax.inject.Scope
 
 @Scope
 @Retention
 annotation class MyRuleBotScope
 
-@Component(modules = [MyRuleBotModule::class, StorageModule::class], dependencies = [BotComponent::class])
+@Component(modules = [MyRuleBotModule::class, StorageModule::class])
 @MyRuleBotScope
 interface MyRuleBotComponent {
     fun rules(): Set<Rule>
 }
 
 @Module
-internal class MyRuleBotModule {
+internal abstract class MyRuleBotModule {
+
+    @Binds
+    abstract fun providesAnalytics(local: LocalAnalytics): Analytics
+
     companion object {
         @JvmStatic
         @Provides
@@ -58,14 +60,12 @@ internal class MyRuleBotModule {
         fun providesRules(
             jojoMemeRule: JojoMemeRule,
             rockPaperScissorsRule: RockPaperScissorsRule,
-            timeoutRule: TimeoutRule,
             coronaRule: CoronaRule,
-            reactionRule: ReactionRule,
             keyValueRule: KeyValueRule
         ): Set<Rule> {
             return setOf(
                 jojoMemeRule, rockPaperScissorsRule,
-                timeoutRule, coronaRule, reactionRule, keyValueRule
+                coronaRule, keyValueRule
             )
         }
 
@@ -73,14 +73,17 @@ internal class MyRuleBotModule {
         @Provides
         @MyRuleBotScope
         fun bindsFirestore(): Firestore = FirestoreClient.getFirestore()
+
+        @JvmStatic
+        @Provides
+        @MyRuleBotScope
+        @Named("storage")
+        fun providesStorageDispatcher(): CoroutineDispatcher = newSingleThreadContext("storage")
     }
 }
 
 @Module
 internal abstract class StorageModule {
-    @MyRuleBotScope
-    @Binds
-    abstract fun bindsReactionStorage(reactionStorageImpl: ReactionStorageImpl): ReactionStorage
 
     @MyRuleBotScope
     @Binds

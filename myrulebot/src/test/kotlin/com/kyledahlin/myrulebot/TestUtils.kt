@@ -15,20 +15,35 @@
 */
 package com.kyledahlin.myrulebot
 
-import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
-import com.kyledahlin.rulebot.GuildEmojiWrapper
+import com.kyledahlin.rulebot.ChatInputInteractionContext
+import com.kyledahlin.rulebot.GuildCreateContext
+import com.kyledahlin.rulebot.bot.Rule
 import discord4j.common.util.Snowflake
-import org.assertj.core.api.Assertions
+import discord4j.discordjson.json.ApplicationCommandRequest
+import discord4k.builders.InteractionApplicationCommandCallbackSpecKt
+import io.mockk.coEvery
+import io.mockk.mockk
+import io.mockk.slot
 
-internal fun guildEmoji(id: Snowflake = Snowflake.of(1L), name: String = "", isAnimated: Boolean = false) =
-    GuildEmojiWrapper(id, name, isAnimated)
-
-internal fun <T> Either<T, *>.assertLeft(value: T) {
-    Assertions.assertThat(this).isEqualTo(value.left())
+suspend fun testGuildCreation(rule: Rule): List<ApplicationCommandRequest> {
+    val slot = slot<ApplicationCommandRequest>()
+    val result = mutableListOf<ApplicationCommandRequest>()
+    val context: GuildCreateContext = mockk {
+        coEvery { registerApplicationCommand(request = capture(slot)) } answers {
+            result.add(slot.captured)
+        }
+    }
+    rule.onGuildCreate(context)
+    return result
 }
 
-internal fun <T> Either<*, T>.assertRight(value: T) {
-    Assertions.assertThat(this).isEqualTo(value.right())
+class TestChatInputInteractionContext :
+    ChatInputInteractionContext {
+    val replies = mutableListOf<InteractionApplicationCommandCallbackSpecKt>()
+    override val channelId: Snowflake
+        get() = Snowflake.of("1")
+
+    override suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit) {
+        replies.add(InteractionApplicationCommandCallbackSpecKt().apply(spec))
+    }
 }

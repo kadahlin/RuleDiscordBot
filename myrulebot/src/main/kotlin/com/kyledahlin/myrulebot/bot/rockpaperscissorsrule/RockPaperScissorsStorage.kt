@@ -16,7 +16,6 @@
 package com.kyledahlin.myrulebot.bot.rockpaperscissorsrule
 
 import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.QueryDocumentSnapshot
 import com.google.cloud.firestore.QuerySnapshot
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
 import com.kyledahlin.myrulebot.bot.suspend
@@ -41,51 +40,54 @@ class RockPaperScissorsStorage @Inject constructor(
 
     private val _collection = firestore.collection("rps")
 
-    suspend fun insertRpsGame(guildId: Snowflake, rpsGame: RockPaperScissorGame) {
+    suspend fun insertRpsGame(guildId: Snowflake, playerOne: Snowflake, playerTwo: Snowflake, winner: Snowflake, isDraw: Boolean) {
         withContext(context) {
             val updateTime = _collection
-                .add(rpsGame.toMap(guildId))
+                .add(RockPaperScissorsGameData(playerOne, playerTwo, winner, isDraw).toMap(guildId))
                 .suspend()
-            Logger.logError("update time for rps was $updateTime")
+            Logger.logError { "update time for rps was $updateTime" }
         }
     }
 
-    suspend fun getAllRpsGamesForPlayer(snowflake: Snowflake): Collection<RockPaperScissorGame> = withContext(context) {
+    suspend fun getAllRpsGamesForPlayer(snowflake: Snowflake): Collection<RockPaperScissorsGameData> = withContext(context) {
         val oneDocs = _collection
-            .whereEqualTo("participant1", snowflake.asString())
+            .whereEqualTo(PARTICIPANT_ONE, snowflake.asString())
             .get()
             .suspend<QuerySnapshot>()
             .documents
 
         val twoDocs = _collection
-            .whereEqualTo("participant2", snowflake.asString())
+            .whereEqualTo(PARTICIPANT_TWO, snowflake.asString())
             .get()
             .suspend<QuerySnapshot>()
             .documents
 
         val docs = oneDocs + twoDocs
         docs.mapNotNull {
-            RockPaperScissorGame.fromMap(it.data)
+            RockPaperScissorsGameData.fromMap(it.data)
         }
     }
 }
 
-data class RockPaperScissorGame(
+data class RockPaperScissorsGameData(
     val participant1: Snowflake,
     val participant2: Snowflake,
     val winner: Snowflake,
     val draw: Boolean
 ) {
     companion object {
-        fun fromMap(map: Map<String, Any>): RockPaperScissorGame? {
+        fun fromMap(map: Map<String, Any>): RockPaperScissorsGameData? {
             return try {
-                RockPaperScissorGame(
+                RockPaperScissorsGameData(
                     map[PARTICIPANT_ONE].sf(),
                     map[PARTICIPANT_TWO].sf(),
                     map[WINNER].sf(),
                     map[DRAW] as Boolean
                 )
             } catch (e: Exception) {
+                Logger.logError {
+                    "got $e while de serializing $map"
+                }
                 null
             }
         }

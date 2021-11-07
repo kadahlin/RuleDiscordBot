@@ -16,13 +16,21 @@
 package com.kyledahlin.myrulebot.bot.rockpaperscissorsrule
 
 import com.kyledahlin.myrulebot.bot.MyRuleBotScope
-import com.kyledahlin.rulebot.EventWrapper
-import com.kyledahlin.rulebot.bot.*
+import com.kyledahlin.rulebot.ButtonInteractionEventContext
+import com.kyledahlin.rulebot.GuildCreateContext
+import com.kyledahlin.rulebot.UserInteractionContext
+import com.kyledahlin.rulebot.bot.Logger.logDebug
+import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.rulebot.bot.RuleBotEvent
 import discord4j.common.util.Snowflake
+import discord4j.core.`object`.component.ActionRow
+import discord4j.core.`object`.component.Button
+import discord4j.discordjson.json.ApplicationCommandRequest
+import java.util.*
 import javax.inject.Inject
-import kotlin.random.Random
 
-private enum class RpsChoice {
+
+enum class RpsChoice {
     ROCK, PAPER, SCISSORS;
 
     infix fun winsAgainst(otherChoice: RpsChoice): Boolean? = when {
@@ -42,6 +50,29 @@ private enum class RpsChoice {
             SCISSORS -> null
         }
     }
+
+    override fun toString(): String {
+        return name.lowercase(Locale.getDefault())
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    }
+}
+
+private const val rps = "rockpaperscissors"
+private const val challenge = "Challenge RPS"
+
+data class GameState(
+    val id: UUID,
+    val playerOne: Snowflake,
+    val playerTwo: Snowflake,
+    val originalChannel: Snowflake,
+    val originalGuild: Snowflake
+) {
+    var choiceOne: RpsChoice? = null
+    var choiceTwo: RpsChoice? = null
+
+    override fun equals(other: Any?): Boolean {
+        return other is GameState && other.id == id
+    }
 }
 
 /**
@@ -51,108 +82,147 @@ private enum class RpsChoice {
  */
 @MyRuleBotScope
 internal class RockPaperScissorsRule @Inject constructor(
-    private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
-    private val getBotIds: GetBotIds,
     private val rockPaperScissorsStorage: RockPaperScissorsStorage
 ) :
-    Rule("RockPaperScissors", getDiscordWrapperForEvent) {
+    Rule(rps) {
+
+    private val games = mutableSetOf<GameState>()
 
     override val priority: Priority
         get() = Priority.LOW
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
-        if (event !is MessageCreated) return false
-        val content = event.content
-        logDebug("testing '$content' for rps command")
-        if (!content.startsWith("rps")) {
-            return false
-        }
-        handleRpsCommand(event)
-        return true
+        return false
     }
 
-    private suspend fun handleRpsCommand(event: MessageCreated) {
-        val contentPieces = event.content.split(" ")
-        val wrapper = getDiscordWrapperForEvent(event) ?: return
-        val guildId = wrapper.getGuildId() ?: return
+    override fun handlesCommand(name: String): Boolean {
+        return name == rps || name == challenge
+    }
 
-        if (contentPieces.size != 2) {
-            wrapper.sendMessage("missing a choice")
-            return
-        }
-
-        val playerChoice = getChoiceFromString(contentPieces[1])
-        if (playerChoice == null) {
-            wrapper.sendMessage("invalid choice")
-            return
-        }
-
-        val playerSnowflake = event.author
-
-        val botChoice = getRandomChoice()
-        val didPlayerWin = playerChoice winsAgainst botChoice
-        var draw = false
-        var winner = getBotIds().first()
-        if (didPlayerWin == null) {
-            draw = true
-        } else if (didPlayerWin) {
-            winner = playerSnowflake
-        }
-
-        val game = RockPaperScissorGame(
-            participant1 = playerSnowflake,
-            participant2 = getBotIds().first(),
-            winner = winner,
-            draw = draw
+    override suspend fun onUserCommand(context: UserInteractionContext) {
+        val targetUser = context.targetUser
+        val firstUser = context.user
+        val gameId = UUID.randomUUID()
+        games.add(
+            GameState(
+                gameId,
+                firstUser.first,
+                targetUser.first,
+                context.channelId,
+                context.guildId
+            )
         )
-        rockPaperScissorsStorage.insertRpsGame(guildId, game)
-        printAllGamesForPlayer(wrapper, playerSnowflake, botChoice, didPlayerWin)
+
+        // send the initiator's choice
+        context.reply {
+            content { "Make your choice" }
+            withEphemeral()
+            addComponent {
+                ActionRow.of(
+                    listOf(
+                        "${gameId}_one_rock" to "Rock",
+                        "${gameId}_one_paper" to "Paper",
+                        "${gameId}_one_scissors" to "Scissors"
+                    ).map {
+                        Button.primary(it.first, it.second)
+                    })
+            }
+        }
+
+        context.sendMessageToTargetUser {
+            content(
+                "${firstUser.second} challenged you to Rock Paper Scissors"
+            )
+            addComponent(
+                ActionRow.of(
+                    listOf(
+                        "${gameId}_two_rock" to "Rock",
+                        "${gameId}_two_paper" to "Paper",
+                        "${gameId}_two_scissors" to "Scissors"
+                    ).map {
+                        Button.primary(it.first, it.second)
+                    })
+            )
+        }
     }
 
-    private suspend fun printAllGamesForPlayer(
-        wrapper: EventWrapper,
-        snowflake: Snowflake,
-        botChoice: RpsChoice,
-        didPlayerWin: Boolean?
-    ) {
-        val games = rockPaperScissorsStorage.getAllRpsGamesForPlayer(snowflake)
-        games.forEach {
-            println("queried $it")
+    override suspend fun onButtonEvent(context: ButtonInteractionEventContext) {
+        val (player, id, choice) = getIdAndChoice(context.customId) ?: return
+        logDebug { "button reply for $id and $choice and $player" }
+        val game = games.firstOrNull { it.id == id } ?: return
+        if (player == "one") {
+            game.choiceOne = choice
+        } else {
+            game.choiceTwo = choice
         }
+        context.reply {
+            content { "Submitted $choice" }
+            withEphemeral()
+        }
+        if (game.choiceOne != null && game.choiceTwo != null) {
+            endGame(game)
+        }
+    }
+
+    // TODO: figure out why tuple3 is missing
+    private fun getIdAndChoice(customId: String): arrow.core.Tuple4<String, UUID, RpsChoice, Unit>? {
+        val index = customId.lastIndexOf("_")
+        if (index == -1) {
+            return null
+        }
+
+        val uuidString = customId.substring(0, index - 4)
+        val player = customId.substring(index - 3, index)
+
+        val rpsChoice = when (customId.substring(index + 1, customId.length)) {
+            "rock" -> RpsChoice.ROCK
+            "paper" -> RpsChoice.PAPER
+            "scissors" -> RpsChoice.SCISSORS
+            else -> throw IllegalArgumentException("cant be here")
+        }
+        val uuid = UUID.fromString(uuidString)
+        return arrow.core.Tuple4(player, uuid, rpsChoice, Unit)
+    }
+
+    override suspend fun onGuildCreate(context: GuildCreateContext) {
+        super.onGuildCreate(context)
+        val userRequest = ApplicationCommandRequest.builder()
+            .name(challenge)
+            .type(2)
+            .build()
+
+        context.registerApplicationCommand(userRequest)
+    }
+
+    private suspend fun endGame(game: GameState) {
+        logDebug { "ending game $game" }
+        val playerTwoName =
+            context.getUsernameInGuild(game.playerTwo, game.originalGuild)
+        val playerOneName =
+            context.getUsernameInGuild(game.playerOne, game.originalGuild)
+        val (resultMessage, winner) = when (game.choiceOne!! winsAgainst game.choiceTwo!!) {
+            true -> "$playerOneName wins" to game.playerOne
+            false -> "$playerTwoName wins" to game.playerTwo
+            null -> "Draw! Try again next time" to game.playerOne
+        }
+        rockPaperScissorsStorage.insertRpsGame(
+            game.originalGuild,
+            game.playerOne,
+            game.playerTwo,
+            winner,
+            (game.choiceOne!! winsAgainst game.choiceTwo!!) == null
+        )
+        logDebug { "game inserted successfully" }
+
+        val games = rockPaperScissorsStorage.getAllRpsGamesForPlayer(game.playerOne)
         val totalNonDrawGames = games.size
-        val wonGames = games.count { it.winner == snowflake && !it.draw }
+        val wonGames = games.count { it.winner == game.playerOne && !it.draw }
         val totalDraws = games.count { it.draw }
-        val resultMessage = when (didPlayerWin) {
-            true -> "You Won"
-            false -> "You Lose"
-            null -> "Draw"
+
+        val content =
+            "$playerOneName played Rock Paper Scissors!. He sent ${game.choiceOne} and $playerTwoName sent ${game.choiceTwo}. $resultMessage! $playerOneName has won $wonGames out of $totalNonDrawGames games played."
+        context.sendMessageToChannel(game.originalChannel) {
+            content(content)
         }
-        val stringMessage =
-            "${
-                botChoice.name.toLowerCase()
-                    .capitalize()
-            }! $resultMessage! You have won $wonGames out of $totalNonDrawGames and have had $totalDraws game(s) end in a draw"
-        wrapper.sendMessage(stringMessage)
     }
-
-    private fun getChoiceFromString(content: String): RpsChoice? = when (content) {
-        "r", "rock" -> RpsChoice.ROCK
-        "p", "paper" -> RpsChoice.PAPER
-        "s", "scissors" -> RpsChoice.SCISSORS
-        else -> null
-    }
-
-    private fun getRandomChoice() = when (Random.nextInt(3)) {
-        0 -> RpsChoice.ROCK
-        1 -> RpsChoice.PAPER
-        2 -> RpsChoice.SCISSORS
-        else -> RpsChoice.ROCK
-    }
-
-    override fun getExplanation() = StringBuilder().apply {
-        appendLine("Start a message with 'rps'")
-        appendLine("the next word needs to be either rock, paper, scissors or r,p,s")
-    }.toString()
-
-
 }

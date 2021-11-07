@@ -16,64 +16,55 @@
 package com.kyledahlin.myrulebot.bot.corona
 
 import com.kyledahlin.rulebot.Analytics
-import com.kyledahlin.rulebot.EventWrapper
-import com.kyledahlin.rulebot.bot.GetDiscordWrapperForEvent
-import com.kyledahlin.rulebot.bot.MessageCreated
+import com.kyledahlin.rulebot.ChatInputInteractionContext
+import com.kyledahlin.rulebot.GuildCreateContext
+import com.kyledahlin.rulebot.bot.Logger.logError
 import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.rulebot.bot.RuleBotEvent
+import discord4j.discordjson.json.ApplicationCommandRequest
 import java.text.DecimalFormat
 import javax.inject.Inject
 
-private const val TRIGGER = "!corona"
-
 class CoronaRule @Inject constructor(
     private val coronaApi: CoronaApi,
-    private val getDiscordWrapperForEvent: GetDiscordWrapperForEvent,
     private val analytics: Analytics
-) : Rule("Corona", getDiscordWrapperForEvent) {
+) : Rule("Corona") {
 
     override suspend fun handleEvent(event: RuleBotEvent): Boolean {
-        if (event !is MessageCreated) return false
-
-        val containsTrigger = event.content.contains(TRIGGER)
-        val wrapper = getDiscordWrapperForEvent(event)
-
-        return if (containsTrigger && wrapper != null) {
-            postStats(wrapper)
-            true
-        } else {
-            false
-        }
+        return false
     }
 
-    private suspend fun postStats(wrapper: EventWrapper) {
+    override fun handlesCommand(name: String): Boolean {
+        return name.equals(ruleName, ignoreCase = true)
+    }
+
+    override suspend fun onSlashCommand(context: ChatInputInteractionContext) {
         coronaApi.getCasesAndDeaths().fold({ e ->
             analytics.logRuleFailed(ruleName, "error while parsing worldinfo: ${e.message}")
-            logError("error while parsing worldinfo, ${e.message}")
-            wrapper.sendMessage("unable to get corona data, either the virus is cured or this rule is broke")
+            logError { "error while parsing worldinfo, ${e.message}" }
+            context.reply {
+                content { "Unable to get corona data. Either the virus is cured, the website is broke, or Kyle is a dumbass" }
+            }
         }, { (cases, deaths) ->
             val rate: Double = (deaths / cases.toDouble()) * 100
-            wrapper.sendMessage(
-                "At this moment there are ${cases.toFormatString()} cases with ${deaths.toFormatString()} deaths (${rate.toFormatString()}% mortality rate)"
-            )
+            context.reply {
+                content { "At this moment there are ${cases.toFormatString()} cases with ${deaths.toFormatString()} deaths (${rate.toFormatString()}% mortality rate)" }
+            }
         })
-    }
-
-    override fun getExplanation(): String? {
-        return "Type $TRIGGER to get the latest stats on the world deadliest virus"
     }
 
     override val priority: Priority
         get() = Priority.NORMAL
 
-    companion object {
-        fun getValidTestEvent(): RuleBotEvent {
-            return MessageCreated(content = TRIGGER)
-        }
+    override suspend fun onGuildCreate(context: GuildCreateContext) {
+        super.onGuildCreate(context)
+        // Build our command's definition
+        val greetCmdRequest = ApplicationCommandRequest.builder()
+            .name("corona")
+            .description("Post plandemic stats")
+            .build()
 
-        fun getInvalidTestEvent(): RuleBotEvent {
-            return MessageCreated()
-        }
+        context.registerApplicationCommand(greetCmdRequest)
     }
 }
 

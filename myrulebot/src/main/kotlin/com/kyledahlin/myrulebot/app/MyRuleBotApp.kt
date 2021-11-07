@@ -21,7 +21,6 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.kyledahlin.myrulebot.bot.MyRulebot
-import com.kyledahlin.myrulebot.bot.reaction.GuildInfo
 import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.GuildNameAndId
 import com.kyledahlin.rulebot.MemberNameAndId
@@ -43,11 +42,9 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import org.slf4j.event.Level
-import java.io.FileInputStream
+import javax.inject.Inject
 
-fun main() {
-    val firebasePath = System.getenv("HONKBOT_CREDENTIALS")
-    val tokenPath = System.getenv("HONKBOT_TOKEN")
+fun main(args: Array<String>) {
     val logLevel = when (System.getenv("HONKBOT_LOG")) {
         "DEBUG" -> LogLevel.DEBUG
         "INFO" -> LogLevel.INFO
@@ -55,69 +52,76 @@ fun main() {
     }
 
     val port = System.getenv("PORT").toInt()
-    println("running on $port")
+    val host = System.getenv("RULEBOT_HOST") ?: "127.0.0.1"
+    Logger.logDebug { "running on $port" }
 
-    val token = getStringFromPath(tokenPath)
-    val serviceAccount = FileInputStream(firebasePath)
+    val token = System.getenv("HONKBOT_TOKEN")
 
+    val loader = Thread.currentThread().contextClassLoader
+    val stream = loader.getResourceAsStream("serviceAccount.json")
     val options: FirebaseOptions = FirebaseOptions.builder()
-        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+        .setCredentials(GoogleCredentials.fromStream(stream))
         .build()
 
     FirebaseApp.initializeApp(options)
 
-    val analytics =
-        LocalAnalytics()
-    val rulebot =
-        MyRulebot.create(token, emptySet(), logLevel, analytics)
+    val analytics = LocalAnalytics()
+    val rulebot = MyRulebot.create(
+        token = token,
+        rulesToLog = emptySet(),
+        logLevel = logLevel,
+        analytics = analytics
+    )
     rulebot.start()
 
-    embeddedServer(Netty, host = System.getenv("RULEBOT_HOST") ?: "127.0.0.1", port = port) {
+    embeddedServer(Netty, environment = applicationEngineEnvironment {
 
-        install(ContentNegotiation) {
-            json(Serializer.format)
-        }
-
-        install(CallLogging) {
-            level = Level.INFO
-        }
-
-        routing {
-            post("/rules/{ruleName}") {
-                val ruleName = call.parameters["ruleName"]!!
-                val data = call.receive<String>()
-                Logger.logDebug("got ruleName [$ruleName] with body: [$data]")
-                analytics.logLifecycle("Rule config", "call to configure $ruleName")
-                val response = rulebot.configureRule(ruleName, data)
-                    ?.flatMap { if (it is Unit) EmptyResponse.right() else it.right() }
-                    ?.fold({ exception ->
-                        Response.error(exception.message ?: "no exception message")
-                    }, { value ->
-                        Response.success(value)
-                    })
-                    ?: Response.error("No rule found for this name")
-                call.jsonResponse(response)
+        applySelfCert(host, port) {
+            install(ContentNegotiation) {
+                json(Serializer.format)
             }
 
-            get("/rules") {
-                val ruleNames = rulebot.getRuleNames()
-                println("for rule names got: $ruleNames")
-                val data = Response(GetRulesResponse(ruleNames.toList()))
-                call.jsonResponse(data)
+            install(CallLogging) {
+                level = Level.INFO
             }
 
-            route("/guilds") {
-                get {
-                    call.jsonResponse(Response.success(GetGuildsResponse(rulebot.getGuildInfo())))
+            routing {
+                post("/rules/{ruleName}") {
+                    val ruleName = call.parameters["ruleName"]!!
+                    val data = call.receive<String>()
+                    Logger.logDebug { "got ruleName [$ruleName] with body: [$data]" }
+                    analytics.logLifecycle("Rule config", "call to configure $ruleName")
+                    val response = rulebot.configureRule(ruleName, data)
+                        ?.flatMap { if (it is Unit) EmptyResponse.right() else it.right() }
+                        ?.fold({ exception ->
+                            Response.error(exception.message ?: "no exception message")
+                        }, { value ->
+                            Response.success(value)
+                        })
+                        ?: Response.error("No rule found for this name")
+                    call.jsonResponse(response)
                 }
 
-                get("/{guildId}") {
-                    val list = rulebot.getMemberInfo(call.parameters["guildId"]!!)?.toList() ?: emptyList()
-                    call.jsonResponse(Response.success(MemberNameAndIds(list)))
+                get("/rules") {
+                    val ruleNames = rulebot.getRuleNames()
+                    println("for rule names got: $ruleNames")
+                    val data = Response(GetRulesResponse(ruleNames.toList()))
+                    call.jsonResponse(data)
+                }
+
+                route("/guilds") {
+                    get {
+                        call.jsonResponse(Response.success(GetGuildsResponse(rulebot.getGuildInfo())))
+                    }
+
+                    get("/{guildId}") {
+                        val list = rulebot.getMemberInfo(call.parameters["guildId"]!!)?.toList() ?: emptyList()
+                        call.jsonResponse(Response.success(MemberNameAndIds(list)))
+                    }
                 }
             }
         }
-    }.start(wait = true)
+    }).start(wait = true)
 }
 
 @Serializable
@@ -129,7 +133,7 @@ class GetGuildsResponse(val guilds: List<GuildNameAndId>)
 @Serializable
 class MemberNameAndIds(val members: List<MemberNameAndId>)
 
-private class LocalAnalytics : Analytics {
+internal class LocalAnalytics @Inject constructor() : Analytics {
     override suspend fun logLifecycle(name: String, data: String) {
         println("lifecycle [$name] $data")
     }
@@ -150,7 +154,6 @@ val module = SerializersModule {
         subclass(GetRulesResponse::class)
         subclass(GetGuildsResponse::class)
         subclass(MemberNameAndIds::class)
-        subclass(GuildInfo::class)
         subclass(EmptyResponse::class)
     }
 }

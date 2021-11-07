@@ -6,29 +6,27 @@ plugins {
 }
 
 repositories {
-    jcenter()
     mavenCentral()
     maven(url = "https://kotlin.bintray.com/kotlinx")
     maven(url = "https://jitpack.io")
 }
 
 dependencies {
-    implementation("io.arrow-kt:arrow-core:0.13.2")
-    //implementation("io.arrow-kt:arrow-syntax:0.13.2")
-    kapt("io.arrow-kt:arrow-meta:0.13.2")
+    implementation("io.arrow-kt:arrow-core:${Dependencies.arrow}")
+    kapt("io.arrow-kt:arrow-meta:${Dependencies.arrow}")
 
     implementation("com.google.dagger:dagger:2.35.1")
     kapt("com.google.dagger:dagger-compiler:2.35.1")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Dependencies.coroutines}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${Dependencies.coroutines}")
+
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.5.2")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:3.2.0")
-    testImplementation("org.assertj:assertj-core:3.11.1")
+    testImplementation("io.mockk:mockk:1.12.0")
+    testImplementation("io.strikt:strikt-core:0.32.0")
 }
-
-//sourceSets.main.java.srcDirs = ["src/main/kotlin"]
-//sourceSets.test.java.srcDirs = ["src/test/kotlin"]
 
 jacoco {
     toolVersion = "0.8.5"
@@ -37,7 +35,6 @@ jacoco {
 
 val codeCoverageReport by tasks.registering(JacocoReport::class) {
     reports {
-        //html.destination = file ("${buildDir}/jacocoHtml")
         xml.isEnabled = true
     }
 }
@@ -45,5 +42,3 @@ val codeCoverageReport by tasks.registering(JacocoReport::class) {
 tasks.test {
     useJUnitPlatform()
 }
-
-//tasks.check.de(codeCoverageReport)

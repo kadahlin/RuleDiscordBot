@@ -8,7 +8,5 @@ suspend fun MessageChannel.suspendGetMessageById(snowflake: Snowflake): Message?
 
 suspend fun MessageChannel.suspendCreateMessage(content: String): Message? = this.createMessage(content).suspend()
 
-suspend fun MessageChannel.suspendCreateMessage(withSpec: MessageCreateSpec.() -> Unit): Message? =
-    this.createMessage { spec ->
-        withSpec(spec)
-    }.suspend()
+suspend fun MessageChannel.suspendCreateMessage(withSpec: MessageCreateSpec.Builder.() -> Unit): Message? =
+    this.createMessage(MessageCreateSpec.builder().apply(withSpec).build()).suspend()
