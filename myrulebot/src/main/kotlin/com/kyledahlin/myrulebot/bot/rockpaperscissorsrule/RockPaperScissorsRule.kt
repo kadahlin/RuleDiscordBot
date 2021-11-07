@@ -103,13 +103,22 @@ internal class RockPaperScissorsRule @Inject constructor(
         val targetUser = context.targetUser
         val firstUser = context.user
         val gameId = UUID.randomUUID()
+
+        if (targetUser.first == this.context.botId()) {
+            context.reply {
+                withEphemeral()
+                content { "You can't challenge the bot (He's too good)" }
+            }
+            return
+        }
+
         games.add(
             GameState(
-                gameId,
-                firstUser.first,
-                targetUser.first,
-                context.channelId,
-                context.guildId
+                id = gameId,
+                playerOne = firstUser.first,
+                playerTwo = targetUser.first,
+                originalChannel = context.channelId,
+                originalGuild = context.guildId
             )
         )
 
@@ -130,10 +139,8 @@ internal class RockPaperScissorsRule @Inject constructor(
         }
 
         context.sendMessageToTargetUser {
-            content(
-                "${firstUser.second} challenged you to Rock Paper Scissors"
-            )
-            addComponent(
+            content { "${firstUser.second} challenged you to Rock Paper Scissors" }
+            addComponent {
                 ActionRow.of(
                     listOf(
                         "${gameId}_two_rock" to "Rock",
@@ -142,7 +149,7 @@ internal class RockPaperScissorsRule @Inject constructor(
                     ).map {
                         Button.primary(it.first, it.second)
                     })
-            )
+            }
         }
     }
 

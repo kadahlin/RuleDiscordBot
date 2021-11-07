@@ -10,7 +10,5 @@ pluginManagement {
 
 include(":discord4k")
 include(":rulebot")
-
 rootProject.name = "rulebot"
 include("myrulebot")
-include("rulebotanalytics")

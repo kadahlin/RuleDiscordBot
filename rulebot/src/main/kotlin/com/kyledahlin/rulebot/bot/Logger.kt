@@ -40,11 +40,11 @@ object Logger {
         println("Logging specific rules: [$rulesToLog]")
     }
 
-    internal fun Rule.logError(message: () -> String) = logIfSpecified(this, message, LogLevel.ERROR)
+    fun Rule.logError(message: () -> String) = logIfSpecified(this, message, LogLevel.ERROR)
 
-    internal fun Rule.logDebug(message: () -> String) = logIfSpecified(this, message, LogLevel.DEBUG)
+    fun Rule.logDebug(message: () -> String) = logIfSpecified(this, message, LogLevel.DEBUG)
 
-    internal fun Rule.logInfo(message: () -> String) = logIfSpecified(this, message, LogLevel.INFO)
+    fun Rule.logInfo(message: () -> String) = logIfSpecified(this, message, LogLevel.INFO)
 
     private fun logIfSpecified(rule: Rule, message: () -> String, logLevel: LogLevel) {
         val isRuleToLog = rulesToLog.isEmpty() || rulesToLog.contains(rule.ruleName.lowercase(Locale.getDefault()))

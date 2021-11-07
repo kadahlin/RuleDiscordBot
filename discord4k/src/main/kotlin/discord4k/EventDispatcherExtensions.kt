@@ -1,3 +1,5 @@
+package discord4k
+
 import discord4j.core.event.EventDispatcher
 import discord4j.core.event.domain.Event
 import kotlinx.coroutines.ExperimentalCoroutinesApi

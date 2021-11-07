@@ -24,8 +24,8 @@ import discord4j.core.event.domain.interaction.ButtonInteractionEvent
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.interaction.UserInteractionEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
-import suspendChannel
-import suspendGuild
+import discord4k.suspendChannel
+import discord4k.suspendGuild
 import javax.inject.Inject
 
 @RuleBotScope

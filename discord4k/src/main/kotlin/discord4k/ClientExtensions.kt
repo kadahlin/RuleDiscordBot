@@ -4,12 +4,11 @@ import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
 import discord4j.discordjson.json.*
 import discord4j.rest.service.ApplicationService
-import suspend
 
 suspend fun DiscordClient.suspendApplicationId() = this.applicationId.suspend()!!
 
 suspend fun DiscordClient.suspendUserInGuild(userId: Snowflake, guildId: Snowflake): UserData =
-    this.getMemberById(userId, guildId).user().data.suspend()!!
+    this.getMemberById(guildId, userId).user().data.suspend()!!
 
 suspend fun DiscordClient.createMessageInChannel(
     channel: Snowflake,

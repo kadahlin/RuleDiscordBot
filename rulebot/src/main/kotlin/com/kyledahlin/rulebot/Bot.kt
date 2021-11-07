@@ -26,6 +26,7 @@ import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.interaction.UserInteractionEvent
 import discord4j.core.event.domain.lifecycle.ReadyEvent
 import discord4j.core.event.domain.message.MessageCreateEvent
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -76,6 +77,10 @@ class RuleBot private constructor(
         }
     }
 
+    private val handler = CoroutineExceptionHandler { _, exception ->
+        Logger.logError { "Exception on event, $exception" }
+    }
+
     fun start() {
         Logger.setRulesToLog(rulesToLog)
         Logger.setLogLevel(logLevel)
@@ -106,22 +111,21 @@ class RuleBot private constructor(
 
         gateway.on(GuildCreateEvent::class.java)
             .subscribe({
-                //discordCache.addGuild(it.guild)
                 runBlocking { ruleManager.processGuildCreateEvent(it) }
             }, { throwable ->
                 Logger.logError { "throwable in guild create subscription, $throwable" }
             })
 
         gateway.on(ChatInputInteractionEvent::class.java).subscribe { command ->
-            runBlocking { ruleManager.processSlashCommand(command) }
+            GlobalScope.launch(handler) { ruleManager.processSlashCommand(command) }
         }
 
         gateway.on(UserInteractionEvent::class.java).subscribe { command ->
-            runBlocking { ruleManager.processUserInteraction(command) }
+            GlobalScope.launch(handler) { ruleManager.processUserInteraction(command) }
         }
 
         gateway.on(ButtonInteractionEvent::class.java).subscribe { command ->
-            runBlocking { ruleManager.processButtonEvent(command) }
+            GlobalScope.launch(handler) { ruleManager.processButtonEvent(command) }
         }
     }
 

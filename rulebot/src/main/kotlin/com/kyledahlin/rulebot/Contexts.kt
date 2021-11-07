@@ -7,12 +7,15 @@ import discord4j.core.event.domain.guild.GuildCreateEvent
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.interaction.UserInteractionEvent
-import discord4j.core.spec.MessageCreateSpec
 import discord4j.discordjson.json.ApplicationCommandRequest
 import discord4k.builders.InteractionApplicationCommandCallbackSpecKt
+import discord4k.builders.MessageCreateSpecKt
+import discord4k.interactions.suspendTargetUser
 import discord4k.suspendApplicationId
 import discord4k.suspendCreateApplicationCommand
-import discord4k.suspendReply
+import discord4k.suspendPrivateChannel
+import discord4k.interactions.suspendReply
+import suspendCreateMessage
 
 interface GuildCreateContext {
     val guildId: Snowflake
@@ -74,7 +77,7 @@ interface UserInteractionContext {
     val guildId: Snowflake
     val channelId: Snowflake
     suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
-    suspend fun sendMessageToTargetUser(onBuild: MessageCreateSpec.Builder.() -> Unit)
+    suspend fun sendMessageToTargetUser(spec: MessageCreateSpecKt.() -> Unit)
 }
 
 internal class UserInteractionContextImpl(private val event: UserInteractionEvent) :
@@ -102,8 +105,10 @@ internal class UserInteractionContextImpl(private val event: UserInteractionEven
         event.suspendReply(spec)
     }
 
-    override suspend fun sendMessageToTargetUser(onBuild: MessageCreateSpec.Builder.() -> Unit) {
-        event.targetUser.block()!!.privateChannel.block()!!
-            .createMessage(MessageCreateSpec.builder().apply(onBuild).build()).block()
+    override suspend fun sendMessageToTargetUser(spec: MessageCreateSpecKt.() -> Unit) {
+        event
+            .suspendTargetUser()
+            .suspendPrivateChannel()
+            .suspendCreateMessage(spec)
     }
 }

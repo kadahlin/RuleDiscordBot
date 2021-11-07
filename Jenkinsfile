@@ -13,6 +13,9 @@ pipeline {
   environment {
     HONKBOT_FIREBASE_JSON = credentials('honkbotFirebaseJson')
     HONKBOT_TOKEN = credentials('honkbotToken')
+    AWS_ACCOUNT_ID = credentials('honkbotProdAccountId')
+    AWS_ACCESS_KEY_ID = credentials('honkbotProdAwsAccessKey')
+    AWS_SECRET_ACCESS_KEY = credentials('honkbotProdAwsAccessKey')
   }
 
   stages {
@@ -31,15 +34,19 @@ pipeline {
       }
     }
 
-/*
-    stage('Publish to ECR') {
+    state('Create docker image') {
       steps {
-        dir('stack') {
-          sh 'cdk synth'
-          sh 'cdk deploy styles-dev-stack'
-        }
+        sh 'docker build -t brinkhorizon/honkbot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN}'
       }
     }
-*/
+
+
+    stage('Publish to ECR') {
+      steps {
+          sh 'docker tag brinkhorizon/honkbot:latest $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest'
+          sh 'docker push $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest'
+          sh 'aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com '
+      }
+    }
   }
 }

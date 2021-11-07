@@ -27,7 +27,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.apache.*
 import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
-import suspendGuild
+import discord4k.suspendGuild
 import java.io.File
 
 /**
@@ -83,7 +83,7 @@ abstract class Rule(
         return false
     }
 
-//    protected suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
+//    protected discord4k.suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
 //        val wrapper = getDiscordWrapperForEvent(this) ?: return false
 //        val roles = wrapper.getRoles()
 //        val isAdmin = roles.any { it.name == "Clown" }

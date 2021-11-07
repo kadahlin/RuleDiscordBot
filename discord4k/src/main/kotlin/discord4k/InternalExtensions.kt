@@ -1,3 +1,5 @@
+package discord4k
+
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.reactive.awaitFirst
