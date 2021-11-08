@@ -13,6 +13,7 @@ pipeline {
   environment {
     HONKBOT_FIREBASE_JSON = credentials('honkbotFirebaseJson')
     HONKBOT_TOKEN = credentials('honkbotToken')
+    AWS_DEFAULT_REGION = "us-west-2"
     AWS_ACCOUNT_ID = credentials('honkbotProdAccountId')
     AWS_ACCESS_KEY_ID = credentials('honkbotProdAwsAccessKey')
     AWS_SECRET_ACCESS_KEY = credentials('honkbotProdAwsSecretKey')
