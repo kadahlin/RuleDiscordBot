@@ -15,7 +15,7 @@ pipeline {
     HONKBOT_TOKEN = credentials('honkbotToken')
     AWS_ACCOUNT_ID = credentials('honkbotProdAccountId')
     AWS_ACCESS_KEY_ID = credentials('honkbotProdAwsAccessKey')
-    AWS_SECRET_ACCESS_KEY = credentials('honkbotProdAwsAccessKey')
+    AWS_SECRET_ACCESS_KEY = credentials('honkbotProdAwsSecretKey')
   }
 
   stages {
@@ -36,15 +36,16 @@ pipeline {
 
     stage('Create docker image') {
       steps {
-        sh 'docker build -t brinkhorizon/honkbot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN}'
+        sh 'docker build -t brinkhorizon/honkbot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN} .'
       }
     }
 
     stage('Publish to ECR') {
       steps {
+          sh 'aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com '
           sh 'docker tag brinkhorizon/honkbot:latest $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest'
           sh 'docker push $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest'
-          sh 'aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com '
+          sh 'aws ecs update-service --cluster honkbot-cluser --service honkbot-service --force-new-deployment'
       }
     }
   }

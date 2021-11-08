@@ -20,6 +20,7 @@ import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.ChatInputInteractionContext
 import com.kyledahlin.rulebot.GuildCreateContext
 import com.kyledahlin.rulebot.bot.Logger.logDebug
+import com.kyledahlin.rulebot.bot.Logger.logInfo
 import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.rulebot.bot.RuleBotEvent
 import discord4j.discordjson.json.ApplicationCommandRequest
@@ -65,7 +66,10 @@ internal class JojoMemeRule @Inject constructor(
 
     override suspend fun onSlashCommand(context: ChatInputInteractionContext) {
 
-        logDebug { "handling slash for jojo" }
+        logInfo { "handling slash for jojo" }
+        context.deferReply()
+        logInfo { "starting api call" }
+        val startTime = System.currentTimeMillis()
         val posts = _api.getPosts()
 
         val guildId = context.channelId
@@ -77,6 +81,7 @@ internal class JojoMemeRule @Inject constructor(
 
         _cachedIds.getOrPut(guildId.asString()) { mutableSetOf() }.add(dataToPost.id)
         logDebug { "sending $dataToPost" }
+        logInfo { "ending api work, ${System.currentTimeMillis() - startTime}" }
 
         context.reply {
             content { dataToPost.title }
