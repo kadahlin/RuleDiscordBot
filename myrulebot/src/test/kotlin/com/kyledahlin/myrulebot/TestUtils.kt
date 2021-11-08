@@ -40,10 +40,17 @@ suspend fun testGuildCreation(rule: Rule): List<ApplicationCommandRequest> {
 class TestChatInputInteractionContext :
     ChatInputInteractionContext {
     val replies = mutableListOf<InteractionApplicationCommandCallbackSpecKt>()
+
+    var wasDeferred: Boolean = false
+
     override val channelId: Snowflake
         get() = Snowflake.of("1")
 
     override suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit) {
         replies.add(InteractionApplicationCommandCallbackSpecKt().apply(spec))
+    }
+
+    override suspend fun deferReply() {
+        wasDeferred = true
     }
 }

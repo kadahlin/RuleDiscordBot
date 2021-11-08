@@ -40,7 +40,6 @@ interface ChatInputInteractionContext {
     val channelId: Snowflake
     suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
     suspend fun deferReply()
-    suspend fun deferReply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
 }
 
 internal class ChatInputInteractionContextImpl(private val event: ChatInputInteractionEvent) :
@@ -55,10 +54,6 @@ internal class ChatInputInteractionContextImpl(private val event: ChatInputInter
 
     override suspend fun deferReply() {
         event.suspendDeferReply()
-    }
-
-    override suspend fun deferReply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit) {
-        event.suspendDeferReply(spec)
     }
 }
 
