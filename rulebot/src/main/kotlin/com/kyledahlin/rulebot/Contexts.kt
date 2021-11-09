@@ -9,8 +9,10 @@ import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.interaction.UserInteractionEvent
 import discord4j.discordjson.json.ApplicationCommandRequest
 import discord4k.builders.InteractionApplicationCommandCallbackSpecKt
+import discord4k.builders.InteractionReplyEditSpecKt
 import discord4k.builders.MessageCreateSpecKt
 import discord4k.interactions.suspendDeferReply
+import discord4k.interactions.suspendEditReply
 import discord4k.interactions.suspendTargetUser
 import discord4k.suspendApplicationId
 import discord4k.suspendCreateApplicationCommand
@@ -39,6 +41,7 @@ internal class GuildCreateContextImpl(private val client: DiscordClient, private
 interface ChatInputInteractionContext {
     val channelId: Snowflake
     suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
+    suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit)
     suspend fun deferReply()
 }
 
@@ -54,6 +57,10 @@ internal class ChatInputInteractionContextImpl(private val event: ChatInputInter
 
     override suspend fun deferReply() {
         event.suspendDeferReply()
+    }
+
+    override suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit) {
+        event.suspendEditReply(spec)
     }
 }
 

@@ -23,12 +23,11 @@ import com.kyledahlin.rulebot.bot.Logger.logInfo
 import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
 import discord4j.core.`object`.entity.Message
+import discord4k.suspendGuild
 import io.ktor.client.*
 import io.ktor.client.engine.apache.*
 import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
-import discord4k.suspendGuild
-import java.io.File
 
 /**
  * A self contained piece of logic that operates on the messages given to it.
@@ -83,15 +82,12 @@ abstract class Rule(
         return false
     }
 
-//    protected discord4k.suspend fun MessageCreated.canAuthorIssueRules(): Boolean {
-//        val wrapper = getDiscordWrapperForEvent(this) ?: return false
-//        val roles = wrapper.getRoles()
-//        val isAdmin = roles.any { it.name == "Clown" }
-//        val isOwner = wrapper.getGuildOwnerId() == author
-//
-//        logDebug { "checking if user is admin [$isAdmin] or isOwner [$isOwner]" }
-//        return isAdmin || isOwner
-//    }
+    protected suspend fun measureExecutionTime(name: String, block: suspend () -> Unit) {
+        val startTime = System.currentTimeMillis()
+        block()
+        val totalTime = System.currentTimeMillis() - startTime
+        logInfo { "($name) took $totalTime milliseconds" }
+    }
 }
 
 data class RoleSnowflake(
@@ -113,41 +109,6 @@ internal suspend fun Message.getSnowflakes(): Set<RoleSnowflake> {
     val users = userMentionIds.map { RoleSnowflake(it, guildId) }
     val roles = roleMentionIds.map { RoleSnowflake(it, guildId, isRole = true) }
     return users.union(roles)
-}
-
-private fun Message.sendDistortedCopy() {
-    val content = this.content
-    if (content.startsWith("<") && content.endsWith(">")) {
-        return
-    }
-    if (content.length >= 12) {
-        val distorted = distortText(content)
-        this.channel
-            .flatMap { it.createMessage(distorted) }
-            .subscribe()
-    }
-}
-
-private fun distortText(text: String): String {
-    return text.map { char ->
-        val random = java.util.Random().nextInt(9)
-        if (random <= 3) {
-            char.uppercaseChar()
-        } else {
-            char.lowercaseChar()
-        }
-    }.joinToString(separator = "") { it.toString() }
-}
-
-//Load the string content of a file from the resources
-fun getStringFromResourceFile(filename: String): String {
-    val classloader = Thread.currentThread().contextClassLoader
-    val inputStream = classloader.getResourceAsStream(filename)!!
-    return String(inputStream.readBytes()).trim()
-}
-
-fun getStringFromPath(filename: String): String {
-    return File(filename).readText()
 }
 
 val client by lazy {

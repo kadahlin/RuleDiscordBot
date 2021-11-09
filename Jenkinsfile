@@ -43,10 +43,11 @@ pipeline {
 
     stage('Publish to ECR') {
       steps {
-          sh 'aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com '
+          sh 'aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com'
           sh 'docker tag brinkhorizon/honkbot:latest $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest'
           sh 'docker push $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest'
-          sh 'aws ecs update-service --cluster honkbot-cluser --service honkbot-service --force-new-deployment'
+          sh 'docker context use honkbotcontext'
+          sh 'docker compose up'
       }
     }
   }

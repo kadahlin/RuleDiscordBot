@@ -38,7 +38,7 @@ class CoronaRule @Inject constructor(
         return name.equals(ruleName, ignoreCase = true)
     }
 
-    override suspend fun onSlashCommand(context: ChatInputInteractionContext) {
+    override suspend fun onSlashCommand(context: ChatInputInteractionContext) = measureExecutionTime("corona stats") {
         coronaApi.getCasesAndDeaths().fold({ e ->
             analytics.logRuleFailed(ruleName, "error while parsing worldinfo: ${e.message}")
             logError { "error while parsing worldinfo, ${e.message}" }

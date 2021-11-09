@@ -64,26 +64,23 @@ internal class JojoMemeRule @Inject constructor(
         context.registerApplicationCommand(greetCmdRequest)
     }
 
-    override suspend fun onSlashCommand(context: ChatInputInteractionContext) {
+    override suspend fun onSlashCommand(context: ChatInputInteractionContext) = measureExecutionTime("jojo meme") {
 
         logInfo { "handling slash for jojo" }
         context.deferReply()
-        logInfo { "starting api call" }
-        val startTime = System.currentTimeMillis()
         val posts = _api.getPosts()
 
         val guildId = context.channelId
         val dataToPost = posts.firstOrNull {
             !_cachedIds.getOrDefault(guildId.asString(), emptySet()).contains(it.data.id) && !it.data.isVideo
-        }?.data ?: return
+        }?.data ?: return@measureExecutionTime
 
         storage.saveIdToGuild(dataToPost.id, guildId)
 
         _cachedIds.getOrPut(guildId.asString()) { mutableSetOf() }.add(dataToPost.id)
         logDebug { "sending $dataToPost" }
-        logInfo { "ending api work, ${System.currentTimeMillis() - startTime}" }
 
-        context.reply {
+        context.editReply {
             content { dataToPost.title }
             addEmbed {
                 image { dataToPost.url }

@@ -27,7 +27,6 @@ import com.kyledahlin.rulebot.MemberNameAndId
 import com.kyledahlin.rulebot.Response
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger
-import com.kyledahlin.rulebot.bot.getStringFromPath
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.request.*
