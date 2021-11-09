@@ -13,6 +13,7 @@ import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
+import strikt.assertions.isTrue
 
 class JojoRuleTest : RuleBaseTest() {
 
@@ -40,8 +41,10 @@ class JojoRuleTest : RuleBaseTest() {
     fun `Jojo sends the correct response`() = runBlocking<Unit> {
         val context = TestChatInputInteractionContext()
         _jojo.onSlashCommand(context)
-        expectThat(context.replies.first())
+        expectThat(context.wasDeferred).isTrue()
+        expectThat(context.edits.first())
             .hasContent("title")
             .hasEmbeddedImage("url")
+        expectThat(context.replies.isEmpty())
     }
 }

@@ -21,6 +21,7 @@ import com.kyledahlin.rulebot.bot.Rule
 import discord4j.common.util.Snowflake
 import discord4j.discordjson.json.ApplicationCommandRequest
 import discord4k.builders.InteractionApplicationCommandCallbackSpecKt
+import discord4k.builders.InteractionReplyEditSpecKt
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.slot
@@ -40,6 +41,7 @@ suspend fun testGuildCreation(rule: Rule): List<ApplicationCommandRequest> {
 class TestChatInputInteractionContext :
     ChatInputInteractionContext {
     val replies = mutableListOf<InteractionApplicationCommandCallbackSpecKt>()
+    val edits = mutableListOf<InteractionReplyEditSpecKt>()
 
     var wasDeferred: Boolean = false
 
@@ -52,5 +54,9 @@ class TestChatInputInteractionContext :
 
     override suspend fun deferReply() {
         wasDeferred = true
+    }
+
+    override suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit) {
+        edits.add(InteractionReplyEditSpecKt().apply(spec))
     }
 }

@@ -1,10 +1,10 @@
 package com.kyledahlin.myrulebot.builders
 
 import discord4j.discordjson.json.ApplicationCommandRequest
-import discord4k.builders.InteractionApplicationCommandCallbackSpecKt
+import discord4k.builders.BaseMessageSpecKt
 import strikt.api.Assertion
 
-fun Assertion.Builder<InteractionApplicationCommandCallbackSpecKt>.hasContent(content: String?): Assertion.Builder<InteractionApplicationCommandCallbackSpecKt> =
+inline fun <reified T : BaseMessageSpecKt> Assertion.Builder<T>.hasContent(content: String?): Assertion.Builder<T> =
     assert("checking for content of $content") {
         when (it.content) {
             content -> pass()
@@ -12,7 +12,7 @@ fun Assertion.Builder<InteractionApplicationCommandCallbackSpecKt>.hasContent(co
         }
     }
 
-fun Assertion.Builder<InteractionApplicationCommandCallbackSpecKt>.hasEmbeddedImage(url: String?): Assertion.Builder<InteractionApplicationCommandCallbackSpecKt> =
+inline fun <reified T : BaseMessageSpecKt> Assertion.Builder<T>.hasEmbeddedImage(url: String?): Assertion.Builder<T> =
     assert("checking for embedded image $url") {
         it.embedSpecs.forEach { spec ->
             if (spec.image == url) {

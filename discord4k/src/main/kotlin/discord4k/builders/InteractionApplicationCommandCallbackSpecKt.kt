@@ -5,11 +5,14 @@ import discord4j.core.spec.EmbedCreateSpec
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec
 import discord4j.core.spec.InteractionReplyEditSpec
 
-open class InteractionApplicationCommandCallbackSpecKt {
+abstract class BaseMessageSpecKt {
     var content: String? = null
-    var embedSpecs = mutableListOf<EmbedCreateSpecKt>()
     var withEphemeral: Boolean = false
-    val components = mutableListOf<LayoutComponent>()
+    var embedSpecs = mutableListOf<EmbedCreateSpecKt>()
+
+    fun addEmbed(build: EmbedCreateSpecKt.() -> Unit) {
+        embedSpecs.add(EmbedCreateSpecKt().apply(build))
+    }
 
     fun withEphemeral() {
         withEphemeral = true
@@ -18,10 +21,10 @@ open class InteractionApplicationCommandCallbackSpecKt {
     fun content(c: () -> String) {
         content = c()
     }
+}
 
-    fun addEmbed(build: EmbedCreateSpecKt.() -> Unit) {
-        embedSpecs.add(EmbedCreateSpecKt().apply(build))
-    }
+open class InteractionApplicationCommandCallbackSpecKt : BaseMessageSpecKt() {
+    val components = mutableListOf<LayoutComponent>()
 
     fun addComponent(build: () -> LayoutComponent) {
         components.add(build())
@@ -58,19 +61,8 @@ fun interactionApplicationCommandCallbackSpecKt(build: InteractionApplicationCom
         builder.build()
     }
 
-class InteractionReplyEditSpecKt {
-    var content: String? = null
-    var embedSpecs = mutableListOf<EmbedCreateSpecKt>()
-    var withEphemeral: Boolean = false
+class InteractionReplyEditSpecKt : BaseMessageSpecKt() {
     val components = mutableListOf<LayoutComponent>()
-
-    fun content(c: () -> String) {
-        content = c()
-    }
-
-    fun addEmbed(build: EmbedCreateSpecKt.() -> Unit) {
-        embedSpecs.add(EmbedCreateSpecKt().apply(build))
-    }
 
     fun addComponent(build: () -> LayoutComponent) {
         components.add(build())
