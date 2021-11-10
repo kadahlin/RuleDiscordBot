@@ -3,6 +3,6 @@ services:
   honkbot:
     environment:
       - HONKBOT_LOG=INFO
-    image: $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest
+    image: $(AWS_ACCOUNT_ID).dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest
     ports:
       - "6969:6969"
