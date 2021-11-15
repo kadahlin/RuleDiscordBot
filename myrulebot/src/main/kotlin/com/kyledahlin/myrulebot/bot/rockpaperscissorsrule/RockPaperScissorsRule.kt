@@ -122,10 +122,14 @@ internal class RockPaperScissorsRule @Inject constructor(
             )
         )
 
-        // send the initiator's choice
         context.reply {
-            content { "Make your choice" }
             withEphemeral()
+            content { "Game Initiated! " }
+        }
+
+        // send the initiator's choice
+        context.sendMessageToInitialUser {
+            content { "Make your choice" }
             addComponent {
                 ActionRow.of(
                     listOf(
@@ -162,9 +166,8 @@ internal class RockPaperScissorsRule @Inject constructor(
         } else {
             game.choiceTwo = choice
         }
-        context.reply {
+        context.edit {
             content { "Submitted $choice" }
-            withEphemeral()
         }
         if (game.choiceOne != null && game.choiceTwo != null) {
             endGame(game)

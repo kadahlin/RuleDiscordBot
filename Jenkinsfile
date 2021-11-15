@@ -13,10 +13,8 @@ pipeline {
   environment {
     HONKBOT_FIREBASE_JSON = credentials('honkbotFirebaseJson')
     HONKBOT_TOKEN = credentials('honkbotToken')
-    AWS_DEFAULT_REGION = "us-west-2"
-    AWS_ACCOUNT_ID = credentials('honkbotProdAccountId')
-    AWS_ACCESS_KEY_ID = credentials('honkbotProdAwsAccessKey')
-    AWS_SECRET_ACCESS_KEY = credentials('honkbotProdAwsSecretKey')
+    DOCKER_TOKEN = credentials('dockerHubToken')
+    DOCKER_USERNAME = credentials('dockerUsername')
   }
 
   stages {
@@ -41,14 +39,19 @@ pipeline {
       }
     }
 
-    stage('Publish to ECR and ECS') {
+    stage('Publish to docker hub') {
       steps {
-          sh 'aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com'
-          sh 'docker tag brinkhorizon/honkbot:latest $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest'
-          sh 'docker push $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/honkbot-prod:latest'
-          sh 'docker context use honkbotcontext'
-          sh 'docker compose up'
+          sh '''
+          echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+          docker push brinkhorizon/honkbot:latest
+          '''
       }
+    }
+  }
+
+  post {
+    always {
+      sh 'docker logout'
     }
   }
 }

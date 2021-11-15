@@ -11,13 +11,10 @@ import discord4j.discordjson.json.ApplicationCommandRequest
 import discord4k.builders.InteractionApplicationCommandCallbackSpecKt
 import discord4k.builders.InteractionReplyEditSpecKt
 import discord4k.builders.MessageCreateSpecKt
-import discord4k.interactions.suspendDeferReply
-import discord4k.interactions.suspendEditReply
-import discord4k.interactions.suspendTargetUser
+import discord4k.interactions.*
 import discord4k.suspendApplicationId
 import discord4k.suspendCreateApplicationCommand
 import discord4k.suspendPrivateChannel
-import discord4k.interactions.suspendReply
 import suspendCreateMessage
 
 interface GuildCreateContext {
@@ -68,6 +65,8 @@ interface ButtonInteractionEventContext {
     val channelId: Snowflake
     val customId: String
     suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
+    suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit)
+    suspend fun edit(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
 }
 
 internal class ButtonInteractionEventContextImpl(private val event: ButtonInteractionEvent) :
@@ -82,6 +81,14 @@ internal class ButtonInteractionEventContextImpl(private val event: ButtonIntera
     override suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit) {
         event.suspendReply(spec)
     }
+
+    override suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit) {
+        event.suspendEditReply(spec)
+    }
+
+    override suspend fun edit(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit) {
+        event.suspendEdit(spec)
+    }
 }
 
 interface UserInteractionContext {
@@ -91,6 +98,7 @@ interface UserInteractionContext {
     val channelId: Snowflake
     suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
     suspend fun sendMessageToTargetUser(spec: MessageCreateSpecKt.() -> Unit)
+    suspend fun sendMessageToInitialUser(spec: MessageCreateSpecKt.() -> Unit)
 }
 
 internal class UserInteractionContextImpl(private val event: UserInteractionEvent) :
@@ -121,6 +129,12 @@ internal class UserInteractionContextImpl(private val event: UserInteractionEven
     override suspend fun sendMessageToTargetUser(spec: MessageCreateSpecKt.() -> Unit) {
         event
             .suspendTargetUser()
+            .suspendPrivateChannel()
+            .suspendCreateMessage(spec)
+    }
+
+    override suspend fun sendMessageToInitialUser(spec: MessageCreateSpecKt.() -> Unit) {
+        event.interaction.user
             .suspendPrivateChannel()
             .suspendCreateMessage(spec)
     }

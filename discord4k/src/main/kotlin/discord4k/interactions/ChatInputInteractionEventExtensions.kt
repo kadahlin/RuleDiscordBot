@@ -1,5 +1,6 @@
 package discord4k.interactions
 
+import discord4j.core.event.domain.interaction.ComponentInteractionEvent
 import discord4j.core.event.domain.interaction.InteractionCreateEvent
 import discord4j.core.spec.InteractionCallbackSpec
 import discord4k.builders.InteractionApplicationCommandCallbackSpecKt
@@ -17,3 +18,6 @@ suspend fun InteractionCreateEvent.suspendDeferReply() {
 
 suspend fun InteractionCreateEvent.suspendEditReply(spec: InteractionReplyEditSpecKt.() -> Unit) =
     this.editReply(interactionReplyEditSpecKt(spec)).suspend()
+
+suspend fun ComponentInteractionEvent.suspendEdit(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit) =
+    this.edit(interactionApplicationCommandCallbackSpecKt(spec)).suspend()
