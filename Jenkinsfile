@@ -14,7 +14,7 @@ pipeline {
     HONKBOT_FIREBASE_JSON = credentials('honkbotFirebaseJson')
     HONKBOT_TOKEN = credentials('honkbotToken')
     DOCKER_TOKEN = credentials('dockerHubToken')
-    DOCKER_USERNAME = credentials('dockerUsername')
+    DOCKER_USERNAME = credentials('dockerHubUsername')
   }
 
   stages {
