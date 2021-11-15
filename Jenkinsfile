@@ -42,7 +42,7 @@ pipeline {
     stage('Publish to docker hub') {
       steps {
           sh '''
-          echo $DOCKER_TOKEN | docker login -u $DOCKER_USERNAME
+          docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN
           docker push brinkhorizon/honkbot:latest
           docker logout
           '''
