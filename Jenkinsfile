@@ -35,7 +35,7 @@ pipeline {
 
     stage('Create docker image') {
       steps {
-        sh 'docker build -t brinkhorizon/honkbot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN} .'
+        sh 'docker build -t atomicboo/rulebot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN} .'
       }
     }
 
@@ -43,7 +43,7 @@ pipeline {
       steps {
           sh '''
           docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN
-          docker push brinkhorizon/honkbot:latest
+          docker push atomicboo/rulebot:latest
           docker logout
           '''
       }
