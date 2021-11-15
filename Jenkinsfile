@@ -42,7 +42,7 @@ pipeline {
     stage('Publish to docker hub') {
       steps {
           sh '''
-          echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+          echo $DOCKER_TOKEN | docker login -u $DOCKER_USERNAME
           docker push brinkhorizon/honkbot:latest
           docker logout
           '''
