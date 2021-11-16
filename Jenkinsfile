@@ -43,6 +43,7 @@ pipeline {
           sh '''
           docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN
           docker push atomicboo/rulebot:latest
+          docker image rm atomicboo/rulebot:latest
           docker logout
           '''
       }
