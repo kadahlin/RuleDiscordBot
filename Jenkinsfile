@@ -28,7 +28,7 @@ pipeline {
 
     stage('Build and test') {
       steps {
-        sh './gradlew build pMR --stacktrace'
+        sh './gradlew pMR --stacktrace'
       }
     }
 
