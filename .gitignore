@@ -1,5 +1,7 @@
-
-myrulebot/src/main/resources/
+myrulebot/myrulebot/src/main/resources/token.txt
+myrulebot/myrulebot/src/main/resources/betatoken.txt
+myrulebot/myrulebot/src/main/resources/twitchtoken.txt
+myrulebot/myrulebot/src/main/resources/serviceAccount.json
 .idea/
 .gradle/
 out/
