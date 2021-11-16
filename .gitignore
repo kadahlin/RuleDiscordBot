@@ -1,7 +1,4 @@
-myrulebot/src/main/resources/token.txt
-myrulebot/src/main/resources/betatoken.txt
-myrulebot/src/main/resources/twitchtoken.txt
-myrulebot/src/main/resources/serviceAccount.json
+
 myrulebot/src/main/resources/
 .idea/
 .gradle/

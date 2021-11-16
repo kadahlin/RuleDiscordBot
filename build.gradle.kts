@@ -26,7 +26,7 @@ val packageMyRuleBot = tasks.register("packageMyRulebot") {
 tasks.register("build") {
     group = taskGroup
     description = "Run all tests and package the bot"
-    dependsOn(checkAll, packageMyRulebot)
+    dependsOn(checkAll, packageMyRuleBot)
 }
 
 tasks.register("cleanAll") {
