@@ -6,7 +6,6 @@ pipeline {
   }
 
   options {
-    // Stop the build early in case of compile or test failures
     skipStagesAfterUnstable()
   }
 
@@ -22,14 +21,14 @@ pipeline {
     stage('Move firebase resources') {
       steps {
         // Compile the app and its dependencies
-        sh 'mkdir -p ./myrulebot/src/main/resources'
-        sh 'mv $HONKBOT_FIREBASE_JSON ./myrulebot/src/main/resources/serviceAccount.json'
+        sh 'mkdir -p ./myrulebot/myrulebot/src/main/resources'
+        sh 'mv $HONKBOT_FIREBASE_JSON ./myrulebot/myrulebot/src/main/resources/serviceAccount.json'
       }
     }
 
     stage('Build and test') {
       steps {
-        sh './gradlew build installDist --stacktrace'
+        sh './gradlew build pMR --stacktrace'
       }
     }
 

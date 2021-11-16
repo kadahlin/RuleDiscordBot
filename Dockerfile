@@ -6,6 +6,6 @@ ENV HONKBOT_LOG="INFO"
 ENV RULEBOT_HOST="0.0.0.0"
 EXPOSE 6969:6969
 RUN mkdir /app
-COPY ./myrulebot/build/install/myrulebot/ /app/
+COPY ./myrulebot/myrulebot/build/install/myrulebot/ /app/
 WORKDIR /app/bin
 CMD ["./myrulebot"]
