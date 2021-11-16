@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     id("java-library")
     kotlin("jvm")
@@ -30,6 +32,10 @@ repositories {
 // configure details of java compilation
 tasks.withType<JavaCompile>().configureEach {
     options.headerOutputDirectory.convention(null) // currently, need to clear convention to remove
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
 }
 
 // Share sources folder with other projects for aggregated Javadoc and JaCoCo reports
