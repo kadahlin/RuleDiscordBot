@@ -1,3 +1,5 @@
+import com.kyledahlin.skrapeIt
+
 plugins {
     application
     id("com.kyledahlin.kotlin")
@@ -5,12 +7,8 @@ plugins {
 
 dependencies {
 
-    implementation("${libs.skrapeit}:1.0.0-alpha6") {
-        exclude(group = "io.strikt", module = "strikt-core")
-    }
-
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
-
+    skrapeIt()
+    implementation(libs.kotlinSerialization)
     implementation(libs.firebase)
 
     implementation("com.kyledahlin.platform:rulebot")
@@ -30,4 +28,6 @@ tasks.register<JavaExec>("generateJks") {
     classpath = sourceSets["main"].runtimeClasspath
     main = "com.kyledahlin.myrulebot.app.CertificateGenerator"
 }
-getTasksByName("run", false).first().dependsOn("generateJks")
+getTasksByName("run", false)
+    .first()
+    .dependsOn("generateJks")

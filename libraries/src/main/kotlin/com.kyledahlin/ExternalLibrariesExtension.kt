@@ -1,4 +1,8 @@
-package com.example
+package com.kyledahlin
+
+import org.gradle.kotlin.dsl.DependencyHandlerScope
+import org.gradle.kotlin.dsl.add
+import org.gradle.kotlin.dsl.exclude
 
 abstract class ExternalLibrariesExtension {
     private val daggerBase = "com.google.dagger:dagger"
@@ -24,9 +28,11 @@ abstract class ExternalLibrariesExtension {
     val mockk = "io.mockk:mockk:1.12.0"
     val strikt = "io.strikt:strikt-core:0.32.0"
 
-    val skrapeit = "it.skrape:skrapeit-core"
+    val skrapeit = ""
 
     val firebase = "com.google.firebase:firebase-admin:8.1.0"
+
+    val kotlinSerialization = "org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0"
 
     private val ktorBase = "io.ktor:ktor"
     private val ktorServerBase = "$ktorBase-server"
@@ -44,5 +50,10 @@ abstract class ExternalLibrariesExtension {
         "$ktorBase-serialization",
         "$ktorBase-network-tls-certificates"
     )
+}
 
+fun DependencyHandlerScope.skrapeIt() {
+    dependencies.add("implementation", "it.skrape:skrapeit-core:1.0.0-alpha6") {
+        exclude(group = "io.strikt", module = "strikt-core")
+    }
 }

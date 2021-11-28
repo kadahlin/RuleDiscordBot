@@ -1,3 +1,3 @@
-import com.example.ExternalLibrariesExtension
+import com.kyledahlin.ExternalLibrariesExtension
 
 extensions.create<ExternalLibrariesExtension>("libs")
