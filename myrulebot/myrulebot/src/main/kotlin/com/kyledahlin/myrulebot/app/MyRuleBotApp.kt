@@ -22,6 +22,7 @@ import com.kyledahlin.myrulebot.bot.MyRulebot
 import com.kyledahlin.rulebot.*
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger.logDebug
+import com.kyledahlin.wellnessrule.wellnessSerializers
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.response.*
@@ -32,6 +33,7 @@ import io.ktor.server.netty.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.plus
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import org.slf4j.event.Level
@@ -78,7 +80,7 @@ fun Application.mainModule(analytics: Analytics, ruleBot: RuleBot, json: Json = 
     }
 
     install(CallLogging) {
-        level = Level.INFO
+        level = Level.ERROR
     }
 
     routing {
@@ -125,5 +127,5 @@ val basicResponseModules = SerializersModule {
 object EmptyResponse
 
 private val myRulebotJson = Json {
-    serializersModule = basicResponseModules
+    serializersModule = basicResponseModules + wellnessSerializers
 }

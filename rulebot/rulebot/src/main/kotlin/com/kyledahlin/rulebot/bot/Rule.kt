@@ -52,7 +52,7 @@ abstract class Rule(
     /**
      * Process this event from *anywhere* and determine if action is necessary, or return information based on this request
      */
-    open suspend fun configure(data: Any): Either<Exception, Any> = emptyMap<String, String>().right()
+    open suspend fun configure(data: Any): Either<Any, Any> = emptyMap<String, String>().right()
 
     @OverridingMethodsMustInvokeSuper
     open suspend fun onGuildCreate(context: GuildCreateContext) {

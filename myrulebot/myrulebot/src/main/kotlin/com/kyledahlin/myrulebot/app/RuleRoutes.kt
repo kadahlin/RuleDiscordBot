@@ -1,7 +1,5 @@
 package com.kyledahlin.myrulebot.app
 
-import arrow.core.flatMap
-import arrow.core.right
 import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.Response
 import com.kyledahlin.rulebot.RuleBot
@@ -18,13 +16,12 @@ fun Routing.rules(analytics: Analytics, rulebot: RuleBot) {
             Logger.logDebug { "got ruleName [$ruleName] with body: [$data]" }
             analytics.logLifecycle("Rule config", "call to configure $ruleName")
             val response = rulebot.configureRule(ruleName, data)
-                ?.flatMap { if (it is Unit) EmptyResponse.right() else it.right() }
                 ?.fold({ exception ->
-                    Response.error(exception.message ?: "no exception message")
+                    Response.error(exception.toString())
                 }, { value ->
                     Response.success(value)
                 })
-                ?: Response.error("No rule found for this name")
+                ?: Response.error("No rule found for name $ruleName")
             call.jsonResponse(response)
         }
 

@@ -135,7 +135,7 @@ class RuleBot private constructor(
         }
     }
 
-    suspend fun configureRule(ruleName: String, data: Any): Either<Exception, Any>? {
+    suspend fun configureRule(ruleName: String, data: Any): Either<Any, Any>? {
         return ruleManager.configureRule(ruleName, data)
     }
 

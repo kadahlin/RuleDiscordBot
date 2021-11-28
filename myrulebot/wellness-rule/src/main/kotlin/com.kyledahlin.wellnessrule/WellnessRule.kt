@@ -1,5 +1,9 @@
 package com.kyledahlin.wellnessrule
 
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.left
+import arrow.core.right
 import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.ChatInputInteractionContext
 import com.kyledahlin.rulebot.GuildCreateContext
@@ -10,11 +14,17 @@ import com.kyledahlin.rulebot.bot.Rule
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.VoiceStateUpdateEvent
 import discord4j.discordjson.json.ApplicationCommandRequest
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import suspendCreateMessage
 import javax.inject.Inject
 
-private val SIX_HOURS = 1000 * 60 * 60 * 6
-// private val SIX_HOURS = 10 * 1000
+//private val SIX_HOURS = 1000 * 60 * 60 * 6
+private val SIX_HOURS = 5 * 1000
 
 class WellnessRule @Inject constructor(
     private val _analytics: Analytics,
@@ -90,4 +100,26 @@ class WellnessRule @Inject constructor(
                 }
         }
     }
+
+    override suspend fun configure(data: Any): Either<Any, Any> {
+        return Either.catch({
+            logError { "could not deserialize to configure wellness, $it" }
+            "failed to deserialize"
+        }, {
+            Json.decodeFromString<JsonObject>(data as String)
+        }).flatMap { json ->
+            val toDisable = (json["toDisable"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
+            val toEnable = (json["toEnable"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
+            if (toDisable.isNotEmpty() || toEnable.isNotEmpty()) {
+                _wellnessStorage.disableForGuild(toDisable)
+                _wellnessStorage.enableForGuild(toEnable)
+                WellnessResponse("successfully enabled for ${toEnable.size} and disabled for ${toDisable.size} guilds").right()
+            } else {
+                WellnessResponse("configure was called but no toDisable was given").left()
+            }
+        }
+    }
 }
+
+@Serializable
+data class WellnessResponse(val message: String)

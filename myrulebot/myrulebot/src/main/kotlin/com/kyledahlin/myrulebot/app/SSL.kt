@@ -3,9 +3,7 @@ package com.kyledahlin.myrulebot.app
 import io.ktor.application.*
 import io.ktor.network.tls.certificates.*
 import io.ktor.server.engine.*
-import org.slf4j.LoggerFactory
 import java.io.File
-import java.security.KeyStore
 
 private const val keyAlias = "mykey"
 private const val keyPass = "changeit"
@@ -15,8 +13,6 @@ fun ApplicationEngineEnvironmentBuilder.applySelfCert(
     port: Int,
     module: Application.() -> Unit
 ) {
-
-//    log = LoggerFactory.getLogger("ktor.application")
 
     val keystoreFile = File("keystore.jks")
 
@@ -38,7 +34,7 @@ fun ApplicationEngineEnvironmentBuilder.applySelfCert(
         { keyPass.toCharArray() },
     ) {
         this.host = host
-        this.port = 9999
+        this.port = port + 1
         keyStorePath = keystoreFile
     }
     module(module)

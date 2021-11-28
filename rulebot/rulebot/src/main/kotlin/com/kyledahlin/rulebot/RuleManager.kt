@@ -47,7 +47,7 @@ internal class RuleManager @Inject constructor() {
         _rules.forEach { it.setContext(client) }
     }
 
-    suspend fun configureRule(ruleName: String, data: Any): Either<Exception, Any>? {
+    suspend fun configureRule(ruleName: String, data: Any): Either<Any, Any>? {
         return _rules.firstOrNull { it.ruleName.equals(ruleName, ignoreCase = true) }?.configure(data)
     }
 
