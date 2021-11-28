@@ -18,6 +18,7 @@ package com.kyledahlin.rulebot
 import arrow.core.Either
 import com.kyledahlin.rulebot.RuleBot.Builder
 import com.kyledahlin.rulebot.bot.*
+import com.kyledahlin.rulebot.bot.Logger.logDebug
 import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
 import discord4j.core.event.domain.VoiceStateUpdateEvent
@@ -143,7 +144,12 @@ class RuleBot private constructor(
     }
 
     suspend fun getGuildInfo(): List<GuildNameAndId> {
-        return emptyList()
+        logDebug { "Request for guild information" }
+        return client
+            .guilds
+            .map { GuildNameAndId(it.name(), it.id().asString()) }
+            .collectList()
+            .block()!!
     }
 
     suspend fun getMemberInfo(guildId: String): Collection<MemberNameAndId>? {

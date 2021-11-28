@@ -12,3 +12,4 @@ build/
 nohup.out
 betatoken.txt
 startlocal.sh
+keystore.jks

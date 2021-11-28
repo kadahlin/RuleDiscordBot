@@ -94,6 +94,5 @@ internal class RuleManager @Inject constructor() {
     internal suspend fun getRuleNames(): Set<String> {
         return _rules.map { it.ruleName }.toSet()
     }
-
 }
 

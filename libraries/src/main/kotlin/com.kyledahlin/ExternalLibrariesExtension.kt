@@ -50,6 +50,10 @@ abstract class ExternalLibrariesExtension {
         "$ktorBase-serialization",
         "$ktorBase-network-tls-certificates"
     )
+
+    val ktorTest = "${ktorServerBase}-test-host"
+
+    val logback = "ch.qos.logback:logback-classic:1.2.7"
 }
 
 fun DependencyHandlerScope.skrapeIt() {

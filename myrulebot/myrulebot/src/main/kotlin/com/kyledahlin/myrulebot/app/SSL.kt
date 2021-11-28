@@ -2,8 +2,8 @@ package com.kyledahlin.myrulebot.app
 
 import io.ktor.application.*
 import io.ktor.network.tls.certificates.*
-import io.ktor.network.tls.extensions.*
 import io.ktor.server.engine.*
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.security.KeyStore
 
@@ -16,28 +16,30 @@ fun ApplicationEngineEnvironmentBuilder.applySelfCert(
     module: Application.() -> Unit
 ) {
 
-    val keystore = buildKeyStore {
-        certificate(keyAlias) {
-            hash = HashAlgorithm.SHA256
-            sign = SignatureAlgorithm.ECDSA
-            keySizeInBits = 256
-            password = keyPass
-        }
-        // More certificates come here
-    }
+//    log = LoggerFactory.getLogger("ktor.application")
 
-    sslConnector(keystore, keyAlias, { keyPass.toCharArray() }, { keyPass.toCharArray() }) {
-        this.host = host
+    val keystoreFile = File("keystore.jks")
+
+    val keystore = generateCertificate(
+        file = keystoreFile,
+        keyAlias = keyAlias,
+        keyPassword = keyPass,
+        jksPassword = keyPass
+    )
+
+    connector {
         this.port = port
-        keyStorePath = keystore.asFile.absoluteFile
-
-        module(module)
     }
+
+    sslConnector(
+        keystore,
+        keyAlias,
+        { keyPass.toCharArray() },
+        { keyPass.toCharArray() },
+    ) {
+        this.host = host
+        this.port = 9999
+        keyStorePath = keystoreFile
+    }
+    module(module)
 }
-
-private val KeyStore.asFile: File
-    get() {
-        val keyStoreFile = File("build/temporary.jks")
-        this.saveToFile(keyStoreFile, keyPass)
-        return keyStoreFile
-    }
