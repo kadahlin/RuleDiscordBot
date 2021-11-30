@@ -20,7 +20,6 @@ dependencies {
 
     implementation(libs.arrowCore)
     implementation(libs.arrowMeta)
-
 }
 
 repositories {

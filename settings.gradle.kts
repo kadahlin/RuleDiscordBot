@@ -1,7 +1,8 @@
-rootProject.name = "rulebot"
+rootProject.name = "Bot"
 
 dependencyResolutionManagement {
-    includeBuild("discord4k")
     includeBuild("myrulebot")
+    includeBuild("android")
+    includeBuild("wellness-rule")
     includeBuild("rulebot")
 }

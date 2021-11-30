@@ -5,6 +5,7 @@ ENV PORT=6969
 ENV HONKBOT_LOG="INFO"
 ENV RULEBOT_HOST="0.0.0.0"
 EXPOSE 6969:6969
+EXPOSE 6970:6970
 RUN mkdir /app
 COPY ./myrulebot/myrulebot/build/install/myrulebot/ /app/
 WORKDIR /app/bin

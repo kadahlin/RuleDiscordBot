@@ -17,15 +17,15 @@ pipeline {
     stage('Move firebase resources') {
       steps {
         // Compile the app and its dependencies
-        sh 'mkdir -p ./myrulebot/myrulebot/src/main/resources'
-        sh 'mv $HONKBOT_FIREBASE_JSON ./myrulebot/myrulebot/src/main/resources/serviceAccount.json'
+        sh 'mkdir -p ./myrulebot/src/main/resources'
+        sh 'mv $HONKBOT_FIREBASE_JSON ./myrulebot/src/main/resources/serviceAccount.json'
       }
     }
 
     stage('Build and test') {
 
       steps {
-        sh './gradlew pMR --stacktrace'
+        sh './gradlew bMR --stacktrace'
       }
     }
 

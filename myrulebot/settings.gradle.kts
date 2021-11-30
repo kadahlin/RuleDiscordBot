@@ -1,5 +1,11 @@
 pluginManagement {
     includeBuild("../repositories")
+
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
 
 plugins {
@@ -9,9 +15,8 @@ plugins {
 dependencyResolutionManagement {
     includeBuild("../rulebot")
     includeBuild("../discord4k")
+    includeBuild("../models")
+    includeBuild("../utils")
+    includeBuild("../wellness-rule")
+    includeBuild("../wellness-models")
 }
-
-include("myrulebot")
-include("wellness-rule")
-include("utils")
-include("test-utils")

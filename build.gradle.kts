@@ -4,26 +4,26 @@ tasks.named<TaskReportTask>("tasks") {
     displayGroup = taskGroup
 }
 
-val sourceFolders = listOf("discord4k", "rulebot", "myrulebot")
+val sourceFolders = listOf("discord4k", "rulebot", "myrulebot", "app", "wellness-rule")
 
 val checkAll = tasks.register("checkAll") {
     group = taskGroup
     description = "Run all tests"
-    dependsOn(gradle.includedBuilds.filter { sourceFolders.contains(it.name) }.map { it.task(":checkAll") })
+    dependsOn(gradle.includedBuilds.filter { sourceFolders.contains(it.name) }.map { it.task(":check") })
 }
 val assembleMyRulebot = tasks.register("assembleMyRulebot") {
     group = taskGroup
     description = "Assemble my rule bot"
-    dependsOn(gradle.includedBuild("myrulebot").task(":myrulebot:assemble"))
+    dependsOn(gradle.includedBuild("myrulebot").task(":assemble"))
 }
 
 val packageMyRuleBot = tasks.register("packageMyRulebot") {
     group = taskGroup
     description = "Create the rulebot distribution for docker"
-    dependsOn(assembleMyRulebot, gradle.includedBuild("myrulebot").task(":myrulebot:installDist"))
+    dependsOn(assembleMyRulebot, gradle.includedBuild("myrulebot").task(":installDist"))
 }
 
-tasks.register("build") {
+tasks.register("buildMyRulebot") {
     group = taskGroup
     description = "Run all tests and package the bot"
     dependsOn(checkAll, packageMyRuleBot)
@@ -32,5 +32,5 @@ tasks.register("build") {
 tasks.register("cleanAll") {
     group = taskGroup
     description = "Project wide clean"
-    dependsOn(gradle.includedBuilds.map { it.task(":cleanAll") })
+    dependsOn(gradle.includedBuilds.map { it.task(":clean") })
 }

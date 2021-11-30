@@ -1,5 +1,11 @@
 pluginManagement {
     includeBuild("../repositories")
+
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
 
 plugins {
@@ -8,6 +14,7 @@ plugins {
 
 dependencyResolutionManagement {
     includeBuild("../discord4k")
+    includeBuild("../models")
 }
 
 include("rulebot")
