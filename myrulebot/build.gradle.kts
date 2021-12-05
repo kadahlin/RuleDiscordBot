@@ -11,6 +11,8 @@ dependencies {
     implementation(libs.kotlinSerialization)
     implementation(libs.firebase)
 
+    libs.ktorServerLibs.forEach { dep -> implementation("${dep}:1.6.5") }
+
     listOf(
         "rulebot",
         "discord4k",

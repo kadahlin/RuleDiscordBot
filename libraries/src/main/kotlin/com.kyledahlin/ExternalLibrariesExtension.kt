@@ -45,10 +45,13 @@ abstract class ExternalLibrariesExtension {
         "$ktorClientBase-json-jvm",
         "$ktorClientBase-apache",
         "$ktorClientBase-serialization-jvm",
-        "$ktorServerBase-core",
-        "$ktorServerBase-netty",
         "$ktorBase-serialization",
         "$ktorBase-network-tls-certificates"
+    )
+
+    val ktorServerLibs = listOf(
+        "$ktorServerBase-core",
+        "$ktorServerBase-netty"
     )
 
     val ktorTest = "${ktorServerBase}-test-host"

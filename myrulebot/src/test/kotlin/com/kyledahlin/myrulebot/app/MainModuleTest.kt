@@ -4,7 +4,7 @@ import com.kyledahlin.models.GetRulesResponse
 import com.kyledahlin.models.basicResponseModule
 import com.kyledahlin.myrulebot.TestResponse
 import com.kyledahlin.myrulebot.TestRule
-import com.kyledahlin.rulebot.Response
+import com.kyledahlin.models.Response
 import com.kyledahlin.rulebot.RuleBot
 import com.kyledahlin.rulebot.bot.LogLevel
 import io.ktor.http.*

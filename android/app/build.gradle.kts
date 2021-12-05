@@ -28,7 +28,7 @@ android {
         }
 
         debug {
-            buildConfigField("String", "SERVER_ADDRESS", System.getenv("SERVER_ADDRESS"))
+            buildConfigField("String", "SERVER_ADDRESS", "\"${System.getenv("SERVER_ADDRESS")}\"")
         }
     }
     compileOptions {
@@ -47,6 +47,9 @@ android {
     packagingOptions {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            pickFirsts.add("**/*.kotlin_builtins")
+            excludes += "META-INF/**/*"
+            excludes += "META-INF/*"
         }
     }
 }
@@ -65,6 +68,9 @@ dependencies {
     // domain specific
     implementation("com.kyledahlin.platform:models")
     implementation("com.kyledahlin.platform:wellness-models")
+
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0")
 
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:$composeVersion")

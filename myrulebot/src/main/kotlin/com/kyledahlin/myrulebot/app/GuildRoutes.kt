@@ -2,7 +2,7 @@ package com.kyledahlin.myrulebot.app
 
 import com.kyledahlin.models.GetGuildsResponse
 import com.kyledahlin.models.MemberNameAndIds
-import com.kyledahlin.rulebot.Response
+import com.kyledahlin.models.Response
 import com.kyledahlin.rulebot.RuleBot
 import com.kyledahlin.rulebot.bot.Logger
 import io.ktor.application.*

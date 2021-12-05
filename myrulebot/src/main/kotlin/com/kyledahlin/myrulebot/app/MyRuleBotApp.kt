@@ -21,7 +21,7 @@ import com.google.firebase.FirebaseOptions
 import com.kyledahlin.models.basicResponseModule
 import com.kyledahlin.myrulebot.bot.MyRulebot
 import com.kyledahlin.rulebot.Analytics
-import com.kyledahlin.rulebot.Response
+import com.kyledahlin.models.Response
 import com.kyledahlin.rulebot.RuleBot
 import com.kyledahlin.rulebot.bot.LogLevel
 import com.kyledahlin.rulebot.bot.Logger.logDebug

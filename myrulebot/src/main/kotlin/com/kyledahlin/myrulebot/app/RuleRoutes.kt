@@ -2,7 +2,7 @@ package com.kyledahlin.myrulebot.app
 
 import com.kyledahlin.models.GetRulesResponse
 import com.kyledahlin.rulebot.Analytics
-import com.kyledahlin.rulebot.Response
+import com.kyledahlin.models.Response
 import com.kyledahlin.rulebot.RuleBot
 import com.kyledahlin.rulebot.bot.Logger.logDebug
 import io.ktor.application.*

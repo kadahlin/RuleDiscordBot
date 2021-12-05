@@ -23,6 +23,12 @@ val packageMyRuleBot = tasks.register("packageMyRulebot") {
     dependsOn(assembleMyRulebot, gradle.includedBuild("myrulebot").task(":installDist"))
 }
 
+val installAndroid = tasks.register("installAndroid") {
+    group = taskGroup
+    description = "Install the android config app to a connected device"
+    dependsOn(gradle.includedBuild("android").task(":app:installDebug"))
+}
+
 tasks.register("buildMyRulebot") {
     group = taskGroup
     description = "Run all tests and package the bot"

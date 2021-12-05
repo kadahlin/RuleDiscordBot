@@ -1,4 +1,4 @@
-package com.kyledahlin.rulebot
+package com.kyledahlin.models
 
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable

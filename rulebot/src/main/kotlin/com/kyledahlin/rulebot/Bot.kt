@@ -154,7 +154,12 @@ class RuleBot private constructor(
     }
 
     suspend fun getMemberInfo(guildId: String): Collection<MemberNameAndId>? {
-        return null
+        return client
+            .getGuildById(Snowflake.of(guildId))
+            .members
+            .map { memberData -> MemberNameAndId(memberData.user().username(), memberData.user().id().asString()) }
+            .collectList()
+            .block()
     }
 
     companion object {

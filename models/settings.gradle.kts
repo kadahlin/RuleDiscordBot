@@ -11,3 +11,7 @@ pluginManagement {
 plugins {
     id("com.kyledahlin.repositories")
 }
+
+dependencyResolutionManagement {
+    repositories.mavenCentral()
+}
