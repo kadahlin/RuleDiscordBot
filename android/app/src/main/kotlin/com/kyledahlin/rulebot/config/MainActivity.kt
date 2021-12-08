@@ -1,68 +1,41 @@
 package com.kyledahlin.rulebot.config
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material.Button
+import androidx.activity.viewModels
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject
-    lateinit var _facade: ConfigFacade
+    private val rulesModel by viewModels<RuleViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             BaseTheme {
                 Surface(color = MaterialTheme.colors.background) {
-                    Column {
-                        Button({
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                try {
-                                    Log.d("DEBUG", "${_facade.getRules()}")
-                                } catch (e: Exception) {
-                                    Log.d("DEBUG", "got error $e")
+                    val state by rulesModel.state.observeAsState(initial = RuleState.Loading)
+                    when (val current = state) {
+                        is RuleState.Failed -> {
+                            Text(current.reason)
+                        }
+                        is RuleState.Loaded -> {
+                            LazyColumn {
+                                items(current.rules) { rule ->
+                                    Text(rule)
                                 }
                             }
-                        }) {
-                            Text("Get rules debug", color = Color.Black)
                         }
-
-                        Button({
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                try {
-                                    Log.d("DEBUG", "${_facade.getGuilds()}")
-                                } catch (e: Exception) {
-                                    Log.d("DEBUG", "got error $e")
-                                }
-                            }
-                        }) {
-                            Text("Get guilds debug", color = Color.Black)
-                        }
-
-                        Button({
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                try {
-                                Log.d("DEBUG", "${_facade.getGuildInfo("559637112232738828")}")
-                                } catch (e: Exception) {
-                                    Log.d("DEBUG", "got error $e")
-                                }
-                            }
-                        }) {
-                            Text("Get rules debug", color = Color.Black)
-                        }
+                        RuleState.Loading -> Text("Loading")
                     }
                 }
             }

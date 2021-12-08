@@ -36,7 +36,7 @@ abstract class AnalyticsModule {
         @Provides
         @Singleton
         fun providesConfigService(values: BuildValues): ConfigService = Retrofit.Builder()
-            .baseUrl("http://${values.serverAddress}")
+            .baseUrl("https://${values.serverAddress}")
             .addConverterFactory(Json {
                 ignoreUnknownKeys = true
                 serializersModule = basicResponseModule + wellnessSerializerModule

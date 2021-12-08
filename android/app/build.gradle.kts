@@ -64,6 +64,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview:$composeVersion")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0")
     implementation("androidx.activity:activity-compose:1.4.0")
+    implementation("androidx.compose.runtime:runtime-livedata:1.0.5")
 
     // domain specific
     implementation("com.kyledahlin.platform:models")
