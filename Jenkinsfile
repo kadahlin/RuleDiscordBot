@@ -10,6 +10,9 @@ pipeline {
     HONKBOT_TOKEN = credentials('honkbotToken')
     DOCKER_TOKEN = credentials('dockerHubToken')
     DOCKER_USERNAME = credentials('dockerHubUsername')
+
+    GITHUB_PACKAGES_USERNAME = credentials('githubPackagesUsername')
+    GITHUB_PACKAGES_TOKEN = credentials('githubPackagesToken')
   }
 
   stages {
