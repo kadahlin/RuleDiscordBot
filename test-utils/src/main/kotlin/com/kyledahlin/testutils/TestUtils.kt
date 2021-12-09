@@ -43,6 +43,7 @@ class TestChatInputInteractionContext :
     ChatInputInteractionContext {
     val replies = mutableListOf<InteractionApplicationCommandCallbackSpecKt>()
     val edits = mutableListOf<InteractionReplyEditSpecKt>()
+    val options = mutableMapOf<String, String>()
     var userMessageSpec: MessageCreateSpecKt? = null
 
     var wasDeferred: Boolean = false
@@ -58,6 +59,10 @@ class TestChatInputInteractionContext :
 
     override val userId: Snowflake
         get() = Snowflake.of("1")
+
+    override suspend fun getOption(name: String): String? {
+        return options["name"]
+    }
 
     override suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit) {
         replies.add(InteractionApplicationCommandCallbackSpecKt().apply(spec))

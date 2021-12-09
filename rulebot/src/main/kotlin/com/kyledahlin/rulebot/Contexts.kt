@@ -40,6 +40,7 @@ interface ChatInputInteractionContext {
     val channelId: Snowflake
     val guildId: Snowflake
     val userId: Snowflake
+    suspend fun getOption(name: String): String?
     suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
     suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit)
     suspend fun deferReply()
@@ -78,6 +79,12 @@ internal class ChatInputInteractionContextImpl(private val event: ChatInputInter
             .suspendPrivateChannel()
             .suspendCreateMessage(spec)
     }
+
+    override suspend fun getOption(name: String): String? =
+        event.getOption(name)
+            .flatMap { it.value }
+            .map { it.asString() }
+            .orElse(null)
 }
 
 interface ButtonInteractionEventContext {

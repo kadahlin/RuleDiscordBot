@@ -19,7 +19,8 @@ dependencies {
         "models",
         "utils",
         "wellness-rule",
-        "wellness-models"
+        "wellness-models",
+        "mtg-rule"
     ).forEach { implementation("com.kyledahlin.platform:$it") }
 
     testImplementation("com.kyledahlin.platform:test-utils")

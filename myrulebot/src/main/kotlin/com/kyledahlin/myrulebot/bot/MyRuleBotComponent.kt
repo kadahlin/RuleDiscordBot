@@ -17,6 +17,7 @@ package com.kyledahlin.myrulebot.bot
 
 import com.google.cloud.firestore.Firestore
 import com.google.firebase.cloud.FirestoreClient
+import com.kyledahlin.mtgrule.MtgRule
 import com.kyledahlin.myrulebot.app.LocalAnalytics
 import com.kyledahlin.myrulebot.bot.corona.CoronaRule
 import com.kyledahlin.myrulebot.bot.jojorule.JojoMemeRule
@@ -63,11 +64,12 @@ internal abstract class MyRuleBotModule {
             rockPaperScissorsRule: RockPaperScissorsRule,
             coronaRule: CoronaRule,
             keyValueRule: KeyValueRule,
-            wellnessRule: WellnessRule
+            wellnessRule: WellnessRule,
+            mtgRule: MtgRule
         ): Set<Rule> {
             return setOf(
                 jojoMemeRule, rockPaperScissorsRule,
-                coronaRule, keyValueRule, wellnessRule
+                coronaRule, keyValueRule, wellnessRule, mtgRule
             )
         }
 
@@ -75,6 +77,11 @@ internal abstract class MyRuleBotModule {
         @Provides
         @MyRuleBotScope
         fun bindsFirestore(): Firestore = FirestoreClient.getFirestore()
+
+        @JvmStatic
+        @Provides
+        @MyRuleBotScope
+        fun bindsMtgRule(): MtgRule = MtgRule()
 
         @JvmStatic
         @Provides

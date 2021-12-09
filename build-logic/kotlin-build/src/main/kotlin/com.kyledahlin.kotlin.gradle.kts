@@ -24,8 +24,13 @@ dependencies {
 
 repositories {
     mavenCentral()
-    maven(url = "https://kotlin.bintray.com/kotlinx")
     maven(url = "https://jitpack.io")
+    maven(url = "https://maven.pkg.github.com/kadahlin/Skryfall") {
+        credentials {
+            username = System.getenv("GITHUB_PACKAGES_USERNAME")
+            password = System.getenv("GITHUB_PACKAGES_TOKEN")
+        }
+    }
 }
 
 // configure details of java compilation
