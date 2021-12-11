@@ -15,9 +15,7 @@ plugins {
 dependencyResolutionManagement {
     includeBuild("../rulebot")
     includeBuild("../discord4k")
-    includeBuild("../models")
+    includeBuild("../test-utils")
     includeBuild("../utils")
-    includeBuild("../wellness-rule")
-    includeBuild("../wellness-models")
-    includeBuild("../destiny-rule")
 }
+

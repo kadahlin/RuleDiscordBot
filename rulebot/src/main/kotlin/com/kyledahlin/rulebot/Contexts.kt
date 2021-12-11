@@ -43,7 +43,7 @@ interface ChatInputInteractionContext {
     suspend fun getOption(name: String): String?
     suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
     suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit)
-    suspend fun deferReply()
+    suspend fun deferReply(withEphemeral: Boolean)
     suspend fun sendMessageToUser(spec: MessageCreateSpecKt.() -> Unit)
 }
 
@@ -66,8 +66,8 @@ internal class ChatInputInteractionContextImpl(private val event: ChatInputInter
         event.suspendReply(spec)
     }
 
-    override suspend fun deferReply() {
-        event.suspendDeferReply()
+    override suspend fun deferReply(withEphemeral: Boolean) {
+        event.suspendDeferReply(withEphemeral)
     }
 
     override suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit) {

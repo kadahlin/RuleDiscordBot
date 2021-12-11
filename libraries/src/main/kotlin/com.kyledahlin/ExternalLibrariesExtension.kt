@@ -45,6 +45,7 @@ abstract class ExternalLibrariesExtension {
         "$ktorClientBase-json-jvm",
         "$ktorClientBase-apache",
         "$ktorClientBase-serialization-jvm",
+        "$ktorClientBase-auth",
         "$ktorBase-serialization",
         "$ktorBase-network-tls-certificates"
     )

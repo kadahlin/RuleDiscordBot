@@ -8,4 +8,5 @@ dependencyResolutionManagement {
     includeBuild("wellness-models")
     includeBuild("mtg-rule")
     includeBuild("rulebot")
+    includeBuild("destiny-rule")
 }

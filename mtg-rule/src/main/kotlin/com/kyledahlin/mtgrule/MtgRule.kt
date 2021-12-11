@@ -69,7 +69,7 @@ class MtgRule : Rule {
             return
         }
 
-        context.deferReply()
+        context.deferReply(withEphemeral = false)
         val response = _client.searchCards(CardText.name(cardName))
         if (response is Success) {
             if (response.data.isNotEmpty()) {

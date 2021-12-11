@@ -62,7 +62,7 @@ internal class JojoMemeRule @Inject constructor(
     override suspend fun onSlashCommand(context: ChatInputInteractionContext) = measureExecutionTime("jojo meme") {
 
         logInfo { "handling slash for jojo" }
-        context.deferReply()
+        context.deferReply(withEphemeral = false)
         val posts = _api.getPosts()
 
         val guildId = context.channelId

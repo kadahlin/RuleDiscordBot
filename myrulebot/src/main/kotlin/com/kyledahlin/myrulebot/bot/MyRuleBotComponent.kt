@@ -17,6 +17,7 @@ package com.kyledahlin.myrulebot.bot
 
 import com.google.cloud.firestore.Firestore
 import com.google.firebase.cloud.FirestoreClient
+import com.kyledahlin.destiny.Destiny2Rule
 import com.kyledahlin.mtgrule.MtgRule
 import com.kyledahlin.myrulebot.app.LocalAnalytics
 import com.kyledahlin.myrulebot.bot.corona.CoronaRule
@@ -65,11 +66,12 @@ internal abstract class MyRuleBotModule {
             coronaRule: CoronaRule,
             keyValueRule: KeyValueRule,
             wellnessRule: WellnessRule,
-            mtgRule: MtgRule
+            mtgRule: MtgRule,
+            destinyRule: Destiny2Rule
         ): Set<Rule> {
             return setOf(
                 jojoMemeRule, rockPaperScissorsRule,
-                coronaRule, keyValueRule, wellnessRule, mtgRule
+                coronaRule, keyValueRule, wellnessRule, mtgRule, destinyRule
             )
         }
 

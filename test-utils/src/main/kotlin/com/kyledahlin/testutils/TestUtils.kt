@@ -47,6 +47,7 @@ class TestChatInputInteractionContext :
     var userMessageSpec: MessageCreateSpecKt? = null
 
     var wasDeferred: Boolean = false
+    var wasDeferredEphmererally: Boolean = false
 
     override val name: String
         get() = "name"
@@ -68,8 +69,9 @@ class TestChatInputInteractionContext :
         replies.add(InteractionApplicationCommandCallbackSpecKt().apply(spec))
     }
 
-    override suspend fun deferReply() {
+    override suspend fun deferReply(withEphemeral: Boolean) {
         wasDeferred = true
+        wasDeferredEphmererally = withEphemeral
     }
 
     override suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit) {

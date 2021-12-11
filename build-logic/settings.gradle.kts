@@ -11,7 +11,8 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    repositories.mavenCentral()
+
+    includeBuild("../libraries")
 
     repositories {
         google()
