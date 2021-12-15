@@ -6,7 +6,7 @@ import org.gradle.kotlin.dsl.exclude
 
 abstract class ExternalLibrariesExtension {
     private val daggerBase = "com.google.dagger:dagger"
-    private val daggerVersion = "2.35.1"
+    private val daggerVersion = "2.40.5"
     private val arrowBase = "io.arrow-kt:arrow"
 
     private val coroutinesBase = "org.jetbrains.kotlinx:kotlinx-coroutines"
