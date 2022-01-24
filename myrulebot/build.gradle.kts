@@ -21,7 +21,8 @@ dependencies {
         "wellness-rule",
         "wellness-models",
         "mtg-rule",
-        "destiny-rule"
+        "destiny-rule",
+        "psycho-rule"
     ).forEach { implementation("com.kyledahlin.platform:$it") }
 
     testImplementation("com.kyledahlin.platform:test-utils")
