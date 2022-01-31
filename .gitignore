@@ -13,3 +13,10 @@ nohup.out
 betatoken.txt
 startlocal.sh
 keystore.jks
+
+#bazel
+.ijwb
+bazel-testlogs
+bazel-out
+bazel-bin
+bazel-RuleDiscordBot

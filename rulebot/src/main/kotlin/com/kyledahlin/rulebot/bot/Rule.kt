@@ -17,7 +17,6 @@ package com.kyledahlin.rulebot.bot
 
 import arrow.core.Either
 import arrow.core.right
-import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper
 import com.kyledahlin.rulebot.*
 import com.kyledahlin.rulebot.bot.Logger.logInfo
 import discord4j.common.util.Snowflake
@@ -31,7 +30,7 @@ import io.ktor.client.features.json.*
 import io.ktor.client.features.json.serializer.*
 
 /**
- * A self contained piece of logic that operates on the messages given to it.
+ * A self-contained piece of logic that operates on the messages given to it.
  */
 abstract class Rule(
     val ruleName: String,
@@ -54,7 +53,7 @@ abstract class Rule(
      */
     open suspend fun configure(data: Any): Either<Any, Any> = emptyMap<String, String>().right()
 
-    @OverridingMethodsMustInvokeSuper
+    //@OverridingMethodsMustInvokeSuper
     open suspend fun onGuildCreate(context: GuildCreateContext) {
         logInfo { "Attaching commands" }
     }
