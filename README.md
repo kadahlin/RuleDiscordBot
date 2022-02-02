@@ -6,30 +6,37 @@
 
 A modularized discord bot written in Kotlin. This project aims to demonstrate usage of a few design decisions:
 
-- Gradle with composite builds and convention plugins to increase developer productivity
+- Bazel with domain specific macros to increase developer productivity
 - Coroutine wrappers around a reactive library (Discord4j) to facilitate best practices
-- Combining multiple gradle builds into a single distribution unit (Docker) in a CD environment
-- Using shared kotlin models across a fullstack, a server instance and an android client
+- Combining multiple bazel modules into a single distribution unit (Docker) in a CD environment
+- Using shared kotlin models across the fullstack, a server instance and an android client
 
 ## Gradle composite builds
 
-Each included build is implemented with minimal configuration using convention plugins. The `com.kyledahlin.kotlin`
-plugin defined in the `build-logic` build applies common kotlin dependencies and compiler options. This reduces
-boilerplate when creating a new build (module). New `build.gradle.kts` files start with
+Each included build is implemented with minimal configuration using domain specific macros. The `bot_module`
+macro defined in `tools/kotlin.bzl` applies common kotlin dependencies and compiler options. This reduces
+boilerplate when creating a new feature (module). Rule modules leverage this macro inside another macro with common
+dependencies needed for rules, `rule_module`. Tests are written the same way. The configuration below demonstrates the setup for
+a typical rule. 
 
-```kotlin
-plugins {
-    id("com.kyledahlin.kotlin")
-}
-```
+load("//tools:kotlin.bzl", "rule_module", "rule_test")
 
-And then can optionally declare any dependencies
+rule_module(
+    name = "wellness_rule",
+    deps = [
+        "//wellness_models"
+    ]
+)
 
-```kotlin
-dependencies {
-    implementation("<other included build> / <maven artifact>")
-}
-```
+rule_test(
+    name = "test",
+    deps = [
+        "//wellness_rule",
+        "//wellness_models"
+    ]
+)
+
+This makes it very simple to add new features with minimal overhead.
 
 ## Domain specific module breakdown
 
@@ -43,10 +50,10 @@ should be communicated to the client with a corresponding response message. This
 data class WellnessResponse(val message: String)
 ```
 
-Since this is plain Kotlin (minus the serialization mechanism), we would like to reuse this across our kotlin codebase
-without a dependency on any server or discord code. The models for this rule are then split into a new composite build.
+Since this is plain Kotlin (minus the serialization mechanism), we would like to reuse this via a lightweight module across our kotlin codebase
+without a dependency on any server or discord code. The models for this rule are then split into a seperate bazel module.
 Being isolated from any rule logic, this becomes a lightweight addition to our client configuration app. The diagram
-below demonstrates how this is structured in gradle.
+below demonstrates the dependency chart for this rule.
 
 ![Shared code across server and client](docs/images/rules.png)
 
