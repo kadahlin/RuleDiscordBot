@@ -11,9 +11,9 @@ A modularized discord bot written in Kotlin. This project aims to demonstrate us
 - Combining multiple bazel modules into a single distribution unit (Docker) in a CD environment
 - Using shared kotlin models across the fullstack, a server instance and an android client
 
-## Gradle composite builds
+## Bazel workspace and conventions
 
-Each included build is implemented with minimal configuration using domain specific macros. The `bot_module`
+Each mpdule is implemented with minimal configuration using domain specific macros. The `bot_module`
 macro defined in `tools/kotlin.bzl` applies common kotlin dependencies and compiler options. This reduces
 boilerplate when creating a new feature (module). Rule modules leverage this macro inside another macro with common
 dependencies needed for rules, `rule_module`. Tests are written the same way. The configuration below demonstrates the setup for
