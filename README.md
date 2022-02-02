@@ -19,6 +19,7 @@ boilerplate when creating a new feature (module). Rule modules leverage this mac
 dependencies needed for rules, `rule_module`. Tests are written the same way. The configuration below demonstrates the setup for
 a typical rule. 
 
+```
 load("//tools:kotlin.bzl", "rule_module", "rule_test")
 
 rule_module(
@@ -35,6 +36,7 @@ rule_test(
         "//wellness_models"
     ]
 )
+```
 
 This makes it very simple to add new features with minimal overhead.
 
