@@ -1,4 +1,4 @@
-load("//tools:kotlin.bzl", "bot_module")
+load("//tools:kotlin.bzl", "bot_module", "bot_test")
 load("@rules_java//java:defs.bzl", "java_binary")
 
 bot_module(
@@ -14,6 +14,13 @@ bot_module(
         "//mtg_rule",
         "//psycho_rule",
     ],
+)
+
+bot_test(
+    name = "test",
+    deps = [
+        ":app_module"
+    ]
 )
 
 java_binary(

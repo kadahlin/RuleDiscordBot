@@ -49,7 +49,7 @@ kt_jvm_library(
         "@maven//:io_ktor_ktor_network_tls_certificates",
         "@maven//:io_ktor_ktor_serialization",
         "@maven//:com_discord4j_discord4j_core",
-        "@maven//:io_arrow_kt_arrow_core",
+        "@maven//:io_arrow_kt_arrow_core_jvm",
         "@maven//:it_skrape_skrapeit"
     ],
 )
@@ -77,6 +77,10 @@ kt_jvm_library(
     exports = [
         "@maven//:io_strikt_strikt_core",
         "@maven//:io_mockk_mockk",
-        "@maven//:org_junit_jupiter_junit_jupiter"
+        "@maven//:io_ktor_ktor_server_test_host",
+        "@maven//:org_junit_jupiter_junit_jupiter",
+        "@maven//:org_junit_jupiter_junit_jupiter_engine",
+        "@maven//:org_junit_platform_junit_platform_console",
+        "@maven//:org_junit_jupiter_junit_jupiter_api"
     ],
 )

@@ -107,7 +107,7 @@ class WellnessRule @Inject constructor(
             "failed to deserialize"
         }, {
             Json.decodeFromString<JsonObject>(data as String)
-        }).suspendFlatMap { json ->
+        }).flatMap { json ->
             val toDisable = (json["toDisable"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
             val toEnable = (json["toEnable"] as? JsonArray)?.map { it.jsonPrimitive.content } ?: emptyList()
             if (toDisable.isNotEmpty() || toEnable.isNotEmpty()) {
@@ -119,8 +119,4 @@ class WellnessRule @Inject constructor(
             }
         }
     }
-}
-
-suspend fun <A, B, C> Either<A, B>.suspendFlatMap(mapper: suspend (B) -> C): Either<A, C> {
-    return if (this.isRight()) Either.Right(mapper((this as Either.Right).b)) else Either.Left((this as Either.Left).a)
 }
