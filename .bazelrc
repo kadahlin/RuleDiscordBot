@@ -1,0 +1,1 @@
+query --package_path %workspace%:/usr/local/bin/base_workspace
