@@ -12,7 +12,6 @@ bot_module(
         "//wellness_rule",
         "//destiny_rule",
         "//mtg_rule",
-        "//psycho_rule",
     ],
 )
 
