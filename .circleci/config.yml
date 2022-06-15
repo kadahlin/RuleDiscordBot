@@ -7,5 +7,8 @@ jobs:
       - image: atomicboo/honkbot_build
     steps:
       - checkout
+      - run: echo $HONKBOT_FIREBASE_SERVICE | base64 --decode > ./myrulebot/src/main/resources/serviceAccount.json
       - run: bazel test //...
       - run: 'bazel build //myrulebot:app_deploy.jar'
+      - run: 'docker build -t atomicboo/rulebot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN} .'
+      - run: 'docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN && docker push atomicboo/rulebot:latest'
