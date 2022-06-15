@@ -7,6 +7,7 @@ jobs:
       - image: atomicboo/honkbot_build
     steps:
       - checkout
+      - setup_remote_docker
       - run: mkdir –p ./myrulebot/src/main/resources
       - run: echo $HONKBOT_FIREBASE_SERVICE | base64 --decode > ./myrulebot/src/main/resources/serviceAccount.json
       - run: bazel test //...
