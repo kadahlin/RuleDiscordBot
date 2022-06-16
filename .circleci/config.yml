@@ -11,6 +11,9 @@ jobs:
       - run: mkdir –p ./myrulebot/src/main/resources
       - run: echo $HONKBOT_FIREBASE_SERVICE | base64 --decode > ./myrulebot/src/main/resources/serviceAccount.json
       - run: bazel test //...
-      - run: 'bazel build //myrulebot:app_deploy.jar'
-      - run: 'docker build -t atomicboo/rulebot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN} .'
-      - run: 'docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN && docker push atomicboo/rulebot:latest'
+      - run:
+          name: 'Build and push to docker hub'
+          command: |
+            bazel build //myrulebot:app_deploy.jar
+            docker build -t atomicboo/rulebot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN} .
+            docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN && docker push atomicboo/rulebot:latest
