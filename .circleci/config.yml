@@ -15,5 +15,6 @@ jobs:
           name: 'Build and push to docker hub'
           command: |
             bazel build //myrulebot:app_deploy.jar
+            cp bazel-bin/myrulebot/app_deploy.jar ./
             docker build -t atomicboo/rulebot:latest --build-arg HONKBOT_TOKEN=${HONKBOT_TOKEN} .
             docker login -u $DOCKER_USERNAME -p $DOCKER_TOKEN && docker push atomicboo/rulebot:latest
