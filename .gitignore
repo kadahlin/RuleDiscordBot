@@ -20,3 +20,7 @@ bazel-testlogs
 bazel-out
 bazel-bin
 bazel-RuleDiscordBot
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
