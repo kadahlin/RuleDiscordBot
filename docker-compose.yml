@@ -1,8 +1,0 @@
-version: '3.8'
-services:
-  honkbot:
-    image: "atomicboo/rulebot:latest"
-    ports:
-      - "6969:6969"
-    environment:
-      - HONKBOT_LOG=INFO
