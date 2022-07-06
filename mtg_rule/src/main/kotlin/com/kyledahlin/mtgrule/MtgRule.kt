@@ -16,18 +16,9 @@ import javax.inject.Inject
 
 private const val MTG_SEARCH_NAME = "mtg-search"
 
-class MtgRule : Rule {
-
+class MtgRule @Inject constructor(
     private val _client: SkryfallClient
-
-    @Inject
-    constructor() : super("MtgRule") {
-        _client = SkryfallClient.createClient(logCalls = true)
-    }
-
-    constructor(client: SkryfallClient) : super("MtgRule") {
-        _client = client
-    }
+) : Rule("MtgRule") {
 
     override fun handlesCommand(name: String): Boolean {
         return name == MTG_SEARCH_NAME
@@ -70,17 +61,18 @@ class MtgRule : Rule {
         }
 
         context.deferReply(withEphemeral = false)
-        val response = _client.searchCards(CardText.name(cardName))
-        if (response is Success) {
-            if (response.data.isNotEmpty()) {
-                context.editReply {
-                    addEmbed {
-                        image { response.data.first().imageUris?.get("normal")!!.jsonPrimitive.content }
-                    }
-                }
-            } else {
-                context.editReply {
-                    content { "No card found for $cardName" }
+        val response = try {
+            _client.searchCards(CardText.name(cardName))
+        } catch (e: Exception) {
+            context.editReply {
+                content { "No cards found for $cardName" }
+            }
+            return
+        }
+        if (response is Success && response.data.isNotEmpty()) {
+            context.editReply {
+                addEmbed {
+                    image { response.data.first().imageUris?.get("normal")!!.jsonPrimitive.content }
                 }
             }
         } else {

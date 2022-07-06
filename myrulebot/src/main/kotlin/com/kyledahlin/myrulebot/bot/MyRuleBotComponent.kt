@@ -28,6 +28,7 @@ import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorageImpl
 import com.kyledahlin.myrulebot.bot.rockpaperscissorsrule.RockPaperScissorsRule
 import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.bot.Rule
+import com.kyledahlin.skryfall.SkryfallClient
 import com.kyledahlin.wellnessrule.WellnessRule
 import dagger.Binds
 import dagger.Component
@@ -83,7 +84,7 @@ internal abstract class MyRuleBotModule {
         @JvmStatic
         @Provides
         @MyRuleBotScope
-        fun bindsMtgRule(): MtgRule = MtgRule()
+        fun bindsSkryfallClient(): SkryfallClient = SkryfallClient.createClient(logCalls = true)
 
         @JvmStatic
         @Provides
