@@ -5,9 +5,10 @@ import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.SetOptions
 import com.kyledahlin.myrulebot.bot.suspend
 import javax.inject.Inject
+import javax.inject.Provider
 
-open class Destiny2Storage @Inject constructor(firestore: Firestore) {
-    private val _collection = firestore.collection("destiny2")
+open class Destiny2Storage @Inject constructor(firestore: Provider<Firestore>) {
+    private val _collection = firestore.get().collection("destiny2")
 
     private val _coreDoc: DocumentReference
         get() = _collection

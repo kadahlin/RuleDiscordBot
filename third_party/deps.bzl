@@ -42,7 +42,7 @@ KTOR_SERVER = [
 ]
 
 FIREBASE = [
-     "com.google.firebase:firebase-admin:8.1.0"
+     "com.google.firebase:firebase-admin:9.0.0"
 ]
 
 TEST = [
