@@ -1,8 +1,7 @@
 package com.kyledahlin.destiny
 
-import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
+import arrow.core.*
+import arrow.core.computations.either
 import com.kyledahlin.rulebot.bot.Logger
 import io.ktor.client.*
 import io.ktor.client.engine.apache.*
@@ -39,6 +38,7 @@ open class Destiny2ClientProvider @Inject constructor(private val _storage: Dest
 
     open fun getOauthClient(): HttpClient {
         return HttpClient(Apache) {
+            expectSuccess = false
             install(Auth) {
                 lateinit var tokenInfo: TokenInfo
                 var refreshTokenInfo: TokenInfo
@@ -100,30 +100,34 @@ open class Destiny2Api @Inject constructor(
         return _apiKey!!
     }
 
-    open suspend fun getTodaysModInformation(): Either<String, List<Pair<String, String>>> {
-        val adaResponse =
+    /**
+     * Return a list of mod names to their image urls or a string explaining the failure
+     */
+    open suspend fun getTodaysModInformation(): Either<Int, List<Pair<String, String>>> {
+        val modListOrException =
             client.getWithKey(
                 "$DESTINY_2_API_ROOT/3/Profile/$MEMBERSHIP_ID/Character/$CHARACTER_ID/Vendors/$ADA_VENDOR_ID/?components=402"
-            )
-        Logger.logDebug { "api response = $adaResponse" }
+            ).map(_translator::getModHashesFromResponse)
 
-        val modIds = _translator.getModHashesFromResponse(adaResponse)
-        if (modIds.isEmpty()) {
-            return "Empty mods".left()
+        return modListOrException.flatMap { list ->
+            list.map { modId ->
+                client.getWithKey("$DESTINY_2_API_ROOT$ITEM_DEFINITION/$modId")
+            }.traverseEither { it }
+        }.map { urls ->
+            urls.map { url -> _translator.getNameAndImageForModResponse(url) }
+                .map { it.second to "$BUNGIE_API_ROOT${it.first}" }
         }
-
-        val namesAndUrls = modIds.map {
-            val response = client.getWithKey("$DESTINY_2_API_ROOT$ITEM_DEFINITION/$it")
-            val contentPath = _translator.getNameAndImageForModResponse(response)
-            contentPath.second to "$BUNGIE_API_ROOT${contentPath.first}"
-        }
-        return namesAndUrls.right()
     }
 
-    private suspend fun HttpClient.getWithKey(urlString: String, block: HttpRequestBuilder.() -> Unit = {}): String {
-        return get(urlString) {
+    private suspend fun HttpClient.getWithKey(urlString: String, block: HttpRequestBuilder.() -> Unit = {}): Either<Int, String> {
+        val response = get<HttpResponse>(urlString) {
             header("X-Api-Key", apiKey())
             block()
         }
+        return Either.conditionally(response.status == HttpStatusCode.OK, {
+            response.status.value
+        }, {
+            response.readText()
+        })
     }
 }

@@ -41,7 +41,7 @@ class Destiny2Rule @Inject constructor(private val _api: Destiny2Api) : Rule("De
             .fold({ failureReason ->
                 context.editReply {
                     withEphemeral()
-                    content { "Couldnt get mods: $failureReason" }
+                    content { "Couldnt get mods: $failureReason from server" }
                 }
             }, { pairs ->
                 context.editReply {
