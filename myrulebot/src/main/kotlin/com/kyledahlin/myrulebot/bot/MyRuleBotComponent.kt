@@ -26,6 +26,7 @@ import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRule
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorage
 import com.kyledahlin.myrulebot.bot.keyvalue.KeyValueRuleStorageImpl
 import com.kyledahlin.myrulebot.bot.rockpaperscissorsrule.RockPaperScissorsRule
+import com.kyledahlin.raidrule.RaidRule
 import com.kyledahlin.rulebot.Analytics
 import com.kyledahlin.rulebot.bot.Rule
 import com.kyledahlin.skryfall.SkryfallClient
@@ -69,10 +70,11 @@ internal abstract class MyRuleBotModule {
             wellnessRule: WellnessRule,
             mtgRule: MtgRule,
             destinyRule: Destiny2Rule,
+            raidRule: RaidRule
         ): Set<Rule> {
             return setOf(
                 jojoMemeRule, rockPaperScissorsRule,
-                coronaRule, keyValueRule, wellnessRule, mtgRule, destinyRule
+                coronaRule, keyValueRule, wellnessRule, mtgRule, destinyRule, raidRule
             )
         }
 

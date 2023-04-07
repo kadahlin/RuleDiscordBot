@@ -2,9 +2,11 @@ DAGGER_BASE = "com.google.dagger:dagger"
 DAGGER_VERSION = "2.40.5"
 
 COROUTINES_BASE = "org.jetbrains.kotlinx:kotlinx-coroutines"
-COROUTINES_VERSION = "1.5.2"
+COROUTINES_VERSION = "1.6.1"
 
 DAGGER_COMPILER = "%s-compiler:%s" % (DAGGER_BASE, DAGGER_VERSION)
+
+_COMPOSE_VERSION = "1.4.0"
 
 ARROW_VERSION = "1.0.1"
 ARROW_BASE = "io.arrow-kt:arrow"
@@ -53,4 +55,15 @@ TEST = [
     "org.junit.platform:junit-platform-console:1.8.2",
     "org.junit.jupiter:junit-jupiter-api:5.8.2",
     "%s:%s" % (KTOR_TEST, KTOR_VERSION)
+]
+
+COMPOSE = [
+    "androidx.core:core-ktx:1.8.0",
+    "androidx.appcompat:appcompat:1.5.0",
+    "androidx.activity:activity-compose:1.5.1",
+    "androidx.compose.material:material:{}".format(_COMPOSE_VERSION),
+    "androidx.compose.ui:ui:{}".format(_COMPOSE_VERSION),
+    "androidx.compose.ui:ui-tooling:{}".format(_COMPOSE_VERSION),
+    "androidx.compose.compiler:compiler:{}".format("1.2.0"),
+    "androidx.compose.runtime:runtime:{}".format(_COMPOSE_VERSION)
 ]

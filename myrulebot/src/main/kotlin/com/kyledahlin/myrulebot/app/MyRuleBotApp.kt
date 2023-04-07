@@ -42,7 +42,7 @@ fun main(args: Array<String>) {
     val logLevel = when (System.getenv("HONKBOT_LOG")) {
         "DEBUG" -> LogLevel.DEBUG
         "INFO" -> LogLevel.INFO
-        else -> LogLevel.ERROR
+        else -> LogLevel.DEBUG
     }
 
     val port = System.getenv("PORT").toInt()

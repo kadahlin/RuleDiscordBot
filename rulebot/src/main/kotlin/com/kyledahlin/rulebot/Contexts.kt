@@ -2,20 +2,18 @@ package com.kyledahlin.rulebot
 
 import discord4j.common.util.Snowflake
 import discord4j.core.DiscordClient
-import discord4j.core.`object`.entity.User
 import discord4j.core.event.domain.guild.GuildCreateEvent
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent
 import discord4j.core.event.domain.interaction.UserInteractionEvent
+import discord4j.core.`object`.entity.Guild
+import discord4j.core.`object`.entity.User
 import discord4j.discordjson.json.ApplicationCommandRequest
+import discord4k.*
 import discord4k.builders.InteractionApplicationCommandCallbackSpecKt
 import discord4k.builders.InteractionReplyEditSpecKt
 import discord4k.builders.MessageCreateSpecKt
 import discord4k.interactions.*
-import discord4k.suspendApplicationId
-import discord4k.suspendCreateApplicationCommand
-import discord4k.suspendPrivateChannel
-import suspendCreateMessage
 
 interface GuildCreateContext {
     val guildId: Snowflake
@@ -90,9 +88,13 @@ internal class ChatInputInteractionContextImpl(private val event: ChatInputInter
 interface ButtonInteractionEventContext {
     val channelId: Snowflake
     val customId: String
+    val userId: Snowflake
+    val user: User
     suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
     suspend fun editReply(spec: InteractionReplyEditSpecKt.() -> Unit)
     suspend fun edit(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit)
+
+    suspend fun guild(): Guild
 }
 
 internal class ButtonInteractionEventContextImpl(private val event: ButtonInteractionEvent) :
@@ -103,6 +105,16 @@ internal class ButtonInteractionEventContextImpl(private val event: ButtonIntera
 
     override val customId: String
         get() = event.customId
+
+    override val userId: Snowflake
+        get() = event.interaction.user.id
+
+    override val user: User
+        get() = event.interaction.user
+
+    override suspend fun guild(): Guild {
+        return event.interaction.suspendGuild()
+    }
 
     override suspend fun reply(spec: InteractionApplicationCommandCallbackSpecKt.() -> Unit) {
         event.suspendReply(spec)

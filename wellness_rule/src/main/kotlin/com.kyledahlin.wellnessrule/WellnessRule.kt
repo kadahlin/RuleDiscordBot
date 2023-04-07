@@ -15,12 +15,12 @@ import com.kyledahlin.wellness.models.WellnessResponse
 import discord4j.core.`object`.entity.channel.MessageChannel
 import discord4j.core.event.domain.VoiceStateUpdateEvent
 import discord4j.discordjson.json.ApplicationCommandRequest
+import discord4k.suspendCreateMessage
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import suspendCreateMessage
 import javax.inject.Inject
 
 private val ONE_DAY = 1000 * 60 * 60 * 24
